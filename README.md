@@ -32,31 +32,31 @@ Ask for the loop you actually want. Same compiler, different track:
 Both emit the same kind of fixed kickoff:
 
 ```text
-/goal read .loop/onboarding-flow/PROMPT.md and execute as onboarding flow loop.
-/goal read .loop/checkout-benchmark/PROMPT.md and execute as checkout API load benchmark loop.
+/goal read .loop/001-onboarding-flow/PROMPT.md and execute as onboarding flow loop.
+/goal read .loop/002-checkout-benchmark/PROMPT.md and execute as checkout API load benchmark loop.
 ```
 
 The stable file shape is the point. Product walkthroughs keep the story surface:
 
 ```text
-.loop/onboarding-flow/PROMPT.md
-.loop/onboarding-flow/STATE.md
+.loop/001-onboarding-flow/PROMPT.md
+.loop/001-onboarding-flow/STATE.md
 docs/storyboard.md
 ```
 
 The backend benchmark track emits the frontier ledger and benchmark overlay:
 
 ```text
-.loop/checkout-benchmark/PROMPT.md
-.loop/checkout-benchmark/STATE.md
-.loop/checkout-benchmark/FINDINGS.md
-.loop/checkout-benchmark/TRACES.md
-.loop/checkout-benchmark/METRICS.md
-.loop/checkout-benchmark/DOMAIN_SPEC.md
-.loop/checkout-benchmark/BENCHMARK.md
-.loop/checkout-benchmark/FRONTIER.json
-.loop/checkout-benchmark/CANDIDATES.jsonl
-.loop/checkout-benchmark/traces/
+.loop/002-checkout-benchmark/PROMPT.md
+.loop/002-checkout-benchmark/STATE.md
+.loop/002-checkout-benchmark/FINDINGS.md
+.loop/002-checkout-benchmark/TRACES.md
+.loop/002-checkout-benchmark/METRICS.md
+.loop/002-checkout-benchmark/DOMAIN_SPEC.md
+.loop/002-checkout-benchmark/BENCHMARK.md
+.loop/002-checkout-benchmark/FRONTIER.json
+.loop/002-checkout-benchmark/CANDIDATES.jsonl
+.loop/002-checkout-benchmark/traces/
 ```
 
 ## How it actually works

@@ -16,8 +16,12 @@ files, and execution state risks being **committed as if it were a deliverable**
 ## Decision
 
 All loop records live under a **gitignored, per-loop `.loop/<loop-id>/` tree**,
-where `<loop-id>` is the kebab-case of the one-phrase kick-off identity (e.g.
-identity "weave cross-product OOD loop" → `.loop/weave-eval/`). Records are
+where `<loop-id>` is a **zero-padded sequence prefix + kebab-case identity** — a
+per-repo 3-digit monotonic number (`max(existing .loop/NNN-*) + 1`, first is
+`001`) joined to the kebab of the one-phrase kick-off identity (e.g. the first
+loop with identity "weave cross-product OOD loop" → `.loop/001-weave-eval/`). The
+prefix orders loops by creation and disambiguates two loops that share a slug.
+Records are
 **local-only execution state by default** — not version-controlled. Durable
 conclusions **graduate** to `docs/` / `specs/` / code, never the loop dir. The
 skill ensures the host repo's `.gitignore` ignores `.loop/` at emit, and the

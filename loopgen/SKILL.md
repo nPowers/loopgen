@@ -276,9 +276,13 @@ the canonical files.
 
 **Loop-record location (uniform).** All loop records live under
 `.loop/<loop-id>/` — **gitignored execution state**, uniform with the
-frontier-loop scratch already kept there (`.loop/<name>/`). `<loop-id>` is the
-loop's identity slug: the kebab-case of the one-phrase identity used in the
-kick-off (e.g. identity "weave cross-product OOD loop" → `.loop/weave-eval/`).
+frontier-loop scratch already kept there (`.loop/<name>/`). `<loop-id>` is a
+**zero-padded sequence prefix + identity slug**: a 3-digit monotonic number
+(per repo — `max(existing .loop/NNN-* dirs) + 1`, first loop is `001`) joined by
+`-` to the kebab-case of the one-phrase identity used in the kick-off (e.g. the
+first loop with identity "weave cross-product OOD loop" → `.loop/001-weave-eval/`).
+The prefix orders loops by creation and keeps the dir unique when two loops share
+an identity slug; mint it once at bootstrap and reuse it verbatim every iteration.
 Records are **local-only by default** (not version-controlled) — they are
 execution state, not deliverables; durable conclusions graduate to
 `docs/`/`specs/`/code, never the loop dir. Ensure the host repo's `.gitignore`
