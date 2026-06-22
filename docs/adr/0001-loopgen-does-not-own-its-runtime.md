@@ -76,9 +76,10 @@ Negative:
 
 - Merged: PR #5, commit `f74eb00` (ships U2 subagent catalog / U3 goal
   provenance+replan / U4 frontload horizon+restructure; U1 dropped).
-- Full explored design + decision lineage:
-  `docs/plans/2026-06-18-001-feat-loopgen-runtime-discipline-plan.md` (lineage
-  v3.3; the U1 section is retained, marked **DROPPED**, as the record of what was
-  explored and why it was cut).
+- Full explored design + decision lineage: the runtime-discipline plan doc
+  (`docs/plans/2026-06-18-001-…`) was **removed** per the repo's no-plan-docs
+  convention — this ADR is the durable record. The explored U1 lease design and
+  its DROPPED lineage (v3.3) remain in git history (the doc was deleted in
+  `982a3ce`).
 - Source idea: Deli AutoResearch runtime harness (heartbeat watchdog / stall
   detection).
