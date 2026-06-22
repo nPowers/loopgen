@@ -15,7 +15,7 @@ Give it the thing you're trying to do: close a spec, improve the codebase, push 
 The visible output is intentionally boring:
 
 ```text
-/goal read loop/PROMPT.md and execute as <loop identity>.
+/goal read .loop/<loop-id>/PROMPT.md and execute as <loop identity>.
 ```
 
 ![loopgen compiled loop contract](assets/loopgen-hero.jpg)
@@ -32,31 +32,31 @@ Ask for the loop you actually want. Same compiler, different track:
 Both emit the same kind of fixed kickoff:
 
 ```text
-/goal read loop/PROMPT.md and execute as onboarding flow loop.
-/goal read loop/PROMPT.md and execute as checkout API load benchmark loop.
+/goal read .loop/onboarding-flow/PROMPT.md and execute as onboarding flow loop.
+/goal read .loop/checkout-benchmark/PROMPT.md and execute as checkout API load benchmark loop.
 ```
 
 The stable file shape is the point. Product walkthroughs keep the story surface:
 
 ```text
-loop/PROMPT.md
-loop/STATE.md
+.loop/onboarding-flow/PROMPT.md
+.loop/onboarding-flow/STATE.md
 docs/storyboard.md
 ```
 
 The backend benchmark track emits the frontier ledger and benchmark overlay:
 
 ```text
-loop/PROMPT.md
-loop/STATE.md
-loop/FINDINGS.md
-loop/TRACES.md
-loop/METRICS.md
-loop/DOMAIN_SPEC.md
-loop/BENCHMARK.md
-loop/FRONTIER.json
-loop/CANDIDATES.jsonl
-loop/traces/
+.loop/checkout-benchmark/PROMPT.md
+.loop/checkout-benchmark/STATE.md
+.loop/checkout-benchmark/FINDINGS.md
+.loop/checkout-benchmark/TRACES.md
+.loop/checkout-benchmark/METRICS.md
+.loop/checkout-benchmark/DOMAIN_SPEC.md
+.loop/checkout-benchmark/BENCHMARK.md
+.loop/checkout-benchmark/FRONTIER.json
+.loop/checkout-benchmark/CANDIDATES.jsonl
+.loop/checkout-benchmark/traces/
 ```
 
 ## How it actually works
@@ -78,7 +78,7 @@ The compiler flow is short:
 1. **Frontload audit.** Resolve paths, commands, evaluator, scope, budget, and irreversible decisions before the loop fires.
 2. **Classify.** Extract primitive values and pick the nearest archetype. Contradictions ask instead of silently defaulting.
 3. **Compose.** Start from the archetype body, apply divergences and overlays, fill provenance and frontload gaps.
-4. **Emit.** Write the prompt/state/artifact contract and the same `/goal read loop/PROMPT.md...` pointer every time.
+4. **Emit.** Write the prompt/state/artifact contract and the same `/goal read .loop/<loop-id>/PROMPT.md...` pointer every time.
 
 Hybrids keep the nearest archetype's contract, then add the active divergent or
 overlay pieces. A story-shaped frontend snappiness loop, for example, keeps the
@@ -97,10 +97,10 @@ stalls or invents a stop condition.
 
 loopgen creates a middle layer:
 
-- **Prompt contract** — `loop/PROMPT.md` carries the full re-entrant loop playbook
-- **Durable state** — `loop/STATE.md` records classification, frontload, artifacts, and halt scan
+- **Prompt contract** — `.loop/<loop-id>/PROMPT.md` carries the full re-entrant loop playbook
+- **Durable state** — `.loop/<loop-id>/STATE.md` records classification, frontload, artifacts, and halt scan
 - **Queue artifacts** — acceptance inventories, storyboards, ledgers, rubrics, traces, and metrics give the loop somewhere concrete to work
-- **Fixed runner pointer** — `/goal read loop/PROMPT.md...` stays the only operator-facing kickoff
+- **Fixed runner pointer** — `/goal read .loop/<loop-id>/PROMPT.md...` stays the only operator-facing kickoff
 
 The result is a loop that can survive handoff, resume from state, and explain
 which contract shaped it.
@@ -115,7 +115,7 @@ which contract shaped it.
 | **Deterministic artifacts** | Emits the same canonical files for the same loop shape every run. |
 | **Benchmark frontier overlay** | Adds domain spec, benchmark, candidate lineage, frontier state, and trace roles when a concrete eval is bound. |
 | **Provenance preamble** | Names the primitive, archetype, body, reference, and overlay files that shaped the prompt. |
-| **Runner-stable kickoff** | Always emits one `/goal read loop/PROMPT.md...` pointer with no first-iteration instructions baked in. |
+| **Runner-stable kickoff** | Always emits one `/goal read .loop/<loop-id>/PROMPT.md...` pointer with no first-iteration instructions baked in. |
 
 ## Common Asks
 
@@ -134,9 +134,9 @@ The bundled `loopgen` skill teaches the model to:
 - Never compose from memory; read the required primitives, archetype, body, and overlay references first
 - Never silently default on contradictory primitive values
 - Always emit canonical artifact files for the active contracts
-- Always record `derivation_read_set`, frontload, divergences, overlays, and artifacts in `loop/STATE.md`
+- Always record `derivation_read_set`, frontload, divergences, overlays, and artifacts in `.loop/<loop-id>/STATE.md`
 - Always make hybrids additive: nearest archetype first, then divergent primitive and overlay contracts
-- Always emit the bare `/goal read loop/PROMPT.md and execute as <identity>.` kickoff
+- Always emit the bare `/goal read .loop/<loop-id>/PROMPT.md and execute as <identity>.` kickoff
 - Never put first-iteration setup instructions in the kickoff; bootstrap belongs inside the re-entrant prompt
 
 ## Skill Internals
@@ -150,7 +150,7 @@ These are not separate user docs. They are the markdown source files the
 | [`loopgen/primitives/`](loopgen/primitives) | Primitive vocabulary: target, halt, artifact, convergence, cadence, frontload, runner, evidence, evaluator, pressure, benchmark overlays. |
 | [`loopgen/archetypes/`](loopgen/archetypes) | Defaults and failure modes for `goal`, `frontier`, `story`, and `greenfield`. |
 | [`loopgen/templates/composed-prompt.md`](loopgen/templates/composed-prompt.md) | Assembly procedure for emitted prompts. |
-| [`loopgen/templates/bodies/`](loopgen/templates/bodies) | Archetype body templates that become `loop/PROMPT.md`. |
+| [`loopgen/templates/bodies/`](loopgen/templates/bodies) | Archetype body templates that become `.loop/<loop-id>/PROMPT.md`. |
 | [`loopgen/references/`](loopgen/references) | Oracle, benchmark-frontier, greenfield, review closure, and compatibility references. |
 
 ---
