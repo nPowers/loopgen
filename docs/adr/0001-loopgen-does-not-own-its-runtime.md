@@ -8,7 +8,7 @@
 ## Context
 
 loopgen is a **compile-time prompt compiler**: it emits a markdown loop prompt
-(`loop/PROMPT.md` + state files) that a *separate* runner (`/goal`, or any host)
+(`.loop/<loop-id>/PROMPT.md` + state files) that a *separate* runner (`/goal`, or any host)
 executes by re-invoking the prompt each iteration. We grafted Deli AutoResearch's
 runtime-discipline ideas into it. Most ported cleanly. One didn't: the **external
 liveness observer** — a lease file the loop stamps, plus a watchdog that detects a
@@ -38,7 +38,7 @@ runner / host), not to the emitted prompt.
   from owns-its-runtime to emits-a-prompt. A producer with no buildable consumer
   is dead weight.
 - loopgen already holds the **portable** failure defense the runtime gap allows:
-  crash **recovery** via commit-per-iteration + `loop/STATE.md`
+  crash **recovery** via commit-per-iteration + `.loop/<loop-id>/STATE.md`
   (`last_action` / `next_action`). It needs no liveness mechanism to resume after
   a crash.
 
