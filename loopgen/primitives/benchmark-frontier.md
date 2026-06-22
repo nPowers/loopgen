@@ -38,11 +38,11 @@ Roles are invariant; filenames are defaults.
 
 | Role | Default file | Contract |
 |---|---|---|
-| `DOMAIN_SPEC` | `loop/DOMAIN_SPEC.md` | fixed surface, mutable surface, eval unit, budget, leakage risks |
-| `BENCHMARK` | `loop/BENCHMARK.md` | search set, holdout set, expected-green/red controls, metrics, timeouts |
-| `CANDIDATES` | `loop/CANDIDATES.jsonl` | rows with candidate lineage, operator, hypothesis, status, eval artifacts |
-| `FRONTIER` | `loop/FRONTIER.json` | best/Pareto members, evaluator health, pressure debt, checkpoint reason |
-| `traces` | `loop/traces/<candidate>/<case>/evaluation.json` | raw evidence; missing or corrupt output counts as failure |
+| `DOMAIN_SPEC` | `.loop/<loop-id>/DOMAIN_SPEC.md` | fixed surface, mutable surface, eval unit, budget, leakage risks |
+| `BENCHMARK` | `.loop/<loop-id>/BENCHMARK.md` | search set, holdout set, expected-green/red controls, metrics, timeouts |
+| `CANDIDATES` | `.loop/<loop-id>/CANDIDATES.jsonl` | rows with candidate lineage, operator, hypothesis, status, eval artifacts |
+| `FRONTIER` | `.loop/<loop-id>/FRONTIER.json` | best/Pareto members, evaluator health, pressure debt, checkpoint reason |
+| `traces` | `.loop/<loop-id>/traces/<candidate>/<case>/evaluation.json` | raw evidence; missing or corrupt output counts as failure |
 
 Repo-native markdown is acceptable only when it preserves the same fields and
 can be audited mechanically.
@@ -135,8 +135,8 @@ that chain (generator ≠ oracle-author ≠ judge ≠ scorer ≠ promoter).
 
 On overlay activation **when the bound oracle is trusted-or-mutated** (an LLM
 judge, a generated/minted answer key, or eval-set evolution — never a
-deterministic non-LLM, non-minted metric), seed these rows into `loop/STATE.md`
-`pressure_objects` (rendered to `loop/PRESSURE.md`, re-read each pass). Each is
+deterministic non-LLM, non-minted metric), seed these rows into `.loop/<loop-id>/STATE.md`
+`pressure_objects` (rendered to `.loop/<loop-id>/PRESSURE.md`, re-read each pass). Each is
 `source: overlay` — a fixed contract installed by the overlay, not a latent-mined
 convention, so its provenance is the overlay activation + the bound oracle-object
 (grep-confirmable) and it is **exempt from the `mined` low/salience entry rule**

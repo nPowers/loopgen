@@ -15,7 +15,7 @@ empirically. Encoding them up-front saves 50–100 iterations of rediscovery.
 ### 1. Evaluator scaffolding precedes artifact
 
 The first 3–7 iterations are *rubric construction*, not output. The loop
-authors `loop/RUBRIC.md`, picks initial criteria, writes concrete pixel/
+authors `.loop/<loop-id>/RUBRIC.md`, picks initial criteria, writes concrete pixel/
 artifact-level anchors, and only then renders the first artifact. If the user
 demands output before evaluator, the prompt should warn that early outputs
 will inflate.
@@ -61,7 +61,7 @@ locks in. Encode:
   prior scores; write a `STATE.md` block that explicitly resets stale
   numbers when intent shifts
 - Don't let the loop defend old work against new intent
-- Maintain `loop/INTENT.md` with **≥3 live target hypotheses**: the
+- Maintain `.loop/<loop-id>/INTENT.md` with **≥3 live target hypotheses**: the
   literal interpretation, a more ambitious / more original interpretation,
   and a dangerous-but-plausible wrong interpretation. Each names
   supporting evidence, artifact implications, what good output makes the
@@ -137,7 +137,7 @@ Schedule a CONSULT every ~10 iterations. Frame the question as:
 *"what's seductive-but-hollow about recent progress?"* and *"what omission
 would look stupid in 6 months?"* — not "review my plan." Disagreement with
 the consultant is allowed and sometimes correct. Capture into
-`loop/creative-consults.md`.
+`.loop/<loop-id>/creative-consults.md`.
 
 **Blind adversarial protocol.** The consult packet excludes current
 scores, the loop's preferred next plan, and self-justifying rationale.

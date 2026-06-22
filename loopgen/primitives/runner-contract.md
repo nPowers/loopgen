@@ -13,7 +13,7 @@ This block is universal.
 **Idempotency corollary (authoring guidance — not part of the inlined block).**
 Because the runner re-invokes the *same* prompt every iteration, the emitted
 prompt must be safe to re-run from any state: all first-iteration / bootstrap /
-one-time setup must be **self-gated on durable state** (`loop/STATE.md`
+one-time setup must be **self-gated on durable state** (`.loop/<loop-id>/STATE.md`
 `iteration: 0`, "no `<artifact>` yet"), run once, then skipped — never assumed to
 run "first". The **kick-off** invocation the operator pastes into the runner must
 likewise be iteration-agnostic (a pointer to the prompt, no "begin with…" step) —

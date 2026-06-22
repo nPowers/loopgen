@@ -22,7 +22,7 @@ frontier, independent of any benchmark-frontier overlay.
 
 ## Pressure record
 
-Record these fields in the findings ledger or `loop/STATE.md`:
+Record these fields in the findings ledger or `.loop/<loop-id>/STATE.md`:
 
 ```yaml
 pressure_status: open | paid | blocked | exhausted
@@ -66,5 +66,5 @@ Invalid checkpoint states:
 ## Storage rule
 
 Do not invent a new artifact for generic frontier pressure. Use the existing
-findings ledger, trace index, or `loop/STATE.md`. Heavier artifact roles belong
+findings ledger, trace index, or `.loop/<loop-id>/STATE.md`. Heavier artifact roles belong
 only to the benchmark-frontier overlay.

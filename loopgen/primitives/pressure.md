@@ -22,8 +22,8 @@ contract, not emitted. No seed, no slope.
 
 ## The pressure object
 
-A pressure is a structured row in `loop/STATE.md` `pressure_objects` (rendered to
-`loop/PRESSURE.md`), never prose. Prose pressure is decision-inert.
+A pressure is a structured row in `.loop/<loop-id>/STATE.md` `pressure_objects` (rendered to
+`.loop/<loop-id>/PRESSURE.md`), never prose. Prose pressure is decision-inert.
 
 | field | values | role |
 |---|---|---|
@@ -47,13 +47,13 @@ is a wall; the other three are slopes.
 
 `{{PRESSURE_SURFACE}}` — substituted verbatim with the block below the `---`
 when the gate holds; else stripped. The active rows themselves live in
-`loop/PRESSURE.md` (re-read each pass), not inlined into the prompt.
+`.loop/<loop-id>/PRESSURE.md` (re-read each pass), not inlined into the prompt.
 
 ## Authoring guidance (not emitted)
 
 - **Gate.** Populate `{{PRESSURE_SURFACE}}` iff `count(pressure_objects) ≥ 1` at
   compose; otherwise it is stripped, so a zero-pressure compose has no pressure section.
-- **Compaction survival.** The *pointer* ("re-read `loop/PRESSURE.md` each
+- **Compaction survival.** The *pointer* ("re-read `.loop/<loop-id>/PRESSURE.md` each
   pass") must sit in the durable prompt — it rides the runner's user-role
   continuation, which survives Codex compaction verbatim while the assistant
   summary is lossy. The *content* lives on disk. File-backed beats
@@ -66,7 +66,7 @@ when the gate holds; else stripped. The active rows themselves live in
 ## Pressure weather
 
 This is iteration **step 0**: before any numbered step of the protocol below,
-first **re-render** `loop/PRESSURE.md` from `loop/STATE.md` `pressure_objects`
+first **re-render** `.loop/<loop-id>/PRESSURE.md` from `.loop/<loop-id>/STATE.md` `pressure_objects`
 (the source of truth), then read it and run its maintenance pass (below).
 `PRESSURE.md` is a pure projection you never trust independently — re-deriving it
 each pass means a torn write (a crash between the STATE mutation and the render)
@@ -76,16 +76,16 @@ carries these maintenance rules, so the discipline survives context compaction
 even when this block is summarized away.
 
 **Flush before you continue.** Every pressure mutation — appending a backpressure
-row, any lifecycle transition — is written to `loop/STATE.md` `pressure_objects`
-and re-rendered to `loop/PRESSURE.md` within the same tool-call sequence that
+row, any lifecycle transition — is written to `.loop/<loop-id>/STATE.md` `pressure_objects`
+and re-rendered to `.loop/<loop-id>/PRESSURE.md` within the same tool-call sequence that
 computed it, before the next decision. Never carry a pending pressure write in
 context across a tool call: a compaction boundary can drop it, and the surviving
 re-read pointer would then resume against a stale field with no signal a write
 was lost. This is the write-ahead discipline the budget spend-ledger already
-uses, applied to pressure state. `loop/PRESSURE.md` is the rendered view of
-`loop/STATE.md` `pressure_objects` (the source of truth), not a separate store:
+uses, applied to pressure state. `.loop/<loop-id>/PRESSURE.md` is the rendered view of
+`.loop/<loop-id>/STATE.md` `pressure_objects` (the source of truth), not a separate store:
 where a frontier checkpoint contract says to keep pressure in the findings
-ledger / `loop/STATE.md` and not invent a new artifact, this is that same store
+ledger / `.loop/<loop-id>/STATE.md` and not invent a new artifact, this is that same store
 rendered — the two agree. Let each active row tilt the plan **while you are
 still planning, before any gate**:
 
@@ -102,9 +102,9 @@ evidence (`evidence-tier.md`) is cut, not rendered.
 
 **Record the read-back.** Reading the weather is neither optional nor
 self-attested. The numbered iteration protocol in the body does not list
-`loop/PRESSURE.md`; step 0 above **extends** it — the pressure read is a
+`.loop/<loop-id>/PRESSURE.md`; step 0 above **extends** it — the pressure read is a
 precondition of step 1. Each pass, write a `pressure_consulted` record to
-`loop/STATE.md`: every active row id mapped to the plan element it bent, or
+`.loop/<loop-id>/STATE.md`: every active row id mapped to the plan element it bent, or
 `no-effect: <reason>`. That turns "a pressure bent my plan" from prose the loop
 can fabricate or silently skip into an artifact the next pass and the case-12
 trace can diff against the moves actually made. A pass with no
@@ -138,8 +138,8 @@ constraints in the halt summary so the next derivation sees the real cause.
 
 When an attempt resolves against the world — a failed verify, eval, probe, or
 review — capture the result as pressure for the next pass: append a
-`source: backpressure` object to `loop/STATE.md` `pressure_objects` (it renders
-into `loop/PRESSURE.md`), scoped to what failed, in the **softest** mode the
+`source: backpressure` object to `.loop/<loop-id>/STATE.md` `pressure_objects` (it renders
+into `.loop/<loop-id>/PRESSURE.md`), scoped to what failed, in the **softest** mode the
 failure justifies — default `burden`, never `constraint` from a single signal. A
 backpressure `constraint` (a wall) requires the failure reproduced on a tier-1/2
 channel, and even then carries an `expires`/reopen condition: a wall built from
@@ -193,7 +193,7 @@ that owes evidence, exactly like a queue row:
   not a terminal state, so it can still be demoted or retired when its reopen
   condition is met.
 
-Record every transition in `loop/STATE.md` `pressure_ledger`, each with its
+Record every transition in `.loop/<loop-id>/STATE.md` `pressure_ledger`, each with its
 evidence cite. Bound **both** sets, not just retired rows: a new `source:
 backpressure` row scoped to an already-pressured scope **merges into** the
 existing row (strengthen / re-stamp), never appends a duplicate; more than

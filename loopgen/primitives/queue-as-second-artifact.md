@@ -2,8 +2,8 @@
 
 ## Purpose
 
-The pattern behind `artifact-shape.md`: every loop maintains `loop/PROMPT.md` +
-`loop/STATE.md`, and **most also maintain one or more durable queue artifacts**
+The pattern behind `artifact-shape.md`: every loop maintains `.loop/<loop-id>/PROMPT.md` +
+`.loop/<loop-id>/STATE.md`, and **most also maintain one or more durable queue artifacts**
 — reviewable inventories of discovered-but-not-yet-closed work — because durable
 loop mechanics live in artifacts, not memory, and must survive context
 compaction.

@@ -1,7 +1,7 @@
 # Composed Prompt — assembly skeleton
 
 This file is **not** an emittable prompt. It is the recipe `/loopgen` Phase 3
-follows to assemble `loop/PROMPT.md` after the `SKILL.md` Derivation read
+follows to assemble `.loop/<loop-id>/PROMPT.md` after the `SKILL.md` Derivation read
 contract has been satisfied. It assembles from three inputs:
 
 1. the nearest archetype's **body template** — `templates/bodies/<archetype>-body.md`,
@@ -89,7 +89,7 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
 
 ## Assembly procedure (Phase 3 follows this)
 
-0. **Verify read set.** Confirm `loop/STATE.md` will record the base reads,
+0. **Verify read set.** Confirm `.loop/<loop-id>/STATE.md` will record the base reads,
    nearest archetype/body reads, divergent primitive/source reads, and active
    overlay reads required by `SKILL.md` Derivation read contract. Missing reads
    are derivation gaps, not silent defaults.
@@ -134,7 +134,7 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    - **When the bound evaluator is trusted-or-mutated** (an LLM judge, a
      generated/minted answer key, or eval-set evolution), seed the
      `### Oracle-integrity pressure` rows (`primitives/benchmark-frontier.md`) into
-     `loop/STATE.md` `pressure_objects`, so `{{PRESSURE_SURFACE}}` fires via its own
+     `.loop/<loop-id>/STATE.md` `pressure_objects`, so `{{PRESSURE_SURFACE}}` fires via its own
      ≥1-object gate (step 7a). The two gates **nest**: oracle-integrity rows are a
      strict subset of overlay-active-and-oracle-trusted cases, so they never appear
      without the overlay block that explains them, and a pure archetype — or a
@@ -150,7 +150,7 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    - Otherwise strip `{{PRESSURE_SURFACE}}` entirely (step 8 removes it). A pure
      archetype with no seeded or mined pressure stays byte-identical — gated
      exactly like `{{BENCHMARK_FRONTIER_MODE}}`.
-   - The active rows live in `loop/PRESSURE.md` (re-read each pass), not inlined
+   - The active rows live in `.loop/<loop-id>/PRESSURE.md` (re-read each pass), not inlined
      into the prompt; the emitted block carries the re-read contract, the mode
      law, and the backpressure instruction.
 7b. **Apply subagent patterns** (`primitives/subagent-patterns.md`):

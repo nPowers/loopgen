@@ -163,7 +163,7 @@ file convention, normalize before writing.
 
 ## Mechanical run contract
 
-Durable progress lives in artifacts, not memory. Keep `loop/STATE.md`
+Durable progress lives in artifacts, not memory. Keep `.loop/<loop-id>/STATE.md`
 current enough that another runner can resume without guessing. Track:
 
 - `phase`, `iteration`, `current_story`, `last_action`, `next_action`
@@ -406,7 +406,7 @@ source, no new candidate, and no new alignment decision, force a
 re-grounding pass before further verification.
 
 **Same-family drift guard.** Track `last_story_family` and
-`same_family_count` in `loop/STATE.md`. Low-visibility families include
+`same_family_count` in `.loop/<loop-id>/STATE.md`. Low-visibility families include
 scoped-name-only fixes, decorative element classification, group/landmark
 labels, pending-status wording, and operator-only semantics. Recovery-copy
 or validation-copy stories are visible, but still count as the same family
@@ -634,7 +634,7 @@ Before `stop-and-summarize`, perform a completion audit:
   loop artifacts
 - run or inspect a fresh source/browser/e2e re-grounding pass unless the
   immediately preceding iteration already did so
-- set `halt_cause` and `halt_re-grounding` in `loop/STATE.md`
+- set `halt_cause` and `halt_re-grounding` in `.loop/<loop-id>/STATE.md`
 
 Escalate (rare, irreversible-only): see the Runner contract.
 
@@ -732,7 +732,7 @@ Placeholders populated during derivation (see SKILL.md):
   name (e.g., "report viewer", "checkout flow"). Use names the repo
   itself uses; do not hard-code product-specific audiences.
 - `{{STORYBOARD_PATH}}` — `docs/storyboard.md`. Repo-native machine-readable
-  boards may be recorded as aliases in `loop/STATE.md`, but this canonical file
+  boards may be recorded as aliases in `.loop/<loop-id>/STATE.md`, but this canonical file
   still exists.
 
 Drop the **Surface Taste Lane** section when `{{LANE}}` is not the taste

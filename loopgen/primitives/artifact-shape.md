@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Which durable queue artifact the loop maintains beyond `loop/PROMPT.md` and
-`loop/STATE.md` — the concrete form of the pattern in
+Which durable queue artifact the loop maintains beyond `.loop/<loop-id>/PROMPT.md` and
+`.loop/<loop-id>/STATE.md` — the concrete form of the pattern in
 `queue-as-second-artifact.md`. Weight 3. Determines the extra file Phase 4
 emits.
 
@@ -11,14 +11,14 @@ emits.
 
 - `prompt-only` — no queue. Valid only for the simplest finite single-criterion
   runs.
-- `acceptance-inventory` — `loop/ACCEPTANCE.md`: frozen criteria with stable
+- `acceptance-inventory` — `.loop/<loop-id>/ACCEPTANCE.md`: frozen criteria with stable
   IDs, mutable `status` / `last_verification`.
 - `storyboard` — `docs/storyboard.md`: product promises, each row with
   source / confidence / proof / latest evidence.
-- `rubric+intent` — `loop/RUBRIC.md` (numbered criteria with 0/2/5 anchors) +
-  `loop/INTENT.md` (≥3 live target hypotheses).
-- `findings-ledger` — `loop/FINDINGS.md` + `loop/TRACES.md` +
-  `loop/METRICS.md`: loop ledger, structured failure trace index, and metric
+- `rubric+intent` — `.loop/<loop-id>/RUBRIC.md` (numbered criteria with 0/2/5 anchors) +
+  `.loop/<loop-id>/INTENT.md` (≥3 live target hypotheses).
+- `findings-ledger` — `.loop/<loop-id>/FINDINGS.md` + `.loop/<loop-id>/TRACES.md` +
+  `.loop/<loop-id>/METRICS.md`: loop ledger, structured failure trace index, and metric
   output index.
 
 ## Detection heuristics
@@ -46,16 +46,16 @@ emits.
   **index** of evidence/intent, not the source of intent
   (`queue-as-second-artifact.md`).
 - Phase 4 emits the chosen artifact as canonical files alongside
-  `loop/PROMPT.md` + `loop/STATE.md`:
-  `loop/ACCEPTANCE.md` + `loop/VERIFY.md`, `docs/storyboard.md`,
-  `loop/RUBRIC.md` + `loop/INTENT.md` + `loop/README.md`, or
-  `loop/FINDINGS.md` + `loop/TRACES.md` + `loop/METRICS.md`.
+  `.loop/<loop-id>/PROMPT.md` + `.loop/<loop-id>/STATE.md`:
+  `.loop/<loop-id>/ACCEPTANCE.md` + `.loop/<loop-id>/VERIFY.md`, `docs/storyboard.md`,
+  `.loop/<loop-id>/RUBRIC.md` + `.loop/<loop-id>/INTENT.md` + `.loop/<loop-id>/README.md`, or
+  `.loop/<loop-id>/FINDINGS.md` + `.loop/<loop-id>/TRACES.md` + `.loop/<loop-id>/METRICS.md`.
   Repo-native files may be recorded as aliases, but the canonical files still
   exist every run.
 - A pure frontier `findings-ledger` carries generic pressure accounting. The
-  benchmark-frontier overlay additionally emits `loop/DOMAIN_SPEC.md`,
-  `loop/BENCHMARK.md`, `loop/CANDIDATES.jsonl`, `loop/FRONTIER.json`, and
-  `loop/traces/`, but those roles are conditional overlay artifacts and do not
+  benchmark-frontier overlay additionally emits `.loop/<loop-id>/DOMAIN_SPEC.md`,
+  `.loop/<loop-id>/BENCHMARK.md`, `.loop/<loop-id>/CANDIDATES.jsonl`, `.loop/<loop-id>/FRONTIER.json`, and
+  `.loop/<loop-id>/traces/`, but those roles are conditional overlay artifacts and do not
   change this axis value.
 - `acceptance-inventory` pairs with `target-shape: finite-criteria`.
 - A divergence on this axis adds the divergent artifact contract to the nearest

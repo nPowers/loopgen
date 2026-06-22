@@ -73,15 +73,15 @@ disposes. Convergence is `stone-reframe`: the artifact landing on the user's
 
 ## Artifacts to maintain
 
-- `loop/RUBRIC.md` — numbered criteria (8–12), 0–5 scale, concrete pixel/
+- `.loop/<loop-id>/RUBRIC.md` — numbered criteria (8–12), 0–5 scale, concrete pixel/
   artifact anchors. Every score >2 cites evidence (invariant 2). Carries
   `rubric_version` + `score_comparable_with`; score quarantine on reframe
   (invariant 4).
-- `loop/INTENT.md` — ≥3 live target hypotheses with invalidating evidence and
+- `.loop/<loop-id>/INTENT.md` — ≥3 live target hypotheses with invalidating evidence and
   a cheap distinguishing probe each (invariant 3).
-- `loop/STATE.md` — phase, iteration, `score_lock`, gate owners/values, current
+- `.loop/<loop-id>/STATE.md` — phase, iteration, `score_lock`, gate owners/values, current
   open seams, last/next action, `Next action: HALT` hatch (owner: user).
-- `loop/README.md` — how to fire, how to tune the rubric, how to halt, what
+- `.loop/<loop-id>/README.md` — how to fire, how to tune the rubric, how to halt, what
   milestones look like.
 
 {{INCLUDE primitives/queue-as-second-artifact.md}}

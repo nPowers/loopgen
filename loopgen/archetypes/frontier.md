@@ -62,5 +62,5 @@ intervention; it is never picked from a menu.
   proof-promotion and observability-echo drift that produced the same-family
   admissibility rule and the quiet-signal checkpoint.
 - Body template: `templates/bodies/frontier-body.md`.
-- Emits `loop/FINDINGS.md`, `loop/TRACES.md`, and `loop/METRICS.md` as required
+- Emits `.loop/<loop-id>/FINDINGS.md`, `.loop/<loop-id>/TRACES.md`, and `.loop/<loop-id>/METRICS.md` as required
   artifacts. Benchmark outputs are added only by the benchmark-frontier overlay.

@@ -51,7 +51,7 @@ This loop is honest by construction (full text in
 
 ## Terminal contract
 
-The run is complete only when **every criterion** in `loop/ACCEPTANCE.md`
+The run is complete only when **every criterion** in `.loop/<loop-id>/ACCEPTANCE.md`
 for goal version `{{GOAL_VERSION}}` reaches `PASS`.
 
 Completion is a specific halt:
@@ -77,7 +77,7 @@ version.
 
 ## Acceptance inventory
 
-`loop/ACCEPTANCE.md` is the live anchor inventory. Statuses:
+`.loop/<loop-id>/ACCEPTANCE.md` is the live anchor inventory. Statuses:
 
 - `OPEN` — no criterion-specific proof yet.
 - `PASS_PENDING_FINAL` — the criterion's own verifier passed, but the
@@ -95,7 +95,7 @@ Only `PASS` counts for terminal completion. Every accepted change cites
 ## Verifier discipline
 
 Each criterion has a `verifier` command and `pass_evidence` in
-`loop/ACCEPTANCE.md`.
+`.loop/<loop-id>/ACCEPTANCE.md`.
 
 **Valid pass evidence:**
 
@@ -166,7 +166,7 @@ regression risk.
 
 ## Iteration protocol
 
-1. Read `loop/ACCEPTANCE.md`, `loop/STATE.md`, latest verification
+1. Read `.loop/<loop-id>/ACCEPTANCE.md`, `.loop/<loop-id>/STATE.md`, latest verification
    artifacts, and the source authority files. Confirm the goal version
    still matches the frozen inventory.
 2. **Oracle integrity check** before editing:
@@ -177,7 +177,7 @@ regression risk.
    - no expected evidence weakened.
 3. If every criterion is `PASS_PENDING_FINAL` or `PASS`, run the
    **final-verify**. If it proves the whole inventory in the same repo
-   state: set all to `PASS`, write `loop/VERIFY.md` with the matrix,
+   state: set all to `PASS`, write `.loop/<loop-id>/VERIFY.md` with the matrix,
    emit `criteria-met` → `stop-and-summarize`.
 4. Otherwise pick one primary failing / `OPEN` criterion by topology +
    priority + cheapest verifier feedback. If every remaining unpassed
@@ -226,7 +226,7 @@ The headline failure mode. The loop must not:
 - treat a loop-authored test as source intent
 
 **Verifier changes** require an **Oracle Change Note** appended inline to
-`loop/STATE.md`:
+`.loop/<loop-id>/STATE.md`:
 
 ```text
 oracle_change:
@@ -321,11 +321,11 @@ incomplete; close it next run.
 
 ## Artifacts to maintain
 
-- `loop/ACCEPTANCE.md` — frozen criteria, mutable `status` /
+- `.loop/<loop-id>/ACCEPTANCE.md` — frozen criteria, mutable `status` /
   `last_verification`.
-- `loop/STATE.md` — goal version, iteration, current criterion, stuck
+- `.loop/<loop-id>/STATE.md` — goal version, iteration, current criterion, stuck
   counters, Oracle Change Notes (inline), last action, next action.
-- `loop/VERIFY.md` — latest final-verify transcript; written on
+- `.loop/<loop-id>/VERIFY.md` — latest final-verify transcript; written on
   `criteria-met`.
 - Evidence artifacts: command output, traces, generated reports,
   screenshots, fixture outputs, metric files.
@@ -363,7 +363,7 @@ Placeholders populated during derivation (see SKILL.md):
 
 ## Acceptance row format
 
-YAML list in `loop/ACCEPTANCE.md`. Minimum fields per criterion: `id` ·
+YAML list in `.loop/<loop-id>/ACCEPTANCE.md`. Minimum fields per criterion: `id` ·
 `statement` · `source` · `authority` · `verifier` · `pass_evidence` ·
 `fail_evidence` · `status` · `depends_on` · `reopen_condition` ·
 `last_verification`.

@@ -185,8 +185,8 @@ grades itself against is not emittable on hope.
 
 ## Composition notes
 
-- Output: record under `loop/STATE.md` `frontload:` and fill the
-  `{{FRONTLOAD_PREAMBLE}}` slot in `loop/PROMPT.md` naming exactly what was
+- Output: record under `.loop/<loop-id>/STATE.md` `frontload:` and fill the
+  `{{FRONTLOAD_PREAMBLE}}` slot in `.loop/<loop-id>/PROMPT.md` naming exactly what was
   resolved / defaulted / left open.
 - `cadence-shape: deferred-fire-and-forget` raises the completeness bar — no
   human is awake to answer a gap.

@@ -95,7 +95,7 @@ the LLM holds the discipline.
 
 For high-stakes goals where oracle independence matters more than
 operational simplicity, derive a second emitted prompt
-(`loop/PROMPT_verify.md`) and have a separate agent execute verifiers.
+(`.loop/<loop-id>/PROMPT_verify.md`) and have a separate agent execute verifiers.
 Use when:
 
 - the criteria involve user-visible behavior an LLM might rationalize as

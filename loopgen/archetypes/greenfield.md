@@ -3,9 +3,9 @@
 ## Loop shape
 
 A green-field discovery loop. Evaluator scaffolding precedes the artifact: a
-score-locked ramp builds `loop/RUBRIC.md` before the first production render.
+score-locked ramp builds `.loop/<loop-id>/RUBRIC.md` before the first production render.
 The loop then discovers *what* to build, the target phase-shifts as intent
-reveals itself (≥3 live `loop/INTENT.md` hypotheses), and sequenced plans give
+reveals itself (≥3 live `.loop/<loop-id>/INTENT.md` hypotheses), and sequenced plans give
 way to imbalance-seeking. The user curates intent, names failure modes, and
 raises ceilings; the loop proposes, the user disposes.
 
@@ -45,7 +45,7 @@ raises ceilings; the loop proposes, the user disposes.
 ## Extras
 
 - Includes the 11 invariants (`references/greenfield-invariants.md`).
-- Emits `loop/RUBRIC.md`, `loop/INTENT.md`, and `loop/README.md` as required
+- Emits `.loop/<loop-id>/RUBRIC.md`, `.loop/<loop-id>/INTENT.md`, and `.loop/<loop-id>/README.md` as required
   artifacts.
 - Uses research → preloop → bootstrap → iter phase gates, each with
   `owner: loop | user | external`; user-owned gates cannot be flipped by the

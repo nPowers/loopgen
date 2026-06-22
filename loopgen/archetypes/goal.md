@@ -53,7 +53,7 @@ reaches `PASS` without the loop weakening any criterion to get there
 
 - Includes `references/oracle-principles.md` (the four principles + the
   honest-verifier invariants).
-- Emits `loop/ACCEPTANCE.md` + `loop/VERIFY.md` as required artifacts.
-- Optional `loop/PROMPT_verify.md` (a separate verifier agent) for high-stakes
+- Emits `.loop/<loop-id>/ACCEPTANCE.md` + `.loop/<loop-id>/VERIFY.md` as required artifacts.
+- Optional `.loop/<loop-id>/PROMPT_verify.md` (a separate verifier agent) for high-stakes
   oracle independence — payments, data-loss, security boundaries.
 - Body template: `templates/bodies/goal-body.md`.

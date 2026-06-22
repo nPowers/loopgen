@@ -11,17 +11,17 @@ Diagnostic mode only. Not part of an emitted prompt.
 
 ## Procedure
 
-1. **Read** the current `loop/PROMPT.md`, `loop/STATE.md`, the queue artifact
+1. **Read** the current `.loop/<loop-id>/PROMPT.md`, `.loop/<loop-id>/STATE.md`, the queue artifact
    (`artifact-shape`), and the ledger / recent diffs.
 2. **Classify which archetype the loop currently is** — extract its live
    primitive values. It may have **drifted from its declared archetype** (the
    loopgen addition).
 3. **Score** against that archetype's failure modes (`archetypes/*.md`).
 4. **Name** the dominant disturbed axis / missing invariant.
-5. **Emit a minimal mutation** — an inline `loop/PROMPT.md` edit, never a
+5. **Emit a minimal mutation** — an inline `.loop/<loop-id>/PROMPT.md` edit, never a
    rewrite. The hand-evolved prompt has hard-won lessons; add what is missing
    without losing them.
-6. **Write a ⚠️ block** to `loop/STATE.md` telling the next iteration what
+6. **Write a ⚠️ block** to `.loop/<loop-id>/STATE.md` telling the next iteration what
    changed and why.
 
 ## Drift-from-declared check (loopgen addition)
