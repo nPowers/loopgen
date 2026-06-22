@@ -31,6 +31,8 @@ Your job is to make a finite acceptance inventory pass without weakening it.
 
 {{PRESSURE_SURFACE}}
 
+{{SUBAGENT_PATTERNS}}
+
 ## Oracle principles
 
 This loop is honest by construction (full text in
@@ -120,6 +122,23 @@ A verifier you author must first **fail** (oracle principle #2). For each
 criterion, ask: *if this passes, does the user have a working feature?*
 If the answer requires inference, redesign the verifier (principle #3).
 
+### Provenance is not progress
+
+A commit, a diff, or a green command is **provenance — not progress, and not
+closure.** Commit-log narrative is the weakest signal: use it only as a
+**negative** anti-repetition signal, never as positive generative evidence for
+the next intervention; self-narrated recency re-certifies whatever shape
+dominated the window. So a bare commit does **not** move a criterion toward
+`PASS` and does **not** reset the `STUCK` / replan counter. What *does* count as
+new evidence is criterion-specific and twofold: `pass_evidence` (movement toward
+pass) **or sharper `fail_evidence`** — a fresh failing trace, a narrower repro, a
+newly isolated cause (a criterion that is still learning, per the iteration
+protocol's "moves toward pass *or gains sharper failure evidence*" rule).
+Provenance is neither: it neither advances toward pass nor sharpens the failure,
+so it cannot reset a counter. `FIXED ≠ CLOSED` (oracle principle #4): a passing
+per-criterion verifier is at most `PASS_PENDING_FINAL` until the final-verify
+proves the whole inventory in one repo state.
+
 ## Channels
 
 - **Cheap inner channel:** `{{CHEAP_CHANNEL}}` — run after edits, before
@@ -163,7 +182,8 @@ regression risk.
 4. Otherwise pick one primary failing / `OPEN` criterion by topology +
    priority + cheapest verifier feedback. If every remaining unpassed
    criterion is `STUCK` / `BLOCKED_EXTERNAL` / `QUARANTINED` / wrong-loop-
-   shaped, go to halt classification.
+   shaped — **and any wrong-loop-shaped item has already been item-scoped-
+   replanned without success (step 10)** — go to halt classification.
 5. Before editing, write one line:
    `criterion-id | failing-evidence | hypothesis | edit-surface | rollback`.
 6. Make one small reversible change. Run the cheap inner channel; if it
@@ -176,8 +196,18 @@ regression risk.
    hypothesis.
 9. If the criterion verifier passes, mark `PASS_PENDING_FINAL` — not
    `PASS`. `PASS` waits for the next final-verify.
-10. On `{{STUCK_ATTEMPT_N}}` consecutive failures with no new evidence,
-    mark the criterion `STUCK` and switch to another unblocked criterion.
+10. **Item-scoped replan (before `STUCK`, before `wrong-loop`).** When a
+    criterion resists the **same approach** twice, replan the *item* before
+    escalating: change the **edit-surface or hypothesis class** — a different fix
+    strategy for the *same* criterion, not just a retry of the same hypothesis. (Do
+    **not** rewrite or split the frozen criterion in-run: changing the acceptance
+    inventory would force re-deriving a new `goal_version` — decomposition is a
+    re-derivation concern, not an in-run move.) Exhaust item-scoped replanning
+    before concluding the *whole loop* is the wrong archetype (`wrong-loop`) — a
+    single resistant item is a replan trigger, not evidence the goal shape is wrong.
+11. On `{{STUCK_ATTEMPT_N}}` consecutive failures with no new evidence — after
+    an item-scoped replan failed to open a new approach — mark the criterion
+    `STUCK` and switch to another unblocked criterion.
 
 ## Oracle-drift guard
 
@@ -220,9 +250,11 @@ emit `oracle-drift` and stop.
 ### Partial completion is not success
 
 The loop continues while at least one unpassed criterion has a legal
-reversible next move inside scope. Halt with `partial-deadlock` only when
-every unpassed criterion is `STUCK` / `BLOCKED_EXTERNAL` / `QUARANTINED` /
-wrong-loop-shaped.
+reversible next move inside scope — **including a not-yet-tried item-scoped
+replan (step 10)**. Halt with `partial-deadlock` only when every unpassed
+criterion is `STUCK` / `BLOCKED_EXTERNAL` / `QUARANTINED` / wrong-loop-shaped
+**and every wrong-loop-shaped item has already been item-scoped-replanned without
+success**.
 
 When halting partial: preserve pass evidence, list every unpassed
 criterion with its latest failing evidence, name the next required
@@ -253,7 +285,8 @@ Halt when:
 - all criteria reach `PASS` in the final-verify → `criteria-met` →
   `stop-and-summarize`
 - every remaining unpassed criterion is `STUCK` / `BLOCKED_EXTERNAL` /
-  `QUARANTINED` / wrong-loop-shaped → `partial-deadlock`
+  `QUARANTINED` / wrong-loop-shaped, and every wrong-loop-shaped item has already
+  been item-scoped-replanned without success (step 10) → `partial-deadlock`
 - oracle drift is detected and cannot be repaired without authority →
   `oracle-drift`
 - a genuine irreversible / external blocker prevents proof → `escalate`
@@ -311,6 +344,9 @@ Placeholders populated during derivation (see SKILL.md):
 - `{{FRONTLOAD_PREAMBLE}}` — resolved / defaulted / open-gap summary.
 - `{{PRESSURE_SURFACE}}` — the pressure weather block (`primitives/pressure.md`),
   emitted only when ≥1 pressure object exists at compose time; stripped otherwise.
+- `{{SUBAGENT_PATTERNS}}` — the subagent-pattern catalog B/C/D
+  (`primitives/subagent-patterns.md`), emitted only at `consult-tier ≥ 1` and
+  filtered to that tier; stripped byte-identical at tier-0.
 - `{{GOAL_VERSION}}` — fingerprint of criteria + provenance + authority +
   final-verify.
 - `{{REGRESSION_MODE}}` — omit unless this is a rerun (then: "Regression

@@ -26,6 +26,11 @@ composed prompt.
    (`primitives/pressure.md`). Emitted right after the frontload preamble — the
    weather is read before the body — but **only when ≥1 pressure object exists**
    at compose time; otherwise stripped, leaving the prompt byte-identical.
+6b. **Subagent patterns** — CONDITIONAL via `{{SUBAGENT_PATTERNS}}`
+   (`primitives/subagent-patterns.md`). Emitted after the pressure surface — an
+   available *capability* read before the body — but **only when
+   `consult-tier ≥ 1`**, filtered to the patterns that tier meets; at `tier-0` it
+   is stripped, leaving the prompt byte-identical. Carried by all four bodies.
 7. **Archetype body** — the nearest archetype's body, placeholders filled.
    Conditional sub-sections by archetype:
    - `frontier`: Frontier vector · Core law · Homeostasis (5 axes) · Evaluator
@@ -148,9 +153,30 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    - The active rows live in `loop/PRESSURE.md` (re-read each pass), not inlined
      into the prompt; the emitted block carries the re-read contract, the mode
      law, and the backpressure instruction.
+7b. **Apply subagent patterns** (`primitives/subagent-patterns.md`):
+   - If `consult-tier ≥ 1`, replace `{{SUBAGENT_PATTERNS}}` with the block below
+     the `---` in `primitives/subagent-patterns.md`, but **emit only the B/C/D
+     bullets the detected tier meets — drop the rest at substitution time** (a
+     content filter the composer applies as it fills the placeholder, *not* step
+     8's whole-placeholder strip): **D** at tier ≥ 1; **B** at tier 3; **C** at
+     tier 3, or at tier ≥ 1 when frontload binds a pollable job channel. E.g. a
+     tier-1 host with no pollable channel emits the intro + **D only** (B and C
+     are omitted, never inlined); tier-3 emits D + B + C. Fill `{{CONSULT_TIER}}`
+     with the full tier label (e.g. `tier-2`).
+   - Otherwise (`tier-0`) strip `{{SUBAGENT_PATTERNS}}` entirely (step 8 removes
+     it). The loop runs single-agent via pattern A — byte-identical, gated
+     exactly like `{{PRESSURE_SURFACE}}`.
+   - Pattern A (single-agent iteration) is the existing protocol; it is never
+     part of this block, and nothing here is a required gate to accept an
+     iteration.
 8. **Strip dead sections.** Remove any section whose `{{placeholder}}` was not
    substituted. If any `{{…}}` survives, WARN in the emit summary — the emitted
-   prompt must contain no dead sections.
+   prompt must contain no dead sections. When a stripped placeholder sat on its
+   own line between blank lines, **collapse the surrounding blanks to a single
+   newline**, so the stacked gated placeholders (`{{PRESSURE_SURFACE}}` /
+   `{{SUBAGENT_PATTERNS}}`) leave byte-identical output
+   in every on/off combination (no double blank line when an inner one is
+   stripped).
 9. **Verify halt semantics.** The emitted prompt must distinguish invocation
    halt from archetype completion. Shared halt causes (`genuine-escalate`,
    `derivation-gap`, `signal-starvation`, `wrong-loop`) never mean the

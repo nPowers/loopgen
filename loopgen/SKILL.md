@@ -67,6 +67,10 @@ Consult tiers are defined below; benchmark-frontier is defined in
 pressure object exists at compose time (gated; byte-identical when empty).
 `pressure-accounting` is the `frontier` projection of `pressure`, not a separate
 archetype-varying axis.
+`subagent-patterns` is likewise **gated**: its `{{SUBAGENT_PATTERNS}}` block
+(catalog B/C/D — pattern A is the existing single-agent protocol, never part of
+the block) emits only at `consult-tier ≥ 1`, filtered to that tier; at `tier-0`
+it is stripped byte-identical (`primitives/subagent-patterns.md`).
 
 **Forbidden divergences** (identity-breaking; never compose — route away):
 
@@ -129,7 +133,8 @@ For frontier-shaped tasks, read `primitives/evaluator-maturity.md` and
 `primitives/pressure-accounting.md`. When benchmark language appears or the
 benchmark-frontier overlay activates, read `primitives/benchmark-frontier.md`,
 `primitives/eval-ladder.md`, `references/benchmark-frontier-artifacts.md`, and
-`references/benchmark-frontier-example.md`.
+`references/benchmark-frontier-example.md`. When `consult-tier ≥ 1`,
+read `primitives/subagent-patterns.md`.
 
 The provenance preamble's `Primitive sources:` line is the human-readable slice
 of this read set: it names the files whose values shaped or diverged from the
