@@ -11,6 +11,14 @@ Every composed prompt, under "Halt conditions." Emit the shared causes plus the
 nearest archetype's stop cause (a divergence may add a second archetype's stop
 cause). For frontier, the stop cause is a checkpoint, not completion.
 
+## Composition notes
+
+- The stop cause matches the archetype's `convergence-shape`.
+- `derivation-gap` is what makes the `frontload-audit` self-improving across
+  runs.
+
+---
+
 ## Shared causes (in every prompt)
 
 - `derivation-gap` — blocked on something derivation could have asked for
@@ -20,10 +28,14 @@ cause). For frontier, the stop cause is a checkpoint, not completion.
 - `genuine-escalate` — irreversible / external / authority-needed (paid API
   budget, public-publish, secrets, product direction with unclear rollback,
   source conflict between authoritative-current sources).
-- `signal-starvation` — quiet region: no new strong evidence (no typed trace,
-  no reviewed finding, no metric movement, no user reframe) for the configured
-  stretch; the quiet-signal checkpoint fired.
 - `wrong-loop` — the work belongs in a different archetype (see reroute table).
+
+`signal-starvation` is a shared cause **only for archetypes that run a
+quiet-signal checkpoint** (frontier, story): the quiet region — no new strong
+evidence (no typed trace, no reviewed finding, no metric movement, no user
+reframe) for the configured stretch — fired the checkpoint. `goal` is terminal
+finite-criteria with no quiet-signal machinery, so it does **not** carry
+`signal-starvation`.
 
 ## Completion semantics
 
@@ -86,9 +98,3 @@ naming each searched axis/queue class and why no safe continuation remains.
 - open-ended "make it better" with no pass line → `frontier`
 - product-promise discovery / reconciliation → `story`
 - target / artifact / evaluator undefined → `greenfield`
-
-## Composition notes
-
-- The stop cause matches the archetype's `convergence-shape`.
-- `derivation-gap` is what makes the `frontload-audit` self-improving across
-  runs.

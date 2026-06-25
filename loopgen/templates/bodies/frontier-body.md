@@ -110,7 +110,8 @@ The iteration trusts memory surfaces in this order:
 If only weak sources exist, anti-collapse coverage is degraded.
 Creating a minimal structured findings surface is itself a valid
 evaluator-axis job when the cheap channel is green and no stronger
-signal is available.
+signal is available. Never emit language that pretends anti-collapse
+coverage exists when the substrate for it does not.
 
 ## Homeostasis
 
@@ -428,7 +429,7 @@ cause so the user (and the next derivation) can route it back:
   for. The next derivation pass adds it to the Frontload audit so this
   loop doesn't block on it again.
 - `genuine-escalate` — irreversible / external / authority-needed
-  (paid API budget, public-publish, secret, product direction).
+  (paid API budget, public-publish, secret, product direction, source conflict).
 - `homeostatic-checkpoint` — legitimate checkpoint; all five homeostasis axes
   in balance, no high-yield admissible intervention available. This does not
   mean the frontier is complete.
