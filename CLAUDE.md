@@ -16,6 +16,13 @@ Each points at the working tree, so any edit is live in `/loopgen` the moment it
 hits disk — there is **no install/sync step**. (Cold-start on a new machine is a
 manual `git clone` + `ln -s`, documented in bootstrap; it is *not* auto-installed.)
 
+## Contract verification
+
+Contract verification lives at `tools/` (`verify_loopgen_contracts.py` +
+`classify.py`) and runs via `make check`. `dev/` (gitignored, local-only) stays
+maintainer governance — `dev/GOVERNANCE.md` and planning scratch — not the
+verifier's home.
+
 ## Conventions
 
 - **No plan docs in the tree.** Plan docs (`docs/plans/*`) are session
