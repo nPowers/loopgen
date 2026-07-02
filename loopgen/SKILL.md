@@ -63,18 +63,33 @@ sections Phase 3 emits, and do **not** participate in classification distance.
 Consult tiers are defined below; benchmark-frontier is defined in
 `primitives/benchmark-frontier.md`.
 
-**Shared primitives** (constant across archetypes; in every composed prompt):
-`runner-contract`, `judgment-default`, `evidence-tier`, `frontload-audit`,
-`halt-cause-classifier`, `diagnostic-pattern`, `evaluator-maturity` (T0–T6),
-`queue-as-second-artifact`, `pressure`.
-`pressure` is universal, but its `{{PRESSURE_SURFACE}}` block emits only when ≥1
-pressure object exists at compose time (gated; byte-identical when empty).
-`pressure-accounting` is the `frontier` projection of `pressure`, not a separate
-archetype-varying axis.
-`subagent-patterns` is likewise **gated**: its `{{SUBAGENT_PATTERNS}}` block
-(catalog B/C/D — pattern A is the existing single-agent protocol, never part of
-the block) emits only at `consult-tier ≥ 1`, filtered to that tier; at `tier-0`
-it is stripped byte-identical (`primitives/subagent-patterns.md`).
+**Shared primitives** (the non-archetype-varying vocabulary layer; each one
+surfaces differently — not all nine are constant, and not all are emitted):
+
+- **Emitted in every composed prompt:** `runner-contract`, `judgment-default`,
+  the frontload-audit output (`primitives/frontload-audit.md`, filling
+  `{{FRONTLOAD_PREAMBLE}}`), `halt-cause-classifier`.
+- **Archetype-scoped:** `evidence-tier` — every archetype except `goal`, which
+  relies on oracle principles + the acceptance inventory as its evidence
+  surface instead (`templates/composed-prompt.md` §8, Signal hierarchy).
+  `evaluator-maturity` (T0–T6) — `frontier` only, named in its `## Extras`.
+- **Gated** (universal in the vocabulary, conditional in the composed output):
+  `pressure`, `subagent-patterns`, `queue-as-second-artifact`.
+  `pressure` is universal, but its `{{PRESSURE_SURFACE}}` block emits only when ≥1
+  pressure object exists at compose time (gated; byte-identical when empty).
+  `pressure-accounting` is the `frontier` projection of `pressure`, not a separate
+  archetype-varying axis.
+  `subagent-patterns` is likewise **gated**: its `{{SUBAGENT_PATTERNS}}` block
+  (catalog B/C/D — pattern A is the existing single-agent protocol, never part of
+  the block) emits only at `consult-tier ≥ 1`, filtered to that tier; at `tier-0`
+  it is stripped byte-identical (`primitives/subagent-patterns.md`).
+  `queue-as-second-artifact` is the framing note above the queue section,
+  included whenever `artifact-shape` is not `prompt-only` (i.e. almost every
+  composed prompt).
+- **Read every run, never emitted:** `diagnostic-pattern` — read on every
+  Diagnostic-mode invocation to drive the retrofit procedure; per
+  `primitives/diagnostic-pattern.md` it is "not part of an emitted prompt"
+  (Diagnostic mode only, never Phase 1–4 authoring).
 
 **Forbidden divergences** (identity-breaking; never compose — route away):
 
@@ -99,9 +114,9 @@ Do not compose from memory. Every authoring run reads a bounded, provenance-
 relevant set of files and records that list in `.loop/<loop-id>/STATE.md`
 `derivation_read_set`.
 
-**Always read before classification and composition:**
+**Tier 1 — read for classification + frontload (every run, including runs
+that decline):**
 
-- `templates/composed-prompt.md`
 - `primitives/target-shape.md`
 - `primitives/halt-shape.md`
 - `primitives/artifact-shape.md`
@@ -109,11 +124,6 @@ relevant set of files and records that list in `.loop/<loop-id>/STATE.md`
 - `primitives/cadence-shape.md`
 - `primitives/consult-capability.md`
 - `primitives/frontload-audit.md`
-- `primitives/runner-contract.md`
-- `primitives/judgment-default.md`
-- `primitives/evidence-tier.md`
-- `primitives/halt-cause-classifier.md`
-- `primitives/queue-as-second-artifact.md`
 - `primitives/pressure.md`
 
 `primitives/pressure.md` is read every run because the frontload latent-pressure
@@ -121,6 +131,24 @@ mining step is universal and needs its modes + object schema. It shapes the
 emitted prompt (and appears in the provenance `Primitive sources:` line) only
 when mining or a seed produces ≥1 pressure object, so a zero-pressure pure case
 stays byte-identical even though the file is in the read set.
+
+**Tier 2 — read for composition (only after the loop-necessity gate passes
+and composition proceeds):**
+
+- `templates/composed-prompt.md`
+- `primitives/runner-contract.md`
+- `primitives/judgment-default.md`
+- `primitives/evidence-tier.md`
+- `primitives/halt-cause-classifier.md`
+- `primitives/queue-as-second-artifact.md`
+
+A `{loop_warranted: false}` decline stops after Tier 1 — the loop-necessity
+gate halts Phase 2 before Tier 2's composition reads ever start. A
+Diagnostic-mode invocation likewise never reaches Tier 2; it reads per
+`primitives/diagnostic-pattern.md` instead of the Tier 1 list. `derivation_read_set`
+in `.loop/<loop-id>/STATE.md` records whichever tier(s) were actually read for
+that run. This does not change the derivation-gap rule below: a required read
+that cannot be completed is still a derivation gap, not a reason to guess.
 
 **After classification, also read:**
 
@@ -268,6 +296,14 @@ so one blocked row cannot stop a frontier/story/greenfield/goal loop while
 another in-scope evaluator, observability, specification, verifier, or queue
 repair move remains.
 
+`genuine-escalate`'s trigger enumeration is canonical across every archetype
+and must not be reworded or abbreviated per body: paid API budget,
+public-publish, secrets, product direction with unclear rollback, source
+conflict between authoritative-current sources — exactly as
+`primitives/judgment-default.md` and `primitives/halt-cause-classifier.md`
+already state it. Every body's Halt-cause classifier section cites this list,
+not a paraphrase.
+
 ## Artifact + state contracts
 
 Every file-backed emission writes the same canonical anchors. Repo-native paths
@@ -285,8 +321,16 @@ The prefix orders loops by creation and keeps the dir unique when two loops shar
 an identity slug; mint it once at bootstrap and reuse it verbatim every iteration.
 Records are **local-only by default** (not version-controlled) — they are
 execution state, not deliverables; durable conclusions graduate to
-`docs/`/`specs/`/code, never the loop dir. Ensure the host repo's `.gitignore`
-ignores `.loop/` (most already do); if it does not, add it as part of emit. The
+`docs/`/`specs/`/code, never the loop dir. The gitignore guard is part of
+emit, not optional, and an ignore line alone does not undo prior tracking:
+(1) resolve the **host repo root** (`git rev-parse --show-toplevel`) and edit
+*that* `.gitignore` — creating it if absent — to ignore `.loop/`; (2) check for
+already-tracked `.loop/` paths (`git ls-files .loop/`) and, if any exist,
+untrack them with `git rm -r --cached` (kept on disk) before or alongside the
+ignore edit; (3) verify with `git check-ignore .loop/<loop-id>/` before writing
+any loop record. In a worktree or nested repo, the guard targets the repo root
+that owns the working directory (`git rev-parse --show-toplevel` from the
+current cwd), not any other worktree's or parent's root. The
 kick-off points the runner at `.loop/<loop-id>/PROMPT.md`. Every
 `.loop/<loop-id>/<file>` path below is rooted here.
 
@@ -334,13 +378,21 @@ directories, performance reports, benchmark outputs, or generated artifacts.
   `final_verify`, `oracle_change_notes`.
 - `story` — `storyboard_path`, `lane`, `surface_class`, `current_story`,
   `last_surface`, `last_story_family`, `same_family_count`, `fixture_mode`,
-  `evidence_manifest`, `remaining_findings_classified`.
+  `evidence_manifest`, `last_validation_commands`,
+  `remaining_findings_classified`. `halt_scan` (common key above) is the
+  pre-`stop-and-summarize` full-surface re-grounding record for this
+  archetype — story does not carry a second, differently-named halt-scan key.
 - `frontier` — `frontier_vector`, `current_anchor`, `reward_channels`,
   `pressure_status`, `pressure_debt`, `checkpoint_reason`, `next_pressure`,
   `trace_locations`, `metric_locations`, `guardrails`.
-- `greenfield` — `score_lock`, `phase_gates`, `rubric_version`,
-  `score_comparable_with`, `target_hypotheses`, `current_stone_axis`,
-  `capability_list`, `user_halt_owner`.
+- `greenfield` — `score_lock`, `phase_gates`, `current_stone_axis`,
+  `capability_list`, `user_halt_owner`. `rubric_version` and
+  `score_comparable_with` live in `.loop/<loop-id>/RUBRIC.md`, and
+  `target_hypotheses` lives in `.loop/<loop-id>/INTENT.md` — those files are
+  the canonical source (`templates/bodies/greenfield-body.md`,
+  `references/greenfield-invariants.md`), not `STATE.md`; `STATE.md` does not
+  duplicate them as a resume pointer, since `RUBRIC.md` is itself a required
+  file re-read every iteration.
 
 `frontier`'s `pressure_status` / `pressure_debt` / `checkpoint_reason` /
 `next_pressure` are the frontier projection of the common `pressure_objects` /
