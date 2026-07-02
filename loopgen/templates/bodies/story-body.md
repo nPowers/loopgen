@@ -168,13 +168,14 @@ file convention, normalize before writing.
 Durable progress lives in artifacts, not memory. Keep `.loop/<loop-id>/STATE.md`
 current enough that another runner can resume without guessing. Track:
 
-- `phase`, `iteration`, `current_story`, `last_action`, `next_action`
+- `phase`, `iteration`, `last_action`, `next_action`
+- `storyboard_path`, `lane`, `surface_class`, `current_story`
 - `last_surface`, `last_story_family`, `same_family_count`
 - `fixture_mode`: `bypass-compatible | requires-real-auth | admin-operator | unknown`
 - `evidence_manifest`: path to the current or latest promoted story manifest
 - `last_validation_commands`: exact focused commands run
 - `remaining_findings_classified`: counts or short notes for skipped findings
-- `halt_cause` and `halt_re-grounding` before `stop-and-summarize`
+- `halt_cause` and `halt_scan` before `stop-and-summarize`
 
 Every promoted story writes a small manifest in the repo's evidence
 location when available. Prefer JSON so it can be parsed with `jq empty`;
@@ -289,8 +290,7 @@ Classify each hit as `observed_ui` or `public_claim` — these are
 observed promise to `candidate` per iteration. To make it `ready`,
 require either corroborating current docs / issue / PR / test / human
 guidance, or a recorded Alignment Review. Also record at least one
-rejected or weak observed promise per scan, so the reviewer can see
-what was intentionally not promoted.
+rejected or weak observed promise per scan.
 
 For raw scan output or broad grep/browser findings, classify non-selected
 findings before choosing a story or halting:
@@ -471,8 +471,7 @@ For Surface Taste Lane, capture a mirrored before/after packet:
 - interaction/timing trace for action, feedback, duplicate-submit, or
   recovery stories
 
-The after packet should repeat the same artifacts so the reviewer can
-compare the selected surface directly.
+The after packet should repeat the same artifacts.
 
 After validation, update the evidence manifest with exact commands,
 artifact paths, fixture mode, pass/fail classification, and commit hash
@@ -625,6 +624,16 @@ When no `ready` story exists, **do not halt** — continue discovery and
 alignment-prep (see Iteration protocol §3, §4). The classification is the
 point.
 
+Before any non-terminal halt (`derivation-gap`, `genuine-escalate`,
+`signal-starvation`, `wrong-loop`), scan every storyboard lane and every
+unresolved promise row, not only the currently selected story. A single
+blocked row never halts the loop by itself; if another reversible,
+in-scope story, alignment step, or source/browser/e2e pass can still move
+a different lane or surface, continue with it instead. A non-terminal
+halt is valid only when every remaining useful intervention is blocked by
+the same external authority, would violate scope/budget, or is low-yield
+same-family polish with no fresh evidence.
+
 Before `stop-and-summarize`, perform a completion audit:
 
 - restate the objective as concrete deliverables
@@ -636,7 +645,15 @@ Before `stop-and-summarize`, perform a completion audit:
   loop artifacts
 - run or inspect a fresh source/browser/e2e re-grounding pass unless the
   immediately preceding iteration already did so
-- set `halt_cause` and `halt_re-grounding` in `.loop/<loop-id>/STATE.md`
+- set `halt_cause` and `halt_scan` in `.loop/<loop-id>/STATE.md`
+
+Include a compact halt scan in the final output for any non-terminal halt:
+
+```text
+halt scan:
+- storyboard lanes checked: <lane(s)> - <converged/blocked> - <why no safe continuation>
+- unresolved promise rows: <count/ids> - <why none can move>
+```
 
 Escalate (rare, irreversible-only): see the Runner contract.
 
@@ -648,9 +665,9 @@ cause so the user (and the next derivation) can route it back:
 - `derivation-gap` — blocked on something derivation could have asked
   for (lane, fixture, app URL, auth, …). Next derivation pass adds it
   to the Frontload audit.
-- `genuine-escalate` — irreversible / external / authority-needed
-  (product-direction change, irreversible data, source conflict
-  requiring human judgment).
+- `genuine-escalate` — irreversible / external / authority-needed: paid
+  API budget, public-publish, secrets, product direction with unclear
+  rollback, source conflict between authoritative-current sources.
 - `storyboard-converged` — legitimate completion.
 - `signal-starvation` — no new source, no new candidate, no new
   alignment for the configured number of consecutive iterations; the
@@ -739,3 +756,13 @@ Placeholders populated during derivation (see SKILL.md):
 
 Drop the **Surface Taste Lane** section when `{{LANE}}` is not the taste
 lane.
+
+Iteration protocol rationale (not emitted — background for maintainers,
+not the runner):
+
+- The current-surface promise scan records a rejected/weak observed
+  promise per pass so the reviewer can see what was intentionally not
+  promoted, not just what was.
+- The Surface Taste Lane after-packet repeats the same artifact set as
+  the before-packet so the reviewer can compare the selected surface
+  directly rather than reconstructing context across mismatched shots.
