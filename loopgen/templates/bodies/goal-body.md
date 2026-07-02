@@ -305,7 +305,8 @@ When emitting `criteria-met`, `stop-and-summarize`, or
 - `derivation-gap` — blocked on something derivation could have asked for.
   Next derivation pass adds it to the Frontload audit.
 - `genuine-escalate` — irreversible / external / authority-needed (paid
-  API budget, public-publish, secret, product direction, source conflict).
+  API budget, public-publish, secrets, product direction with unclear
+  rollback, source conflict between authoritative-current sources).
 - `wrong-loop` — the work is not terminal goal-shaped; reroute via `/loopgen` to:
   - the `frontier` archetype if a criterion needs open-ended search, evaluator
     discovery, metric improvement, or "make it better" without a fixed
@@ -316,6 +317,18 @@ When emitting `criteria-met`, `stop-and-summarize`, or
   - the `story` archetype if the next job is discovering or reconciling product
     promises before a finite implementation target exists.
 
+Before labeling any of the four **non-terminal** causes above
+(`partial-deadlock`, `derivation-gap`, `genuine-escalate`, `wrong-loop`),
+scan every acceptance row and every verifier/oracle gap — not just the row
+in hand. `partial-deadlock` already carries its own every-criterion
+condition (see "Partial completion is not success"); the same scan
+discipline extends to the other three: a single blocked row never halts the
+loop while another reversible, in-scope move remains — another criterion
+still open, a verifier repair, or an oracle gap that can be closed. The
+final output of a non-terminal halt must include a compact halt scan
+naming each row/class scanned and why no safe continuation remains,
+recorded as `halt_scan` in `.loop/<loop-id>/STATE.md`.
+
 `derivation-gap` is the feedback signal — the Frontload audit was
 incomplete; close it next run.
 
@@ -324,7 +337,9 @@ incomplete; close it next run.
 - `.loop/<loop-id>/ACCEPTANCE.md` — frozen criteria, mutable `status` /
   `last_verification`.
 - `.loop/<loop-id>/STATE.md` — goal version, iteration, current criterion, stuck
-  counters, Oracle Change Notes (inline), last action, next action.
+  counters, Oracle Change Notes (inline), last action, next action,
+  `halt_cause`, `halt_scan`, `pressure_objects`, `pressure_ledger`,
+  `pressure_consulted`.
 - `.loop/<loop-id>/VERIFY.md` — latest final-verify transcript; written on
   `criteria-met`.
 - Evidence artifacts: command output, traces, generated reports,
