@@ -41,6 +41,7 @@ The stable file shape is the point. Product walkthroughs keep the story surface:
 ```text
 .loop/001-onboarding-flow/PROMPT.md
 .loop/001-onboarding-flow/STATE.md
+.loop/001-onboarding-flow/PRESSURE.md  (seeded empty until a pressure exists)
 docs/storyboard.md
 ```
 
@@ -87,7 +88,15 @@ before/after pressure.
 
 ## Install
 
-It's a skill. Send your agent the repo, or clone it and symlink `loopgen/` into the skill directory (`~/.claude/skills/` for Claude Code, `~/.codex/skills/` for Codex).
+It's a skill. Clone it, symlink `loopgen/` into whichever agent's skill directory, then check the contracts.
+
+```bash
+git clone git@github.com:pro-vi/loopgen.git
+ln -s <clone>/loopgen ~/.claude/skills/loopgen   # Claude Code
+ln -s <clone>/loopgen ~/.codex/skills/loopgen    # Codex
+ln -s <clone>/loopgen ~/.pi/agent/skills/loopgen # Pi
+make check                                       # confirm the skill contracts are coherent
+```
 
 ## Why This Skill?
 

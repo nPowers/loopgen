@@ -1,4 +1,4 @@
 interface:
   display_name: "Loopgen"
   short_description: "Compose a /goal-ready loop prompt from a primitive vocabulary."
-  default_prompt: "Use loopgen to derive a /goal-ready loop prompt: classify the task to its nearest archetype (frontier / goal / story / greenfield), compose the prompt from primitive values (defaulting to the archetype, diverging where the task demands), and emit with a provenance preamble plus a fixed /goal kick-off."
+  default_prompt: "Use loopgen to derive a /goal-ready loop prompt: classify the task to its nearest archetype (frontier / goal / story / greenfield), compose the prompt from primitive values (defaulting to the archetype, diverging where the task demands), and emit with a provenance preamble plus a fixed /goal kick-off. If the task is a one-shot build rather than a loop, loopgen may decline: the loop-necessity gate emits loop_warranted: false and routes to a build path instead."
