@@ -19,6 +19,13 @@ all of them), as a framing note above the queue section.
   (goal) · `storyboard` (story) · `rubric+intent` (greenfield) ·
   `findings-ledger` (frontier).
 - The queue is a tier-1/2 surface in `evidence-tier.md`.
+- The Growth discipline below is not yet wired into the archetype bodies:
+  each body's inline queue discipline (`goal-body.md` on `ACCEPTANCE.md`,
+  `story-body.md` on `docs/storyboard.md`, `frontier-body.md` on
+  `FINDINGS.md` / `TRACES.md` / `METRICS.md`) does not yet cite
+  `closed-retain-N` or the `archive/<artifact>.md` move the way each cites
+  its own row-status contract, so only prompts that inline this primitive's
+  block carry the bound today.
 
 ---
 
@@ -90,14 +97,6 @@ pattern from the pressure ledger to every queue artifact:
   reopen count) before it is ever archived — archival moves the row, not the
   count — so nothing is silently forgotten even once the row itself leaves the
   re-read surface.
-
-Not yet wired: this bound is authored here, in the shared primitive, but each
-archetype's inline body discipline (`templates/bodies/goal-body.md` on
-`ACCEPTANCE.md`, `story-body.md` on `docs/storyboard.md`, `frontier-body.md` on
-`FINDINGS.md` / `TRACES.md` / `METRICS.md`, and `greenfield-body.md` once it
-grows an equivalent queue) still needs to cite `closed-retain-N` and the
-`archive/<artifact>.md` move the way each body already cites its own
-row-status contract. That wiring is a follow-up, not part of this change.
 
 ## When prompt-only is valid
 

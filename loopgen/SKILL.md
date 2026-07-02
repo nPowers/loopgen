@@ -300,9 +300,10 @@ repair move remains.
 and must not be reworded or abbreviated per body: paid API budget,
 public-publish, secrets, product direction with unclear rollback, source
 conflict between authoritative-current sources — exactly as
-`primitives/judgment-default.md` and `primitives/halt-cause-classifier.md`
-already state it. Every body's Halt-cause classifier section cites this list,
-not a paraphrase.
+`primitives/halt-cause-classifier.md` states it
+(`primitives/judgment-default.md` lists the same causes in its escalate
+rule). Every body's Halt-cause classifier section cites this list, not a
+paraphrase.
 
 ## Artifact + state contracts
 
