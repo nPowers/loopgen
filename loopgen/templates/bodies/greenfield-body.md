@@ -122,7 +122,8 @@ disposes. Convergence is `stone-reframe`: the artifact landing on the user's
 - `.loop/<loop-id>/STATE.md` — `phase`, `iteration`, `score_lock`,
   `phase_gates` (owner + value per gate), `current_stone_axis`,
   `capability_list`, `user_halt_owner`, `halt_cause`, `halt_scan`,
-  `last_action`/`next_action`, the `Next action: HALT` hatch (owner: user).
+  `last_action`/`next_action`, `pressure_objects`, `pressure_ledger`,
+  `pressure_consulted`, the `Next action: HALT` hatch (owner: user).
   `rubric_version`, `score_comparable_with`, and `target_hypotheses` live in
   RUBRIC.md / INTENT.md, not here.
 - `.loop/<loop-id>/README.md` — how to fire, how to tune the rubric, how to halt, what

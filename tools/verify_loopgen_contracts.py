@@ -749,28 +749,45 @@ def _archetype_state_keys(skill: str, archetype: str) -> list[str]:
     return re.findall(r"`([a-z_]+)`", m.group(1))
 
 
+# Composer/provenance bookkeeping keys: SKILL.md's Phase 4 writes these once
+# at emit time (archetype, identity, primitive_bundle, divergences, overlays,
+# consult_tier, evaluator_tier, derivation_read_set, current_artifact); no
+# archetype body's iteration-protocol prose narrates them in its own
+# "Artifacts to maintain" section, and that gap is consistent across all four
+# bodies — i.e. it is an intentional split between emit-time provenance and
+# runner-facing iteration state, not per-archetype drift. `archetype` is left
+# checkable since every body happens to name its own or a sibling archetype
+# in prose (routing / wrong-loop text); the rest are excluded from R2 so the
+# check stays focused on genuine iteration-state gaps.
+_BOOKKEEPING_KEYS = frozenset(
+    {
+        "identity",
+        "primitive_bundle",
+        "divergences",
+        "overlays",
+        "consult_tier",
+        "evaluator_tier",
+        "derivation_read_set",
+        "current_artifact",
+    }
+)
+
+
 def state_key_body_violations() -> dict[str, list[str]]:
     """R2: every STATE.md key SKILL.md requires for an archetype (common +
-    archetype-specific) should be mentioned somewhere in that archetype's
-    body text — tolerant of `snake_case` vs "spaced words" (goal-body says
-    "goal version", not `goal_version`) and case. Returns {archetype:
-    [missing keys]} for archetypes with a gap; empty dict if none.
-
-    Some common keys (`archetype`, `identity`, `primitive_bundle`,
-    `divergences`, `overlays`, `consult_tier`, `evaluator_tier`,
-    `derivation_read_set`, `current_artifact`, ...) are composer/provenance
-    bookkeeping SKILL.md's Phase 4 writes once at emit time, not iteration
-    state the body's own prose narrates — a body-text miss on those is not
-    necessarily a bug, but it is real drift between what SKILL.md's Artifact
-    contract promises `.loop/<loop-id>/STATE.md` carries and what the
-    archetype body ever tells the runner to maintain, so it is reported
-    rather than silently excluded."""
+    archetype-specific), excluding the emit-time bookkeeping keys in
+    `_BOOKKEEPING_KEYS` (see comment above), should be mentioned somewhere in
+    that archetype's body text — tolerant of `snake_case` vs "spaced words"
+    (goal-body says "goal version", not `goal_version`), case, and a body's
+    own soft line-wrap (e.g. "stuck\ncounters" across two source lines still
+    reads as "stuck counters"). Returns {archetype: [missing keys]} for
+    archetypes with a gap; empty dict if none."""
     skill = read(SKILL)
     common = _common_state_keys(skill)
     violations: dict[str, list[str]] = {}
     for archetype, path in BODY_PATHS.items():
-        keys = common + _archetype_state_keys(skill, archetype)
-        body_text = read(path)
+        keys = [k for k in common + _archetype_state_keys(skill, archetype) if k not in _BOOKKEEPING_KEYS]
+        body_text = re.sub(r"\s+", " ", read(path))
         missing = [
             key
             for key in keys

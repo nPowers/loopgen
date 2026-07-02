@@ -482,6 +482,11 @@ Default N = 3; set per repo as `{{QUIET_SIGNAL_N}}`.
 - **Structured traces** — failures produce queryable artifacts, not just
   stderr.
 - **Metric outputs** — machine-readable, persisted across iterations.
+- `.loop/<loop-id>/STATE.md` — `phase`, `iteration`, `last_action`,
+  `next_action`, `halt_cause`, `halt_scan`, `pressure_objects`,
+  `pressure_ledger`, `pressure_consulted`, `current_anchor`,
+  `trace_locations` (where structured traces live), `metric_locations`
+  (where metric outputs live).
 
 {{REVIEW_CLOSURE_OVERLAY}}
 ```

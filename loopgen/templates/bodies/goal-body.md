@@ -336,9 +336,9 @@ incomplete; close it next run.
 
 - `.loop/<loop-id>/ACCEPTANCE.md` — frozen criteria, mutable `status` /
   `last_verification`.
-- `.loop/<loop-id>/STATE.md` — goal version, iteration, current criterion, stuck
-  counters, Oracle Change Notes (inline), last action, next action,
-  `halt_cause`, `halt_scan`, `pressure_objects`, `pressure_ledger`,
+- `.loop/<loop-id>/STATE.md` — phase, goal version, iteration, current
+  criterion, stuck counters, Oracle Change Notes (inline), last action, next
+  action, `halt_cause`, `halt_scan`, `pressure_objects`, `pressure_ledger`,
   `pressure_consulted`.
 - `.loop/<loop-id>/VERIFY.md` — latest final-verify transcript; written on
   `criteria-met`.

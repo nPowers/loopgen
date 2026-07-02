@@ -175,6 +175,7 @@ current enough that another runner can resume without guessing. Track:
 - `evidence_manifest`: path to the current or latest promoted story manifest
 - `last_validation_commands`: exact focused commands run
 - `remaining_findings_classified`: counts or short notes for skipped findings
+- `pressure_objects`, `pressure_ledger`, `pressure_consulted`
 - `halt_cause` and `halt_scan` before `stop-and-summarize`
 
 Every promoted story writes a small manifest in the repo's evidence
