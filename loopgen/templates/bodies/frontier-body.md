@@ -95,23 +95,28 @@ Current tier: {{EVALUATOR_TIER}}.
 
 ## Signal hierarchy
 
+<!-- inline by design (composed-prompt.md section 8); keep in sync with primitives/evidence-tier.md -->
+
 The iteration trusts memory surfaces in this order:
 
-1. **Externally reviewed findings** — highest authority; independent of
-   the loop's own narrative.
-2. **Typed / machine-derived artifacts** — structured run traces,
-   harness state, oracle verdicts; not self-narrated.
-3. **Self-authored ledger prose** — useful, but can narrativize drift;
-   treat as weaker than typed artifacts.
-4. **Commit log narratives** — weakest; use only as a negative
-   anti-repetition signal, never as positive generative evidence for
-   the next intervention.
+1. **Externally reviewed findings** — human or external-review output the
+   loop did not author. Highest authority; independent of the loop's own
+   narrative.
+2. **Typed / machine-derived artifacts** — structured run traces, harness
+   state, oracle verdicts, benchmark outputs. Not self-narrated.
+3. **Self-authored ledger prose** — the loop's own notes / ledger /
+   findings markdown. Useful, but can narrativize drift; weaker than typed
+   artifacts.
+4. **Commit-log narrative** — weakest. Use only as a **negative**
+   anti-repetition signal, never as positive generative evidence for the
+   next intervention; self-narrated recency re-certifies whatever shape
+   dominated the window.
 
-If only weak sources exist, anti-collapse coverage is degraded.
+If only weak surfaces (tier 3–4) exist, anti-collapse coverage is degraded.
 Creating a minimal structured findings surface is itself a valid
-evaluator-axis job when the cheap channel is green and no stronger
-signal is available. Never emit language that pretends anti-collapse
-coverage exists when the substrate for it does not.
+evaluator-axis job when the cheap channel is green and no stronger signal
+is available. Never emit language that pretends anti-collapse coverage
+exists when the substrate for it does not.
 
 ## Homeostasis
 
@@ -428,8 +433,9 @@ cause so the user (and the next derivation) can route it back:
 - `derivation-gap` — blocked on something derivation could have asked
   for. The next derivation pass adds it to the Frontload audit so this
   loop doesn't block on it again.
-- `genuine-escalate` — irreversible / external / authority-needed
-  (paid API budget, public-publish, secret, product direction, source conflict).
+- `genuine-escalate` — irreversible / external / authority-needed (paid
+  API budget, public-publish, secrets, product direction with unclear
+  rollback, source conflict between authoritative-current sources).
 - `homeostatic-checkpoint` — legitimate checkpoint; all five homeostasis axes
   in balance, no high-yield admissible intervention available. This does not
   mean the frontier is complete.
@@ -494,6 +500,11 @@ Placeholders populated during derivation (see SKILL.md step 6):
 - `{{SUBAGENT_PATTERNS}}` — the subagent-pattern catalog B/C/D
   (`primitives/subagent-patterns.md`), emitted only at `consult-tier ≥ 1` and
   filtered to that tier; stripped byte-identical at tier-0.
+- `{{FRONTIER_VECTOR}}` — the named dimensions this repo's frontier moves
+  along, one per line.
+- `{{BENCHMARK_FRONTIER_MODE}}` — the Benchmark Frontier Mode overlay block
+  (`primitives/benchmark-frontier.md`), emitted only when frontload resolved a
+  concrete benchmark/eval/harness object; stripped byte-identical otherwise.
 - `{{EVALUATOR_TIER}}` — current T0–T6 tier.
 - `{{RAMP_GUIDANCE}}` — one line. Omit if at or above T3.
 - `{{CHEAP_CHANNEL}}` / `{{EXPENSIVE_CHANNEL}}` — named commands or
@@ -505,8 +516,11 @@ Placeholders populated during derivation (see SKILL.md step 6):
   note they weight above main-loop axes until ramp exits.
 - `{{SCOPE_MANIFEST}}` — if provided. Named allowed / forbidden globs.
 - `{{SCOPE_DRIFT_HALT}}` — companion halt clause. Omit if no manifest.
-- `{{ARTIFACT_LOCATIONS}}` — concrete paths. Suggest from the artifact
-  contract if the repo has no convention.
+- `{{CASH_OUT_N}}` — consecutive non-product accepted changes at T3+ before
+  the next accepted change must cash out. Default 3; set per repo.
+- `{{QUIET_SIGNAL_N}}` — consecutive green-cheap-channel iterations with no
+  new finding before the quiet-signal checkpoint fires. Default 3; set per
+  repo.
 - `{{REVIEW_CLOSURE_OVERLAY}}` — append closure-mode rules if applicable.
 
 ## Ramp block
