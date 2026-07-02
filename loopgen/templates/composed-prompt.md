@@ -121,6 +121,11 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    - `tier-1` → replace programmatic consults with an async human-bridge handoff.
    - `tier-2`/`tier-3` → keep the consult sections (tier-3 enables blind
      adversarial multi-tool consults).
+   - `tier ≥ 1` (any of the three cases above) → also compose the Run-host
+     verification block from `primitives/consult-capability.md` into the
+     prompt, so a run started on a different runner than the one `/loopgen`
+     composed on still gates its consult channels at iteration 0 instead of
+     scheduling consults against tools that don't exist there.
 7. **Apply benchmark-frontier overlay** (`primitives/benchmark-frontier.md`):
    - Only for nearest archetype `frontier`.
    - Only when frontload resolved a concrete benchmark/eval/harness object,

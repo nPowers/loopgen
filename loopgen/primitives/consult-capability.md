@@ -31,6 +31,14 @@ At frontload time, probe the host:
 | only a way to ask the human to relay | `tier-1` |
 | nothing | `tier-0` |
 
+This probe reads the **composing host** — the environment `/loopgen` runs in
+right now. The README allows pasting the emitted prompt into a different
+runner (Claude Code, Codex, …), so the detected tier is **compose-host-bound**,
+not a promise about wherever the prompt is finally pasted. Re-running
+`/loopgen` after a runner change is the clean path — see Run-host
+verification below for the in-loop safety net that catches the gap when it
+isn't.
+
 ## Archetype defaults
 
 | Archetype | Default |
@@ -52,3 +60,24 @@ a consult channel exists.
 - `tier ≥ 2` enables the greenfield invariant-8 blind adversarial consult and
   the story Surface-Taste blind read; consult cadence aligns with
   `cadence-shape` boundaries.
+
+## Run-host verification
+
+Because the detected tier is compose-host-bound (see Detection heuristics),
+any composed prompt carrying `tier ≥ 1` consult sections (the
+`{{SUBAGENT_PATTERNS}}` block, and any archetype's own consult-dependent
+sections) must carry an **iteration-0 channel check**: self-gated on durable
+state exactly like other bootstrap work (`primitives/runner-contract.md`'s
+idempotency corollary — run once, then skipped), verify that each named
+consult channel the detected tier promised actually exists on the **run
+host**. A missing channel degrades — *that channel only* — to its next-lower
+tier's substitute (a missing tier ≥ 2 channel degrades to the tier-1 async
+human-bridge handoff if that still exists, else to the tier-0 periodic
+human-look gate); the loop never silently proceeds against a phantom tool,
+and never spends this check on an interactive prompt
+(`runner-contract.md`'s unattended corollary forbids that). Record
+`consult_tier_effective` and the per-channel degradation in
+`.loop/<loop-id>/STATE.md`, and surface it in that iteration's summary. This
+check is the **safety net**, not the primary mechanism — the primary fix for
+a runner change is re-deriving with `/loopgen` on the actual run host; a
+`tier-0` prompt carries no consult sections, so the check never fires there.
