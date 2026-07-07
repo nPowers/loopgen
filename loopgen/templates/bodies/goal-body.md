@@ -51,8 +51,9 @@ This loop is honest by construction (full text in
 
 ## Terminal contract
 
-The run is complete only when **every criterion** in `.loop/<loop-id>/ACCEPTANCE.md`
-for goal version `{{GOAL_VERSION}}` reaches `PASS`.
+The run is complete only when **every criterion** in
+`.loop/<loop-id>/ACCEPTANCE.md`'s index for goal version `{{GOAL_VERSION}}`
+reaches `PASS`.
 
 Completion is a specific halt:
 
@@ -166,34 +167,53 @@ regression risk.
 
 ## Iteration protocol
 
-1. Read `.loop/<loop-id>/ACCEPTANCE.md`, `.loop/<loop-id>/STATE.md`, latest verification
-   artifacts, and the source authority files. Confirm the goal version
-   still matches the frozen inventory.
+0. **Read the PINNED surfaces** (`primitives/context-stack.md`): re-render
+   `.loop/<loop-id>/PRESSURE.md` from `.loop/<loop-id>/STATE.md` `pressure_objects`,
+   read it, run its step-0 maintenance (`primitives/pressure.md`), then read
+   `.loop/<loop-id>/STATE.md` (live status only, ≤ ~50 lines). Both are small and
+   re-read whole every pass.
+1. **Read the WORKING surfaces** — index + live rows only, never a whole growing
+   file: `.loop/<loop-id>/ACCEPTANCE.md`'s index table + the OPEN and current-
+   criterion `## AC-XXX` sections, and `tail -n 20 .loop/<loop-id>/JOURNAL.jsonl`
+   for recent history. Read the source authority files for the criterion in hand.
+   Confirm the goal version still matches the frozen inventory. Older journal
+   history or a closed row's `.loop/<loop-id>/archive/ACCEPTANCE.md` section is an
+   **on-demand** read only (`jq 'select(.ac=="AC-XXX")' .loop/<loop-id>/JOURNAL.jsonl`),
+   never a blanket per-pass read.
 2. **Oracle integrity check** before editing:
    - criteria text unchanged except `status` / `last_verification`,
-   - verifiers unchanged except via approved Oracle Change Notes,
+   - verifiers unchanged except via an approved `oracle_change` journal record,
    - no skipped / xfailed selectors added,
    - no snapshot refreshed without a semantic assertion,
    - no expected evidence weakened.
-3. If every criterion is `PASS_PENDING_FINAL` or `PASS`, run the
-   **final-verify**. If it proves the whole inventory in the same repo
-   state: set all to `PASS`, write `.loop/<loop-id>/VERIFY.md` with the matrix,
-   emit `criteria-met` → `stop-and-summarize`.
-4. Otherwise pick one primary failing / `OPEN` criterion by topology +
-   priority + cheapest verifier feedback. If every remaining unpassed
-   criterion is `STUCK` / `BLOCKED_EXTERNAL` / `QUARANTINED` / wrong-loop-
-   shaped — **and any wrong-loop-shaped item has already been item-scoped-
-   replanned without success (step 10)** — go to halt classification.
-5. Before editing, write one line:
+3. If every criterion is `PASS_PENDING_FINAL` or `PASS` (per the index), run
+   the **final-verify**. Only the final-verify writes `.loop/<loop-id>/VERIFY.md`
+   — it stays a header-only "final-verify not yet run" placeholder every other
+   pass (never mirror `ACCEPTANCE.md` into it). If the final-verify proves the
+   whole inventory in the same repo state: set all to `PASS`, write
+   `.loop/<loop-id>/VERIFY.md` with the matrix, emit `criteria-met` →
+   `stop-and-summarize`.
+4. Otherwise pick one primary failing / `OPEN` criterion from the index by
+   topology + priority + cheapest verifier feedback, then read that criterion's
+   `## AC-XXX` section. If every remaining unpassed criterion in the index is
+   `STUCK` / `BLOCKED_EXTERNAL` / `QUARANTINED` / wrong-loop-shaped — **and any
+   wrong-loop-shaped item has already been item-scoped-replanned without success
+   (step 10)** — go to halt classification.
+5. Before editing, pre-register the attempt as one line:
    `criterion-id | failing-evidence | hypothesis | edit-surface | rollback`.
+   This is the `attempt` journal record's plan; step 8 appends it with the
+   verdict.
 6. Make one small reversible change. Run the cheap inner channel; if it
    fails, fix or revert before broader proof.
 7. Run the criterion's verifier. Then run impact guards for already-
    passing criteria the edit could disturb.
 8. Accept the change only if: the criterion moves toward pass (or gains
    sharper failure evidence), no passing criterion regresses, and the
-   oracle was not weakened. Otherwise revert and record the failed
-   hypothesis.
+   oracle was not weakened. Otherwise revert. Either way, append the resolved
+   `attempt` record to `.loop/<loop-id>/JOURNAL.jsonl`
+   (`{iter, ac, action, verdict, evidence}`, evidence as a pointer, target ≤300
+   chars) — the step-5 plan plus its outcome. This replaces the old unbounded
+   per-attempt log that used to grow inside `.loop/<loop-id>/STATE.md`.
 9. If the criterion verifier passes, mark `PASS_PENDING_FINAL` — not
    `PASS`. `PASS` waits for the next final-verify.
 10. **Item-scoped replan (before `STUCK`, before `wrong-loop`).** When a
@@ -225,8 +245,10 @@ The headline failure mode. The loop must not:
 - mark subjective confidence as machine proof
 - treat a loop-authored test as source intent
 
-**Verifier changes** require an **Oracle Change Note** appended inline to
-`.loop/<loop-id>/STATE.md`:
+**Verifier changes** require an `oracle_change` record appended to
+`.loop/<loop-id>/JOURNAL.jsonl` (never inlined into `.loop/<loop-id>/STATE.md`,
+which is live status only — `primitives/context-stack.md`; this is the former
+`oracle_change_notes` STATE key relocated to its history tier):
 
 ```text
 oracle_change:
@@ -319,31 +341,60 @@ When emitting `criteria-met`, `stop-and-summarize`, or
 
 Before labeling any of the four **non-terminal** causes above
 (`partial-deadlock`, `derivation-gap`, `genuine-escalate`, `wrong-loop`),
-scan every acceptance row and every verifier/oracle gap — not just the row
-in hand. `partial-deadlock` already carries its own every-criterion
-condition (see "Partial completion is not success"); the same scan
-discipline extends to the other three: a single blocked row never halts the
-loop while another reversible, in-scope move remains — another criterion
-still open, a verifier repair, or an oracle gap that can be closed. The
-final output of a non-terminal halt must include a compact halt scan
-naming each row/class scanned and why no safe continuation remains,
-recorded as `halt_scan` in `.loop/<loop-id>/STATE.md`.
+scan every non-terminal acceptance row in the ACCEPTANCE index and every
+verifier/oracle gap — not just the row in hand. The index's running totals prove
+the archive holds only terminal rows, so scanning the LIVE index is a complete
+scan, not a narrowing (`primitives/halt-cause-classifier.md`).
+`partial-deadlock` already carries its own every-criterion condition (see
+"Partial completion is not success"); the same scan discipline extends to the
+other three: a single blocked row never halts the loop while another reversible,
+in-scope move remains — another criterion still open, a verifier repair, or an
+oracle gap that can be closed. The final output of a non-terminal halt must
+include a compact halt scan naming each row/class scanned and why no safe
+continuation remains, recorded as `halt_scan` in `.loop/<loop-id>/STATE.md`
+(overwrite-latest) **and** appended as a `halt` record to
+`.loop/<loop-id>/JOURNAL.jsonl`.
 
 `derivation-gap` is the feedback signal — the Frontload audit was
 incomplete; close it next run.
 
 ## Artifacts to maintain
 
-- `.loop/<loop-id>/ACCEPTANCE.md` — frozen criteria, mutable `status` /
-  `last_verification`.
-- `.loop/<loop-id>/STATE.md` — phase, goal version, iteration, current
-  criterion, stuck counters, Oracle Change Notes (inline), last action, next
-  action, `halt_cause`, `halt_scan`, `pressure_objects`, `pressure_ledger`,
-  `pressure_consulted`.
-- `.loop/<loop-id>/VERIFY.md` — latest final-verify transcript; written on
-  `criteria-met`.
-- Evidence artifacts: command output, traces, generated reports,
-  screenshots, fixture outputs, metric files.
+Each file has one tier and a bound (`primitives/context-stack.md`); read keys,
+not files.
+
+- `.loop/<loop-id>/PRESSURE.md` (PINNED) — the pressure HUD, re-rendered from
+  `STATE.md` `pressure_objects` and read at step 0 every pass.
+- `.loop/<loop-id>/STATE.md` (PINNED) — **live status only**, fixed keys,
+  rewrite-in-place, ≤ ~50 lines, no history: `phase`, `goal_version`,
+  `iteration`, `current_criterion`, `stuck_counters`, `last_action`,
+  `next_action`, `halt_cause`, `halt_scan`, `final_verify`, `pressure_objects`
+  (in-force rows, ≤ `pressure-cap`). It does **not** hold `pressure_ledger`,
+  `pressure_consulted`, `oracle_change_notes`, or a per-attempt log — those are
+  `pressure` / `consult` / `oracle_change` / `attempt` records in
+  `JOURNAL.jsonl`.
+- `.loop/<loop-id>/ACCEPTANCE.md` (WORKING) — frozen criteria, mutable `status` /
+  `last_verification`; stored as an index table + one `## AC-XXX` section per row
+  (see Acceptance row format), read as index + OPEN/current sections, never
+  whole-file.
+- `.loop/<loop-id>/JOURNAL.jsonl` (WORKING tail / ON-DEMAND keyed) — the single
+  append-only history: `attempt`, `oracle_change`, `pressure`, `consult`,
+  `alignment_review`, `checkpoint`, `halt` records. `tail -n 20` per pass; `jq`
+  by key otherwise.
+- `.loop/<loop-id>/DERIVATION.md` (ON-DEMAND) — write-once derivation record
+  (`primitive_bundle`, `divergences`, `overlays`, `derivation_read_set`,
+  `frontload`); read on resume/diagnosis, not per pass.
+- `.loop/<loop-id>/VERIFY.md` (WRITE-ONLY) — header-only "final-verify not yet
+  run" until the final-verify actually runs on `criteria-met`, then the matrix.
+  Never mirror `ACCEPTANCE.md` into it before final-verify (a measured
+  anti-pattern).
+- Evidence artifacts (ON-DEMAND): command output, traces, generated reports,
+  screenshots, fixture outputs, metric files — referenced by pointer from rows
+  and journal records, never inlined.
+
+{{INCLUDE primitives/context-stack.md}}
+
+{{INCLUDE primitives/queue-as-second-artifact.md}}
 
 {{REPO_SPECIFIC_OVERLAY}}
 ````
@@ -357,11 +408,15 @@ Placeholders populated during derivation (see SKILL.md):
 - `{{PROVENANCE}}` — the loopgen provenance preamble.
 - `{{MOTIVE}}` — one-sentence terminal goal.
 - `{{FRONTLOAD_PREAMBLE}}` — resolved / defaulted / open-gap summary.
-- `{{PRESSURE_SURFACE}}` — the pressure weather block (`primitives/pressure.md`),
-  emitted only when ≥1 pressure object exists at compose time; stripped otherwise.
+- `{{PRESSURE_SURFACE}}` — the always-on pressure HUD block
+  (`primitives/pressure.md`), emitted in every composed prompt (no gate).
 - `{{SUBAGENT_PATTERNS}}` — the subagent-pattern catalog B/C/D
   (`primitives/subagent-patterns.md`), emitted only at `consult-tier ≥ 1` and
   filtered to that tier; stripped byte-identical at tier-0.
+- The Artifacts-to-maintain section inlines `primitives/context-stack.md` (the
+  memory model + STATE/JOURNAL/DERIVATION schema and context budget) and
+  `primitives/queue-as-second-artifact.md` (queue growth discipline + INDEX/FULL
+  row split) at compose (step 2).
 - `{{GOAL_VERSION}}` — fingerprint of criteria + provenance + authority +
   final-verify.
 - `{{REGRESSION_MODE}}` — omit unless this is a rerun (then: "Regression
@@ -378,10 +433,22 @@ Placeholders populated during derivation (see SKILL.md):
 
 ## Acceptance row format
 
-YAML list in `.loop/<loop-id>/ACCEPTANCE.md`. Minimum fields per criterion: `id` ·
-`statement` · `source` · `authority` · `verifier` · `pass_evidence` ·
-`fail_evidence` · `status` · `depends_on` · `reopen_condition` ·
-`last_verification`.
+`.loop/<loop-id>/ACCEPTANCE.md` is stored as an **index table up top + one
+`## AC-XXX` section per criterion** (`primitives/queue-as-second-artifact.md`),
+so the per-pass read is the index + the OPEN / current-criterion sections, never
+the whole file:
+
+- **Index row** (re-read every pass): `id` · `status` · a one-line statement ·
+  the running counters (open / passed / stuck), plus `depends_on` for selection.
+- **Full section `## AC-XXX`** (read on demand when acting on that criterion):
+  `statement` · `source` · `authority` · `verifier` · `pass_evidence` ·
+  `fail_evidence` · `depends_on` · `reopen_condition` · `last_verification`
+  (≤140 chars + an evidence pointer). Heavy evidence is a pointer into a trace or
+  `JOURNAL.jsonl`, never an inlined blob.
+
+Closed rows age out to `.loop/<loop-id>/archive/ACCEPTANCE.md` at
+`closed-retain-N`; the index counters survive in the live header so nothing is
+forgotten once a row leaves the re-read surface.
 
 A design blueprint's unit IDs lift in as `id`; its test scenarios lift in
 as `pass_evidence` + `fail_evidence`; its decisive choice becomes the
