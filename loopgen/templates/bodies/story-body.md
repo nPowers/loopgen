@@ -160,13 +160,34 @@ the user changes lanes or the finding directly supports the selected story.
 
 - **Path:** {{STORYBOARD_PATH}}
 
-Update only this storyboard. If a row uses a different format than the
-file convention, normalize before writing.
+The storyboard is the story queue (`primitives/queue-as-second-artifact.md`): an
+**index table up top** (id · status · one-line promise · lane/surface ·
+counters) + one section per story carrying the full Story Record. Read it as the
+index + the current-story and unresolved sections, never the whole board every
+pass. Update only this storyboard; if a row uses a different format than the file
+convention, normalize before writing. It is tracked and repo-native, but its
+closed-row archive lands under `.loop/<loop-id>/archive/` — closed history is
+scratch, not the deliverable (ADR 0003), and the index counters survive in the
+live header.
 
 ## Mechanical run contract
 
-Durable progress lives in artifacts, not memory. Keep `.loop/<loop-id>/STATE.md`
-current enough that another runner can resume without guessing. Track:
+Durable progress lives in artifacts, not memory (`primitives/context-stack.md`):
+the context window is a rolling lossy cache; the files under `.loop/<loop-id>/`
+plus the tracked `{{STORYBOARD_PATH}}` are the real memory. Read keys, not files.
+
+**Read-state step (every iteration, before §1).** Read the PINNED surfaces
+first — re-render and read `.loop/<loop-id>/PRESSURE.md` from
+`.loop/<loop-id>/STATE.md` `pressure_objects`, run pressure's step-0 maintenance
+(`primitives/pressure.md`), then read `.loop/<loop-id>/STATE.md` (live status
+only). Then the WORKING surfaces — the storyboard **index + the current-story and
+unresolved sections** (not the whole board), and `tail -n 20
+.loop/<loop-id>/JOURNAL.jsonl`. Older journal history and the storyboard archive
+are on-demand reads only (`jq` by key / section by id).
+
+Keep `.loop/<loop-id>/STATE.md` **live-status-only** (fixed keys,
+rewrite-in-place, no history) so another runner can resume without guessing.
+Track:
 
 - `phase`, `iteration`, `last_action`, `next_action`
 - `storyboard_path`, `lane`, `surface_class`, `current_story`
@@ -175,8 +196,16 @@ current enough that another runner can resume without guessing. Track:
 - `evidence_manifest`: path to the current or latest promoted story manifest
 - `last_validation_commands`: exact focused commands run
 - `remaining_findings_classified`: counts or short notes for skipped findings
-- `pressure_objects`, `pressure_ledger`, `pressure_consulted`
+- `pressure_objects` (in-force rows only, ≤ `pressure-cap`)
 - `halt_cause` and `halt_scan` before `stop-and-summarize`
+
+`.loop/<loop-id>/STATE.md` does **not** hold `pressure_ledger`,
+`pressure_consulted`, or a per-iteration promotion log — those are `pressure` /
+`consult` / `attempt` records in `.loop/<loop-id>/JOURNAL.jsonl` (the single
+append-only history: `tail -n 20` per pass, `jq` by key otherwise). The
+write-once derivation record (`primitive_bundle`, `divergences`, `overlays`,
+`derivation_read_set`, `frontload`) lives in `.loop/<loop-id>/DERIVATION.md`,
+read on demand.
 
 Every promoted story writes a small manifest in the repo's evidence
 location when available. Prefer JSON so it can be parsed with `jq empty`;
@@ -207,6 +236,27 @@ otherwise include the same fields in the storyboard or ledger:
 If the manifest is missing or unparseable, repair it before promotion or
 classify the result as `oracle-defect` / `env-gap` instead of pretending
 the run has durable evidence.
+
+### Artifact tiers
+
+Each file has one tier and a bound (`primitives/context-stack.md`):
+
+- `.loop/<loop-id>/PRESSURE.md` (PINNED) — pressure HUD, read at the read-state
+  step.
+- `.loop/<loop-id>/STATE.md` (PINNED) — live status only (keys above).
+- `{{STORYBOARD_PATH}}` (WORKING) — the storyboard queue: an index table + one
+  section per story (see Storyboard), read as index + current/unresolved
+  sections. It is **tracked and repo-native**, but its closed-row archive lands
+  under `.loop/<loop-id>/archive/` — closed history is scratch, not the
+  deliverable (ADR 0003).
+- `.loop/<loop-id>/JOURNAL.jsonl` (WORKING tail / ON-DEMAND keyed) — the single
+  append-only history: `attempt`, `pressure`, `consult`, `alignment_review`,
+  `checkpoint`, `halt` records.
+- `.loop/<loop-id>/DERIVATION.md` (ON-DEMAND) — write-once derivation record.
+
+{{INCLUDE primitives/context-stack.md}}
+
+{{INCLUDE primitives/queue-as-second-artifact.md}}
 
 ## Bootstrap mode
 
@@ -627,13 +677,15 @@ point.
 
 Before any non-terminal halt (`derivation-gap`, `genuine-escalate`,
 `signal-starvation`, `wrong-loop`), scan every storyboard lane and every
-unresolved promise row, not only the currently selected story. A single
-blocked row never halts the loop by itself; if another reversible,
-in-scope story, alignment step, or source/browser/e2e pass can still move
-a different lane or surface, continue with it instead. A non-terminal
-halt is valid only when every remaining useful intervention is blocked by
-the same external authority, would violate scope/budget, or is low-yield
-same-family polish with no fresh evidence.
+unresolved promise row **in the storyboard index**, not only the currently
+selected story. The index's running counters prove the archive holds only
+resolved rows, so scanning the LIVE index is a complete scan, not a narrowing
+(`primitives/halt-cause-classifier.md`). A single blocked row never halts the
+loop by itself; if another reversible, in-scope story, alignment step, or
+source/browser/e2e pass can still move a different lane or surface, continue with
+it instead. A non-terminal halt is valid only when every remaining useful
+intervention is blocked by the same external authority, would violate
+scope/budget, or is low-yield same-family polish with no fresh evidence.
 
 Before `stop-and-summarize`, perform a completion audit:
 
@@ -647,6 +699,8 @@ Before `stop-and-summarize`, perform a completion audit:
 - run or inspect a fresh source/browser/e2e re-grounding pass unless the
   immediately preceding iteration already did so
 - set `halt_cause` and `halt_scan` in `.loop/<loop-id>/STATE.md`
+  (overwrite-latest) and append a `halt` record to
+  `.loop/<loop-id>/JOURNAL.jsonl` (`primitives/halt-cause-classifier.md`)
 
 Include a compact halt scan in the final output for any non-terminal halt:
 
@@ -739,11 +793,15 @@ Placeholders populated during derivation (see SKILL.md):
 - `{{MOTIVE}}` — one-sentence goal from the user (e.g., "verify the
   evidence-anchor workflow for the compliance officer persona").
 - `{{FRONTLOAD_PREAMBLE}}` — resolved / defaulted / open-gap summary.
-- `{{PRESSURE_SURFACE}}` — the pressure weather block (`primitives/pressure.md`),
-  emitted only when ≥1 pressure object exists at compose time; stripped otherwise.
+- `{{PRESSURE_SURFACE}}` — the always-on pressure HUD block
+  (`primitives/pressure.md`), emitted in every composed prompt (no gate).
 - `{{SUBAGENT_PATTERNS}}` — the subagent-pattern catalog B/C/D
   (`primitives/subagent-patterns.md`), emitted only at `consult-tier ≥ 1` and
   filtered to that tier; stripped byte-identical at tier-0.
+- The Mechanical run contract inlines `primitives/context-stack.md` (the memory
+  model + STATE/JOURNAL/DERIVATION schema and context budget) and
+  `primitives/queue-as-second-artifact.md` (queue growth discipline + INDEX/FULL
+  row split) at compose (step 2).
 - `{{LANE}}` — selected lane. Common values: `Surface Taste Lane` (visual
   / product / frontend quality), or a domain-specific lane named by the
   repo. If absent from the user prompt, infer from the strongest guidance
@@ -751,9 +809,10 @@ Placeholders populated during derivation (see SKILL.md):
 - `{{SURFACE_CLASS}}` — generic repo-local audience / workflow / surface
   name (e.g., "report viewer", "checkout flow"). Use names the repo
   itself uses; do not hard-code product-specific audiences.
-- `{{STORYBOARD_PATH}}` — `docs/storyboard.md`. Repo-native machine-readable
-  boards may be recorded as aliases in `.loop/<loop-id>/STATE.md`, but this canonical file
-  still exists.
+- `{{STORYBOARD_PATH}}` — `docs/storyboard.md`, tracked and repo-native (the
+  live rows), while its closed-row archive lands under `.loop/<loop-id>/archive/`
+  (ADR 0003). Repo-native machine-readable boards may be recorded as aliases in
+  `.loop/<loop-id>/STATE.md`, but this canonical file still exists.
 
 Drop the **Surface Taste Lane** section when `{{LANE}}` is not the taste
 lane.
