@@ -345,9 +345,11 @@ kick-off points the runner at `.loop/<loop-id>/PROMPT.md`. Every
 - `.loop/<loop-id>/STATE.md` — **live status only** (PINNED): fixed keys,
   rewrite-in-place, ≤ ~50 lines, no history.
 - `.loop/<loop-id>/JOURNAL.jsonl` — the single append-only history (one typed
-  record per line, target ≤300 chars, evidence as pointers): `attempt`,
+  record per line, target ≤300 chars — never truncating a required field —
+  evidence as write-ahead pointers): `attempt`,
   `oracle_change`, `pressure`, `consult`, `alignment_review`, `checkpoint`,
-  `halt`, `score_quarantine`, `bootstrap`. Read `tail -n 20` per pass, `jq` by
+  `halt`, `score_quarantine`, `bootstrap`, `consolidation`. Read `tail -n 20`
+  per pass, `jq` by
   key otherwise. **No separate CHECKPOINTS / monitor file exists** — humans watch
   via the documented journal one-liner.
 - `.loop/<loop-id>/DERIVATION.md` — write-once derivation record

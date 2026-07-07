@@ -1,8 +1,8 @@
 # ADR 0004: the context-stack memory model
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-07-07, U13 hardening)
 - **Date:** 2026-07-07
-- **Deciders:** provi, Claude (Opus 4.8)
+- **Deciders:** provi, Claude (Fable 5)
 
 ## Context
 
@@ -169,6 +169,39 @@ O(1) in loop age, so a 300-iteration loop pays the same per-pass ceremony as a
 3-iteration one. `bodies_use_tiered_reads` and
 `state_key_skill_context_stack_mirror` (in `tools/verify_loopgen_contracts.py`)
 enforce the caps that make this hold.
+
+## Hardening amendment (U13, 2026-07-07)
+
+A pre-ship external design review (two independent GPT-5.5 Pro extended-thinking
+passes over H1–H5 hypotheses; both converged, confidence 0.74/0.76) confirmed
+the direction and broke one hypothesis: prompt-level access commands plus an
+authoring-time verifier prove the contract *exists*, not that a degraded
+post-compaction agent *obeys* it. Amendments landed as U13:
+
+- **Context-health check** — a bounded step-0 command ritual in the emitted
+  block and the Operational core (caps, journal-tail parse, evidence pointers
+  resolve, index/section agreement); a failed line routes to repair/archive
+  *before* task work, or halts `derivation-gap`.
+- **Tiers bind access paths, not files** — `JOURNAL.tail-20` is WORKING while
+  `JOURNAL.by-key` is ON-DEMAND; the "one tier per artifact" phrasing was a
+  doctrinal contradiction with the design's own split paths.
+- **Index is authoritative (single-writer)** — queue `status`/counters live in
+  the INDEX row only; sections carry detail; reconciliation is always from the
+  index.
+- **Evidence write-ahead** — the trace file is written before the journal
+  record that points at it; the ≤300-char target never truncates required
+  fields.
+- **Structured `no-promotion`** — a closed reason set replaces free prose.
+- **Pressure decay** — repeated `no-effect` consults force retire/narrow/
+  re-justify; cap overflow runs a merge/retire pass before it may halt.
+- **`consolidation` journal records** — a lessons layer (every ~10 iterations /
+  on closure) so the tail-20 read resurfaces distilled learning, not raw
+  attempts.
+
+Considered and **declined**: a generated, overwrite-only STATUS view for human
+watching. Defensible as a projection, but it adds an emit obligation and a
+surface that can rot; the "one JOURNAL, no monitor file" decision stands until a
+real overnight run shows the jq one-liner insufficient.
 
 ## Revisit Triggers
 

@@ -62,6 +62,16 @@ JOURNAL_RECORD_TYPES = (
     "halt",
     "score_quarantine",
     "bootstrap",
+    "consolidation",
+)
+
+NO_PROMOTION_REASONS = (
+    "duplicate-of",
+    "covered-by",
+    "out-of-scope",
+    "transient-flake",
+    "criterion-local",
+    "reverted-before-effect",
 )
 MOVED_STATE_KEYS = (
     "pressure_ledger",
@@ -1028,6 +1038,49 @@ def journal_enum_violations() -> list[str]:
     return v
 
 
+def u13_hardening_violations() -> list[str]:
+    """U13: the pre-ship hardening contracts (ADR 0004 amendment). The static
+    verifier cannot prove runtime obedience, but it can prove the in-loop
+    detector and the authority rules actually ride the emitted text:
+    context-health check present and routed, tiers bound to access paths (no
+    stale one-tier-per-artifact phrasing), queue index authoritative
+    (single-writer), evidence write-ahead, structured no-promotion enum, and
+    pressure decay/merge-before-halt."""
+    v: list[str] = []
+    cs = read(CONTEXT_STACK)
+    composed = read(COMPOSED_PROMPT)
+    queue = read(ROOT / "loopgen/primitives/queue-as-second-artifact.md")
+    pressure = read(ROOT / "loopgen/primitives/pressure.md")
+
+    emitted = cs.split("\n---\n", 1)[-1]
+    if "### Context-health check" not in emitted:
+        v.append("context-stack emitted block missing `### Context-health check`")
+    for marker in ("parses as JSONL", "resolve", "index row", "pressure-cap", "derivation-gap"):
+        if marker not in emitted:
+            v.append(f"context-health block missing marker `{marker}`")
+    if "write-ahead" not in emitted:
+        v.append("context-stack emitted block missing evidence write-ahead rule")
+    if "never truncate a required field" not in emitted:
+        v.append("context-stack emitted block missing the no-truncation rule on journal records")
+    if "access path" not in cs.split("\n---\n", 1)[0] or "access path" not in emitted:
+        v.append("context-stack tiers not bound to access paths on both sides of ---")
+    for stale in ("artifact is assigned **exactly one** tier", "artifact below has exactly one tier"):
+        if stale in cs:
+            v.append(f"stale one-tier-per-artifact phrasing survives: `{stale}`")
+    if composed.lower().count("context-health check") < 2:
+        v.append("composed-prompt.md Operational core spec must name the context-health check in §3a and assembly step 4")
+    if "single-writer" not in queue or "index is authoritative" not in queue.lower():
+        v.append("queue-as-second-artifact missing the index-authoritative single-writer rule")
+    for reason in NO_PROMOTION_REASONS:
+        if reason not in pressure:
+            v.append(f"pressure.md no-promotion enum missing `{reason}`")
+    if "no-effect" not in pressure or "consecutive consults" not in pressure:
+        v.append("pressure.md missing repeated-no-effect decay rule")
+    if "merge/retire pass first" not in pressure:
+        v.append("pressure.md cap overflow must run a merge/retire pass before halting")
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1330,6 +1383,22 @@ def run_checks() -> int:
         require(
             "Mandatory promotion" in goal_render and "Context budget" in goal_render,
             "goal_pressure_and_budget_emitted",
+        )
+    )
+
+    # ── U13: pre-ship hardening (ADR 0004 amendment) ────────────────────────
+    hardening = u13_hardening_violations()
+    checks.append(
+        require(
+            not hardening,
+            "u13_hardening_contracts",
+            "; ".join(hardening),
+        )
+    )
+    checks.append(
+        require(
+            "Context-health check" in pure and "Context-health check" in goal_render,
+            "context_health_emitted",
         )
     )
 

@@ -8,9 +8,11 @@ each iteration; the context window is a **rolling lossy cache** — user-role te
 survives compaction verbatim, assistant turns and tool outputs are
 lossy-summarized near the ceiling — and **files are the durable memory**. A fact
 held only in context can vanish at any compaction boundary; a fact held in a file
-costs tokens every time it is re-read. This primitive gives every emitted
-artifact exactly one **tier**, a hard **bound**, and a keyed **access
-convention**, so the loop reads keys, not files, and its per-iteration ceremony
+costs tokens every time it is re-read. This primitive gives every **access
+path** exactly one **tier**, a hard **bound**, and a keyed **access
+convention** — one file can expose more than one path at different tiers
+(`JOURNAL.jsonl`'s tail-20 is WORKING while its `jq`-by-key path is ON-DEMAND) —
+so the loop reads keys, not files, and its per-iteration ceremony
 stays flat instead of growing with loop age. It is the shared home for the
 `STATE.md` register, the `JOURNAL.jsonl` history schema, the `DERIVATION.md`
 contract, and the context-budget assertion — collapsing what was four divergent
@@ -44,7 +46,10 @@ composition read in `SKILL.md`).
 
 ## The four tiers
 
-Every emitted artifact is assigned **exactly one** tier:
+Every **access path** is assigned **exactly one** tier. Most artifacts expose a
+single path; the split-path cases are deliberate (journal tail vs journal
+by-key, queue index/live-rows vs queue archive) and each path carries its own
+tier and bound:
 
 - **PINNED** — re-read every pass at step 0; small enough to live in the window
   permanently. Bounded by fixed schemas, not by loop age.
@@ -75,6 +80,15 @@ Every emitted artifact is assigned **exactly one** tier:
 - **A bound the runner cannot see does not exist.** The cap arithmetic and access
   commands are stated in the *emitted* block, not just here, so the O(1) read-set
   is enforced at runtime rather than merely intended.
+- **A bound the runner never checks decays.** The prompt text and the
+  authoring-time verifier prove the contract *exists*, not that a degraded
+  post-compaction agent still *obeys* it at hour 20 — the observed failure shape
+  is "I need context" → whole-file read, "temporary" cap widening, a journal
+  record whose evidence file was never written, a queue section updated without
+  its index row. The context-health check in the emitted block is the cheap
+  in-loop detector: a bounded command ritual whose failure routes to repair
+  *before* task work, making the compliant path cheaper than the noncompliant
+  one. (Hardening from the pre-ship design review, 2026-07-07 — see ADR 0004.)
 
 ---
 
@@ -84,8 +98,10 @@ Your runner runs **one continuous conversation** and re-sends this prompt every
 iteration; the context window is a **rolling lossy cache** (user-role text
 survives compaction, assistant/tool output is summarized away near the ceiling)
 and **the files under `.loop/<loop-id>/` are the durable memory**. Read keys, not
-files. Every artifact below has exactly one tier and a hard bound; honor its
-access command and never promote an ON-DEMAND read to a per-pass whole-file read.
+files. Every access path below has exactly one tier and a hard bound (one file
+may expose two paths at different tiers — the journal's tail is WORKING, its
+keyed history ON-DEMAND); honor each path's access command and never promote an
+ON-DEMAND read to a per-pass whole-file read.
 
 ### Tier contract
 
@@ -136,8 +152,14 @@ transition log.
 
 ### `JOURNAL.jsonl` — the single append-only history
 
-One typed JSON record per line, **target ≤300 chars**, evidence carried as
-**pointers** (a path, an `AC-id`, a commit) never inlined blobs. `JOURNAL.jsonl`
+One typed JSON record per line, **target ≤300 chars — short by default, but
+never truncate a required field**: a longer record that keeps the failure facts
+beats a clipped one pointing at nothing. Evidence is carried as **pointers** (a
+path, an `AC-id`, a commit — prefer `path#line-range` or path + hash for
+load-bearing evidence) never inlined blobs, and evidence is **write-ahead**:
+save the trace / command output to its file *first*, then append the record
+that points at it — a pointer to a file that does not exist yet is a protocol
+violation the context-health check below will catch. `JOURNAL.jsonl`
 is the *only* history surface — there is no separate CHECKPOINTS / monitor file.
 
 Record types (`t`), each with `iter` (iteration) plus type-specific fields:
@@ -153,6 +175,12 @@ Record types (`t`), each with `iter` (iteration) plus type-specific fields:
 | `halt` | a full halt-scan event fires | `cause`, `scan` (surface→state), `open` | all |
 | `score_quarantine` | greenfield reframes the rubric and quarantines old scores | `rubric_from`, `rubric_to`, `quarantined` | greenfield |
 | `bootstrap` | one-time setup completes | `what`, `files` | all |
+| `consolidation` | every ~10 iterations, on a criterion/story/anchor closure, or before final-verify | `lesson` (what recent attempts taught), `covers` (iter range / ids) | all |
+
+`consolidation` is the journal's lessons layer: events record *what happened*;
+a consolidation distills *what it taught* — compact enough that the tail-20
+read after a compaction naturally resurfaces the latest lessons instead of raw
+attempts. It never restates rows that are still live in STATE or the queue.
 
 Access:
 
@@ -160,7 +188,13 @@ Access:
   history only; never read the whole file per pass.
 - **Keyed (ON-DEMAND):** `jq -c 'select(.ac=="AC-006")' .loop/<loop-id>/JOURNAL.jsonl`
   (swap the selector for `.id`, `.t`, `.anchor`, …) — pull one thread on the rare
-  pass that needs prior art.
+  pass that needs prior art. **Fire a keyed read when:** the same criterion /
+  anchor has failed twice (pull its thread before the third attempt); a reopen
+  condition is being weighed (read only that archived row); or pressure is
+  alternating across scopes (pull recent `pressure` records by scope). Needing
+  *many* keys at once is the signal to write a `consolidation`, not to read the
+  whole file — a full-history read is a named diagnostic exception (halt
+  analysis / Diagnostic mode), never a normal move.
 - **Human watch (WRITE-ONLY, external):**
   `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`.
 
@@ -190,3 +224,31 @@ past `closed-retain-N` is a signal to **archive or collapse first**, before the
 next decision — symmetric with the oracle-integrity checks that treat a violated
 invariant as a `derivation-gap`, never as a reason to widen the bound. Silent
 growth is the failure this whole model exists to prevent.
+
+### Context-health check
+
+The budget assertion is only real if it is *checked*. At **step 0, right after
+the pressure render** — and again after any compaction you can detect (the
+conversation summary replacing earlier turns) — run this bounded ritual before
+task work. Each line is one cheap command, not an investigation:
+
+1. `STATE.md` line count ≤ ~50.
+2. In-force pressure rows ≤ `pressure-cap`.
+3. `tail -n 20 JOURNAL.jsonl` parses as JSONL (`jq -e . >/dev/null` per line, or
+   `jq -es 'length>=0'` over the tail).
+4. The evidence pointers in the most recent ~5 journal records **resolve** —
+   the files exist (write-ahead was honored).
+5. The queue **index row** for the current item agrees with that item's
+   `## <id>` section (status + counters).
+6. No whole-file read of an append-only artifact happened since the last check
+   unless a diagnostic exception was named.
+
+**A failed line is a routing, not a warning:** past-cap → archive/collapse now;
+unparseable tail → repair the malformed record now; dangling evidence → write
+the missing file or correct the record now; index/section disagreement →
+reconcile from the authoritative surface now (the index owns status/counters —
+`primitives/queue-as-second-artifact.md`); only then proceed to the iteration.
+A violation that cannot be repaired locally is a `derivation-gap` halt, never
+something to work around. The check exists because a post-compaction pass
+half-remembers the contract: it makes the contract cheaper to re-honor than to
+drift from.

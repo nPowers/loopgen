@@ -20,10 +20,15 @@ composed prompt.
 3a. **Operational core** — ALWAYS. A compact rehydration block emitted right after
    Motive (~40 lines): a one-line runtime reminder (the context window is a
    rolling lossy cache; the files are memory), the **Context budget** table
-   (file → tier → cap → access command → human watch command), the halt-cause
+   (file → tier → cap → access command → human watch command), the
+   **context-health check** (the bounded step-0 audit from
+   `primitives/context-stack.md` — caps, tail parse, evidence pointers resolve,
+   index/section agreement), the halt-cause
    quick list, and the iteration-protocol skeleton. Its purpose is that a
    post-compaction rehydration read is a bounded `sed -n '1,80p'
-   .loop/<loop-id>/PROMPT.md`, not a two-chunk whole-file read. The composer
+   .loop/<loop-id>/PROMPT.md`, not a two-chunk whole-file read — and that the
+   pass most likely to violate the read discipline (the half-rehydrated one)
+   meets the audit that catches it inside its first 80 lines. The composer
    synthesizes it from the body's iteration protocol + the context-stack budget
    (`primitives/context-stack.md`); it is never gated.
 4. **Runner contract** — ALWAYS (`primitives/runner-contract.md`).
@@ -122,7 +127,8 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    Right after Motive, emit the compact Operational core (union order 3a):
    synthesize it from the body's iteration protocol + the context-stack budget
    (`primitives/context-stack.md`) — a one-line runtime reminder, the Context
-   budget table, the halt-cause quick list, and the iteration-protocol skeleton —
+   budget table, the context-health check, the halt-cause quick list, and the
+   iteration-protocol skeleton —
    so post-compaction rehydration is a bounded `sed -n '1,80p'
    .loop/<loop-id>/PROMPT.md`. Beyond this one ALWAYS section, do not prepend
    extra sections: provenance and frontload live only at their explicit body

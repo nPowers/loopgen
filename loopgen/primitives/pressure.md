@@ -191,13 +191,21 @@ evidence is cut, not rendered.
 **Record the read-back.** Each pass, append a `consult` record to
 `.loop/<loop-id>/JOURNAL.jsonl`: every active row id mapped to the plan element
 it bent, or `no-effect: <reason>`. A pass with no `consult` record has not
-completed step 0.
+completed step 0. **Repeated no-effect is a decay signal:** a row logging
+`no-effect` on ~3 consecutive consults must be retired, narrowed, or explicitly
+re-justified in that pass's `consult` record — under the same evidence burden as
+any lifecycle transition. A stale row with consequence is worse than no row: it
+bends every plan while wearing the authority of a live invariant.
 
 **Mandatory promotion trigger.** Every failed verify, probe, eval, or review
 this pass **either** mints a `source: backpressure` row into
 `.loop/<loop-id>/STATE.md` `pressure_objects` (it renders into `PRESSURE.md`)
-**or** appends a `consult` record carrying `no-promotion: <reason>` that names
-why the failure earns no pressure. Silence is a protocol violation: a failure
+**or** appends a `consult` record carrying `no-promotion: <reason>` — where
+`<reason>` is one of the closed set `duplicate-of:<id>` · `covered-by:<id>` ·
+`out-of-scope` · `transient-flake` · `criterion-local` ·
+`reverted-before-effect`, never free prose (free-text reasons decay into
+compliance dust that satisfies the letter of this trigger while carrying
+nothing). Silence is a protocol violation: a failure
 that neither mints a row nor logs a reasoned no-promotion is late consequence the
 next pass rediscovers cold — the exact dead-`PRESSURE.md` failure this always-on
 surface exists to prevent. This obligation is what makes the HUD carry the loop's
@@ -261,11 +269,16 @@ Record every transition as a `pressure` journal record in
 status (a row that reaches a terminal status leaves the in-force set entirely —
 its history stays in the journal). A new `source: backpressure` row scoped to an
 already-pressured scope **merges into** the existing row, never appends a
-duplicate. More than `pressure-cap` in-force rows (`active` or `hardened`;
-default 12, frontload-tunable), or a row that keeps oscillating its mode
-(`constraint` ↔ `burden`) or re-stamping without ever reaching a terminal status
-(`paid` / `stale` / `retired`), is itself a halt / checkpoint cause (a
-`derivation-gap`, or `frontier`'s `checkpoint_reason`), not silent growth.
+duplicate. On `pressure-cap` overflow (more than the cap in force; default 12,
+frontload-tunable), run one merge/retire pass first — merge same-scope rows,
+retire rows with repeated `no-effect` consults or met `expires` conditions
+(evidence burden unchanged) — and only if the set is *still* over cap halt on
+it; a loop that halts because its pressure bookkeeping is noisy, rather than
+because the task is blocked, has inverted the tool. A row that keeps
+oscillating its mode (`constraint` ↔ `burden`) or re-stamping without ever
+reaching a terminal status (`paid` / `stale` / `retired`) is likewise a halt /
+checkpoint cause (a `derivation-gap`, or `frontier`'s `checkpoint_reason`), not
+silent growth.
 `.loop/<loop-id>/PRESSURE.md`'s header carries the in-force cap plus the journal
 pointer, re-rendered each pass, so the discipline survives even when this block
 is summarized away.

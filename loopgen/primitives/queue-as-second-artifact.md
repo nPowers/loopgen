@@ -69,6 +69,18 @@ surfaces carry different fields:
   pointer). The heavy evidence is a pointer into a trace or `JOURNAL.jsonl`,
   never an inlined blob in the row.
 
+**The index is authoritative — single-writer rule.** `status` and the running
+counters live in the INDEX row **only**; a `## <id>` section never carries a
+competing copy (if a status is repeated inside a section for readability, it is
+marked *non-authoritative* and never read as truth). Two surfaces that can each
+claim a row's status will drift the first time a pass updates one and forgets
+the other — with no runtime to reconcile them, the fix is that only one surface
+*can* be written. A status transition is therefore one index-cell edit plus (when
+the transition is worth a timestamp) one journal record; the section is touched
+only when its detail fields change. The context-health check
+(`primitives/context-stack.md`) verifies index/section agreement for the current
+row each pass and reconciles **from the index** on disagreement.
+
 ## Growth discipline (bounded re-read surface)
 
 The queue artifact `<artifact>` — whichever one `artifact-shape` selected
