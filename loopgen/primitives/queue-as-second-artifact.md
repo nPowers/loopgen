@@ -28,6 +28,12 @@ all of them), as a framing note above the queue section.
   bound and the `archive/<artifact>.md` move ride into every composed prompt —
   not only the ones that happened to inline the discipline. (This replaces the
   earlier state where the bound lived in prose here but was carried by no body.)
+- **Benchmark overlay rows are stricter (authoring only).** Under the
+  benchmark-frontier overlay, candidate rows live in the stricter overlay
+  artifact roles described in `references/benchmark-frontier-artifacts.md`; that
+  contract is not inherited by pure frontier. Those overlay role names stay out
+  of the generic emitted block below, so a pure archetype that INCLUDEs this
+  block never carries them.
 
 ---
 
@@ -63,17 +69,12 @@ surfaces carry different fields:
   pointer). The heavy evidence is a pointer into a trace or `JOURNAL.jsonl`,
   never an inlined blob in the row.
 
-For benchmark-frontier, candidate rows are stricter and live in the overlay
-artifact roles (`CANDIDATES`, `FRONTIER`, and `traces`) described in
-`references/benchmark-frontier-artifacts.md`. That stricter row contract is not
-inherited by pure frontier.
-
 ## Growth discipline (bounded re-read surface)
 
 The queue artifact `<artifact>` — whichever one `artifact-shape` selected
 (goal's `ACCEPTANCE.md`, story's `docs/storyboard.md`, frontier's `FINDINGS.md`
-plus the `TRACES.md` / `METRICS.md` indexes, or a benchmark overlay's
-`CANDIDATES.jsonl`) — is on the WORKING re-read path every iteration; that
+plus the `TRACES.md` / `METRICS.md` indexes, or the benchmark overlay's
+candidate ledger) — is on the WORKING re-read path every iteration; that
 re-read is this primitive's whole reason to exist. Left unbounded it only grows
 with loop lifetime: a 100+ iteration loop pays an ever-larger per-pass read tax
 on rows that already reached a terminal status and no longer bend any decision.

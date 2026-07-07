@@ -165,9 +165,15 @@ shape labels the correction.
    surface this iteration will use as its evidence source. If none exists and
    none can be produced inside the scope/budget rules, halt without accepting a
    ledger-only iteration.
-1. Read the state: current repo as directed by the motive and surfaces
-   named in this prompt, plus ledger / findings / run-artifacts if the
-   framework provides them, plus oracle outputs and failing traces.
+1. **Read the state, tiered** (`primitives/context-stack.md`): first the PINNED
+   surfaces — re-render and read `.loop/<loop-id>/PRESSURE.md` from
+   `.loop/<loop-id>/STATE.md` `pressure_objects`, run pressure's step-0
+   maintenance (`primitives/pressure.md`), and read `.loop/<loop-id>/STATE.md`
+   (live status only). Then the WORKING surfaces — the findings-ledger **index +
+   OPEN rows** (not the whole file), `tail -n 20 .loop/<loop-id>/JOURNAL.jsonl`,
+   and the concrete trace / metric artifacts the framework provides, plus oracle
+   outputs and failing traces for the anchor in hand. Older journal history and
+   `.loop/<loop-id>/archive/FINDINGS.md` are on-demand `jq` / section reads only.
    Do not use recent commit messages as positive generative evidence
    for the next intervention — self-narrated recency resists
    pattern-matching on drift and tends to re-certify whatever shape
@@ -176,8 +182,8 @@ shape labels the correction.
    metadata (typed run artifacts, reviewed findings) over commit prose.
    Current repo state carries landed signal; it does not carry reverted
    hypotheses, dead directions, or oscillation history — that is what
-   findings / ledger surfaces are for, when they exist. See the signal
-   hierarchy below for source precedence.
+   the findings ledger + `JOURNAL.jsonl` are for. See the signal
+   hierarchy above for source precedence.
 2. Assess each axis. Mark it balanced, drifting, or actively disturbed.
 3. Pick the intervention that most restores balance. If two axes are
    equally disturbed, prefer the cheaper correction.
@@ -189,7 +195,9 @@ shape labels the correction.
 7. Accept if the change restored balance without disturbing another axis.
    Otherwise revert, record the evidence, name the next hypothesis.
 8. Close the iteration transaction before any halt or anchor switch: write trace
-   artifacts, update every canonical ledger/state file, run validation, inspect
+   artifacts, update every canonical ledger/state file, append this pass's
+   `attempt` / `pressure` / `consult` records to `.loop/<loop-id>/JOURNAL.jsonl`
+   (see End-of-iteration transaction), run validation, inspect
    `git status --short`, and resolve tracked diffs. If the accepted
    intervention changed tracked files, make one focused Conventional Commit;
    unattended local commits are authorized by default. If the change is not
@@ -257,7 +265,10 @@ The halt is valid only when every remaining useful intervention is either
 blocked by the same external authority, outside scope, or low-yield same-family
 polish with no fresh evidence, the active pressure-discovery move found no new
 admissible pressure, and no expansion-ramp option exists inside scope/budget.
-Record the pressure fields and include the scan in the final response:
+Record the pressure fields and include the scan in the final response, saved as
+`halt_scan` in `.loop/<loop-id>/STATE.md` (overwrite-latest) and appended as a
+`halt` record to `.loop/<loop-id>/JOURNAL.jsonl`
+(`primitives/halt-cause-classifier.md`):
 
 ```text
 halt scan:
@@ -297,7 +308,13 @@ An iteration is not durable until evidence, ledger, validator, and git state
 agree. Before any halt, checkpoint, ticket switch, or anchor switch:
 
 1. Persist the raw trace / artifact used for the decision.
-2. Update the canonical ledger and state surfaces named by this prompt.
+2. Update the canonical live surfaces named by this prompt (the findings-ledger
+   index + touched rows, `.loop/<loop-id>/STATE.md` live status), and append this
+   iteration's history to `.loop/<loop-id>/JOURNAL.jsonl` — an `attempt` record
+   for the accepted/reverted change (≤300 chars, evidence as pointer) plus any
+   `pressure` / `consult` / `checkpoint` / `halt` records this pass produced.
+   `.loop/<loop-id>/STATE.md` never accumulates that history
+   (`primitives/context-stack.md`).
 3. Run the appropriate validator for any tracked change.
 4. Check `git status --short`.
 5. Resolve tracked diffs:
@@ -476,17 +493,58 @@ locally-admissible polish; the checkpoint prevents indefinite
 polishing by forcing either new evidence or honest halt.
 Default N = 3; set per repo as `{{QUIET_SIGNAL_N}}`.
 
+## Findings ledger format
+
+`.loop/<loop-id>/FINDINGS.md` is the findings-ledger queue: an **index table up
+top + one `## <finding-id>` section per finding**
+(`primitives/queue-as-second-artifact.md`), read as index + OPEN rows every pass,
+never whole-file.
+
+- **Index row** (re-read every pass): `id` · `status` (the Frontier status
+  taxonomy: `OPEN` / `FIXED_PENDING_CONFIRMATION` / `CLOSED_CONFIRMED` /
+  `CLOSED_EXPECTED_RED_CONTROL` / `PAUSED_EXTERNAL` / `REJECTED_OUT_OF_SCOPE`) ·
+  a one-line summary · the disturbed axis · the running counters (open /
+  fixed-pending / closed).
+- **Full section `## <finding-id>`** (read on demand when acting on it):
+  hypothesis · disturbed axis · `closure_criterion` · `freshness` · the failing
+  trace / metric pointer · reopen condition. Heavy evidence is a pointer into a
+  trace or `JOURNAL.jsonl`, never an inlined blob.
+
+Closed findings age out to `.loop/<loop-id>/archive/FINDINGS.md` at
+`closed-retain-N`; the index counters survive in the live header.
+
 ## Artifacts to maintain
 
-- **Ledger** — concise state / hypotheses / outcomes (memory).
-- **Structured traces** — failures produce queryable artifacts, not just
-  stderr.
-- **Metric outputs** — machine-readable, persisted across iterations.
-- `.loop/<loop-id>/STATE.md` — `phase`, `iteration`, `last_action`,
-  `next_action`, `halt_cause`, `halt_scan`, `pressure_objects`,
-  `pressure_ledger`, `pressure_consulted`, `current_anchor`,
-  `trace_locations` (where structured traces live), `metric_locations`
-  (where metric outputs live).
+Each file has one tier and a bound (`primitives/context-stack.md`); read keys,
+not files.
+
+- `.loop/<loop-id>/PRESSURE.md` (PINNED) — pressure HUD, re-rendered from
+  `STATE.md` `pressure_objects`, read at the top of every iteration; for frontier
+  this is the checkpoint pressure projection
+  (`primitives/pressure-accounting.md`).
+- `.loop/<loop-id>/STATE.md` (PINNED) — **live status only**, fixed keys,
+  rewrite-in-place, no history: `phase`, `iteration`, `last_action`,
+  `next_action`, `halt_cause`, `halt_scan`, `frontier_vector`, `current_anchor`,
+  `reward_channels`, `pressure_objects` (in-force rows, ≤ `pressure-cap`),
+  `pressure_status`, `pressure_debt`, `checkpoint_reason`, `next_pressure`,
+  `trace_locations`, `metric_locations`, `guardrails`. It does **not** hold
+  `pressure_ledger`, `pressure_consulted`, or a per-attempt log — those are
+  `pressure` / `consult` / `attempt` records in `JOURNAL.jsonl`.
+- `.loop/<loop-id>/FINDINGS.md` (WORKING) — the findings-ledger queue (see
+  Findings ledger format above): index + `## <finding-id>` sections.
+- **Structured traces** / **metric outputs** (ON-DEMAND) — failures produce
+  queryable artifacts, not just stderr; machine-readable metrics persisted across
+  iterations, indexed by `trace_locations` / `metric_locations`.
+- `.loop/<loop-id>/JOURNAL.jsonl` (WORKING tail / ON-DEMAND keyed) — the single
+  append-only history: `attempt`, `pressure`, `consult`, `alignment_review`,
+  `checkpoint`, `halt` records. `tail -n 20` per pass; `jq` by key otherwise.
+- `.loop/<loop-id>/DERIVATION.md` (ON-DEMAND) — write-once derivation record
+  (`primitive_bundle`, `divergences`, `overlays`, `derivation_read_set`,
+  `frontload`); read on resume/diagnosis, not per pass.
+
+{{INCLUDE primitives/context-stack.md}}
+
+{{INCLUDE primitives/queue-as-second-artifact.md}}
 
 {{REVIEW_CLOSURE_OVERLAY}}
 ```
@@ -500,11 +558,15 @@ Placeholders populated during derivation (see SKILL.md step 6):
 - `{{PROVENANCE}}` — the loopgen provenance preamble.
 - `{{MOTIVE}}` — one-sentence goal from user.
 - `{{FRONTLOAD_PREAMBLE}}` — resolved / defaulted / open-gap summary.
-- `{{PRESSURE_SURFACE}}` — the pressure weather block (`primitives/pressure.md`),
-  emitted only when ≥1 pressure object exists at compose time; stripped otherwise.
+- `{{PRESSURE_SURFACE}}` — the always-on pressure HUD block
+  (`primitives/pressure.md`), emitted in every composed prompt (no gate).
 - `{{SUBAGENT_PATTERNS}}` — the subagent-pattern catalog B/C/D
   (`primitives/subagent-patterns.md`), emitted only at `consult-tier ≥ 1` and
   filtered to that tier; stripped byte-identical at tier-0.
+- The Artifacts-to-maintain section inlines `primitives/context-stack.md` (the
+  memory model + STATE/JOURNAL/DERIVATION schema and context budget) and
+  `primitives/queue-as-second-artifact.md` (queue growth discipline + INDEX/FULL
+  row split) at compose (step 2).
 - `{{FRONTIER_VECTOR}}` — the named dimensions this repo's frontier moves
   along, one per line.
 - `{{BENCHMARK_FRONTIER_MODE}}` — the Benchmark Frontier Mode overlay block
