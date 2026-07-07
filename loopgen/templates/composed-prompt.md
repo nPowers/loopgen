@@ -17,15 +17,26 @@ composed prompt.
 1. **Header line** — archetype-specific ("You are running …").
 2. **Provenance preamble** — ALWAYS via `{{PROVENANCE}}` (format below).
 3. **Motive** — ALWAYS.
+3a. **Operational core** — ALWAYS. A compact rehydration block emitted right after
+   Motive (~40 lines): a one-line runtime reminder (the context window is a
+   rolling lossy cache; the files are memory), the **Context budget** table
+   (file → tier → cap → access command → human watch command), the halt-cause
+   quick list, and the iteration-protocol skeleton. Its purpose is that a
+   post-compaction rehydration read is a bounded `sed -n '1,80p'
+   .loop/<loop-id>/PROMPT.md`, not a two-chunk whole-file read. The composer
+   synthesizes it from the body's iteration protocol + the context-stack budget
+   (`primitives/context-stack.md`); it is never gated.
 4. **Runner contract** — ALWAYS (`primitives/runner-contract.md`).
 5. **Judgment default** — ALWAYS (`primitives/judgment-default.md`); in
    `greenfield` it is carried by invariant 7 instead, so it is not emitted twice.
 6. **Frontload preamble** — ALWAYS via `{{FRONTLOAD_PREAMBLE}}`
    (`primitives/frontload-audit.md` output).
-6a. **Pressure surface** — CONDITIONAL via `{{PRESSURE_SURFACE}}`
+6a. **Pressure surface** — ALWAYS via `{{PRESSURE_SURFACE}}`
    (`primitives/pressure.md`). Emitted right after the frontload preamble — the
-   weather is read before the body — but **only when ≥1 pressure object exists**
-   at compose time; otherwise stripped, leaving the prompt byte-identical.
+   pinned pressure HUD is read before the body — in **every** composed prompt
+   (the ≥1-object gate is removed; seeded rows are optional). The block carries
+   the row schema, the re-read contract, the mode law, and the mandatory
+   promotion triggers.
 6b. **Subagent patterns** — CONDITIONAL via `{{SUBAGENT_PATTERNS}}`
    (`primitives/subagent-patterns.md`). Emitted after the pressure surface — an
    available *capability* read before the body — but **only when
@@ -57,7 +68,11 @@ composed prompt.
     (`primitives/halt-cause-classifier.md`, including the archetype's terminal
     cause).
 12. **Artifacts to maintain** — the canonical files required by the active
-    artifact contracts (`artifact-shape`, divergent primitive add-ons, overlays).
+    artifact contracts (`artifact-shape`, divergent primitive add-ons, overlays),
+    each tagged with its tier, plus the **Context budget** — ALWAYS, carried by
+    the `{{INCLUDE primitives/context-stack.md}}` block every body places here
+    (tier table, STATE/JOURNAL/DERIVATION schema, and the budget assertion) and
+    the `{{INCLUDE primitives/queue-as-second-artifact.md}}` queue-growth block.
 13. **Overlays** — benchmark-frontier (`frontier` only when frontload binds a
     benchmark/eval/harness object); review-closure (`frontier` closure mode);
     Surface Taste Lane (`story` taste lane).
@@ -96,11 +111,22 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    are derivation gaps, not silent defaults.
 1. **Load** `templates/bodies/<nearest>-body.md`.
 2. **Resolve includes.** For each `{{INCLUDE primitives/X.md}}` marker, inline
-   the block that follows the `---` spec separator in that primitive file.
+   the block that follows the `---` spec separator in that primitive file. Every
+   body now carries `{{INCLUDE primitives/context-stack.md}}` (the memory model +
+   STATE/JOURNAL/DERIVATION schema + context budget) and
+   `{{INCLUDE primitives/queue-as-second-artifact.md}}` (queue growth discipline)
+   in its Artifacts-to-maintain section; both resolve here.
 3. **Fill placeholders** from the frontload audit + primitive bundle, including
    `{{PROVENANCE}}` and `{{FRONTLOAD_PREAMBLE}}`.
-4. **Do not prepend extra sections.** Provenance and frontload live only at the
-   explicit body placeholders, so every archetype has one stable section order.
+4. **Emit the Operational core (ALWAYS), then no other synthesized sections.**
+   Right after Motive, emit the compact Operational core (union order 3a):
+   synthesize it from the body's iteration protocol + the context-stack budget
+   (`primitives/context-stack.md`) — a one-line runtime reminder, the Context
+   budget table, the halt-cause quick list, and the iteration-protocol skeleton —
+   so post-compaction rehydration is a bounded `sed -n '1,80p'
+   .loop/<loop-id>/PROMPT.md`. Beyond this one ALWAYS section, do not prepend
+   extra sections: provenance and frontload live only at their explicit body
+   placeholders, so every archetype keeps one stable section order.
 5. **Apply divergence patches.** For every axis where the bundle diverges from
    the archetype default, replace the archetype's default section with the
    diverging value's section and name it in provenance:
@@ -140,25 +166,26 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    - **When the bound evaluator is trusted-or-mutated** (an LLM judge, a
      generated/minted answer key, or eval-set evolution), seed the
      `### Oracle-integrity pressure` rows (`primitives/benchmark-frontier.md`) into
-     `.loop/<loop-id>/STATE.md` `pressure_objects`, so `{{PRESSURE_SURFACE}}` fires via its own
-     ≥1-object gate (step 7a). The two gates **nest**: oracle-integrity rows are a
-     strict subset of overlay-active-and-oracle-trusted cases, so they never appear
-     without the overlay block that explains them, and a pure archetype — or a
+     `.loop/<loop-id>/STATE.md` `pressure_objects`. The pressure surface itself is
+     always emitted (step 7a); seeding these rows populates the in-force set so the
+     HUD opens with the oracle-integrity slopes already active. They are a strict
+     subset of overlay-active-and-oracle-trusted cases, so they never appear
+     without the overlay block that explains them; a pure archetype — or a
      benchmark overlay over a deterministic non-LLM, non-minted oracle — seeds none
-     and stays byte-identical. The frontload Evaluator-integrity audit
-     (`primitives/frontload-audit.md`) names any unmet integrity property as a
-     `derivation-gap` before emit.
-7a. **Apply pressure surface** (`primitives/pressure.md`):
-   - If `count(pressure_objects) ≥ 1` at compose (the frontload latent-pressure
-     mining step or a human seed produced ≥1 row), replace `{{PRESSURE_SURFACE}}`
-     with the block below the `---` in `primitives/pressure.md`, resolving any
-     include markers it carries.
-   - Otherwise strip `{{PRESSURE_SURFACE}}` entirely (step 8 removes it). A pure
-     archetype with no seeded or mined pressure stays byte-identical — gated
-     exactly like `{{BENCHMARK_FRONTIER_MODE}}`.
-   - The active rows live in `.loop/<loop-id>/PRESSURE.md` (re-read each pass), not inlined
-     into the prompt; the emitted block carries the re-read contract, the mode
-     law, and the backpressure instruction.
+     and simply starts with an empty in-force set. The frontload
+     Evaluator-integrity audit (`primitives/frontload-audit.md`) names any unmet
+     integrity property as a `derivation-gap` before emit.
+7a. **Apply pressure surface** (`primitives/pressure.md`) — ALWAYS:
+   - Replace `{{PRESSURE_SURFACE}}` with the block below the `---` in
+     `primitives/pressure.md` in **every** composed prompt (no gate), resolving
+     any include markers it carries. Seeded or mined rows are optional — the
+     compact HUD block is emitted whether or not `count(pressure_objects) ≥ 1`,
+     because its mandatory promotion triggers are what keep the surface from going
+     dead (the measured dead-`PRESSURE.md` failure — ADR 0004).
+   - The active rows live in `.loop/<loop-id>/PRESSURE.md` (re-read each pass),
+     not inlined into the prompt; the emitted block carries the row schema, the
+     re-read contract, the mode law, the mandatory promotion triggers, and the
+     backpressure instruction.
 7b. **Apply subagent patterns** (`primitives/subagent-patterns.md`):
    - If `consult-tier ≥ 1`, replace `{{SUBAGENT_PATTERNS}}` with the block below
      the `---` in `primitives/subagent-patterns.md`, but **emit only the B/C/D
@@ -171,7 +198,8 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
      with the full tier label (e.g. `tier-2`).
    - Otherwise (`tier-0`) strip `{{SUBAGENT_PATTERNS}}` entirely (step 8 removes
      it). The loop runs single-agent via pattern A — byte-identical, gated
-     exactly like `{{PRESSURE_SURFACE}}`.
+     exactly like `{{BENCHMARK_FRONTIER_MODE}}` (the pressure surface, by
+     contrast, is now always-on — step 7a).
    - Pattern A (single-agent iteration) is the existing protocol; it is never
      part of this block, and nothing here is a required gate to accept an
      iteration.
@@ -179,10 +207,11 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    substituted. If any `{{…}}` survives, WARN in the emit summary — the emitted
    prompt must contain no dead sections. When a stripped placeholder sat on its
    own line between blank lines, **collapse the surrounding blanks to a single
-   newline**, so the stacked gated placeholders (`{{PRESSURE_SURFACE}}` /
-   `{{SUBAGENT_PATTERNS}}`) leave byte-identical output
-   in every on/off combination (no double blank line when an inner one is
-   stripped).
+   newline**, so a gated placeholder (`{{SUBAGENT_PATTERNS}}`,
+   `{{BENCHMARK_FRONTIER_MODE}}`) leaves byte-identical output whether on or off
+   (no double blank line when it is stripped). `{{PRESSURE_SURFACE}}` is now
+   always substituted (step 7a) and never stripped, so it no longer participates
+   in this collapse.
 9. **Verify halt semantics.** The emitted prompt must distinguish invocation
    halt from archetype completion. Shared halt causes (`genuine-escalate`,
    `derivation-gap`, `signal-starvation`, `wrong-loop`) never mean the
@@ -198,9 +227,14 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    files + nearest archetype files + divergent primitive add-ons + active
    overlay files.
 
-## Pressure-surface gating
+## Pressure-surface: always-on (no gate)
 
-The `{{PRESSURE_SURFACE}}` block is gated on ≥1 compose-time pressure object: a
-pure case with no seeded or mined pressure has it stripped (step 8), so a
-zero-pressure compose carries no pressure section. A case that intentionally
-seeds pressure is not a pure case.
+The `{{PRESSURE_SURFACE}}` block is emitted in **every** composed prompt — there
+is no compose-time gate (ADR 0004 reversed the former ≥1-object gate, whose
+measured failure was a dead `PRESSURE.md`). A zero-pressure compose still carries
+the pinned HUD and its mandatory promotion triggers, so the surface is live the
+moment the loop mints its first row; seeded rows only pre-populate the in-force
+set. Of the three formerly-stacked gated placeholders, only
+`{{SUBAGENT_PATTERNS}}` and `{{BENCHMARK_FRONTIER_MODE}}` remain gated —
+`{{SUBAGENT_PATTERNS}}` stays the reference example of a compose-gated block
+(stripped byte-identical at `tier-0`, step 8).
