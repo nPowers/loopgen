@@ -64,28 +64,29 @@ Consult tiers are defined below; benchmark-frontier is defined in
 `primitives/benchmark-frontier.md`.
 
 **Shared primitives** (the non-archetype-varying vocabulary layer; each one
-surfaces differently — not all nine are constant, and not all are emitted):
+surfaces differently — not all are constant, and not all are emitted):
 
 - **Emitted in every composed prompt:** `runner-contract`, `judgment-default`,
   the frontload-audit output (`primitives/frontload-audit.md`, filling
-  `{{FRONTLOAD_PREAMBLE}}`), `halt-cause-classifier`.
+  `{{FRONTLOAD_PREAMBLE}}`), `halt-cause-classifier`, `context-stack` (the memory
+  model + STATE/JOURNAL/DERIVATION schema + context budget, INCLUDEd by every
+  body's Artifacts section), and `pressure` (the always-on pinned HUD via
+  `{{PRESSURE_SURFACE}}` — no compose gate; ADR 0004).
 - **Archetype-scoped:** `evidence-tier` — every archetype except `goal`, which
   relies on oracle principles + the acceptance inventory as its evidence
   surface instead (`templates/composed-prompt.md` §8, Signal hierarchy).
   `evaluator-maturity` (T0–T6) — `frontier` only, named in its `## Extras`.
+- **Wired, artifact-shape-scoped:** `queue-as-second-artifact` — the queue-growth
+  block INCLUDEd by every body's Artifacts section whenever `artifact-shape` is
+  not `prompt-only` (i.e. almost every composed prompt); it carries the
+  `closed-retain-N` bound and the INDEX/FULL row split. `pressure-accounting` is
+  the `frontier` projection of `pressure`, not a separate archetype-varying axis.
 - **Gated** (universal in the vocabulary, conditional in the composed output):
-  `pressure`, `subagent-patterns`, `queue-as-second-artifact`.
-  `pressure` is universal, but its `{{PRESSURE_SURFACE}}` block emits only when ≥1
-  pressure object exists at compose time (gated; byte-identical when empty).
-  `pressure-accounting` is the `frontier` projection of `pressure`, not a separate
-  archetype-varying axis.
-  `subagent-patterns` is likewise **gated**: its `{{SUBAGENT_PATTERNS}}` block
-  (catalog B/C/D — pattern A is the existing single-agent protocol, never part of
-  the block) emits only at `consult-tier ≥ 1`, filtered to that tier; at `tier-0`
-  it is stripped byte-identical (`primitives/subagent-patterns.md`).
-  `queue-as-second-artifact` is the framing note above the queue section,
-  included whenever `artifact-shape` is not `prompt-only` (i.e. almost every
-  composed prompt).
+  `subagent-patterns` — the one remaining compose-gated block. Its
+  `{{SUBAGENT_PATTERNS}}` block (catalog B/C/D — pattern A is the existing
+  single-agent protocol, never part of the block) emits only at
+  `consult-tier ≥ 1`, filtered to that tier; at `tier-0` it is stripped
+  byte-identical (`primitives/subagent-patterns.md`).
 - **Read every run, never emitted:** `diagnostic-pattern` — read on every
   Diagnostic-mode invocation to drive the retrofit procedure; per
   `primitives/diagnostic-pattern.md` it is "not part of an emitted prompt"
@@ -127,10 +128,11 @@ that decline):**
 - `primitives/pressure.md`
 
 `primitives/pressure.md` is read every run because the frontload latent-pressure
-mining step is universal and needs its modes + object schema. It shapes the
-emitted prompt (and appears in the provenance `Primitive sources:` line) only
-when mining or a seed produces ≥1 pressure object, so a zero-pressure pure case
-stays byte-identical even though the file is in the read set.
+mining step is universal and needs its modes + object schema. Its
+`{{PRESSURE_SURFACE}}` block is now emitted in **every** composed prompt
+(always-on; ADR 0004 reversed the former ≥1-object gate), so it always appears in
+the provenance `Primitive sources:` line; seeded or mined rows only pre-populate
+the in-force set.
 
 **Tier 2 — read for composition (only after the loop-necessity gate passes
 and composition proceeds):**
@@ -141,6 +143,7 @@ and composition proceeds):**
 - `primitives/evidence-tier.md`
 - `primitives/halt-cause-classifier.md`
 - `primitives/queue-as-second-artifact.md`
+- `primitives/context-stack.md`
 
 A `{loop_warranted: false}` decline stops after Tier 1 — the loop-necessity
 gate halts Phase 2 before Tier 2's composition reads ever start. A
@@ -335,18 +338,30 @@ current cwd), not any other worktree's or parent's root. The
 kick-off points the runner at `.loop/<loop-id>/PROMPT.md`. Every
 `.loop/<loop-id>/<file>` path below is rooted here.
 
-**Common files, every archetype:**
+**Common files, every archetype** (tiers per `primitives/context-stack.md`):
 
-- `.loop/<loop-id>/PROMPT.md` — the complete re-entrant iteration prompt.
-- `.loop/<loop-id>/STATE.md` — the durable resume state.
-- `.loop/<loop-id>/PRESSURE.md` — the active pressure field, rendered from `.loop/<loop-id>/STATE.md`
-  `pressure_objects` (the source of truth) and re-read each iteration to shape
-  how criteria are interpreted; seeded empty until a pressure exists. It is the
-  canonical pressure surface for `goal` / `story` / `greenfield`. `frontier`
-  already renders its pressure through the findings ledger + `pressure_status`
-  (the projection, `primitives/pressure-accounting.md`), so for `frontier`
-  `.loop/<loop-id>/PRESSURE.md` aliases that surface rather than inventing a second one —
-  consistent with the frontier Storage rule (findings ledger / `.loop/<loop-id>/STATE.md`).
+- `.loop/<loop-id>/PROMPT.md` — the complete re-entrant iteration prompt; carries
+  the always-emitted Operational core near the top for bounded rehydration.
+- `.loop/<loop-id>/STATE.md` — **live status only** (PINNED): fixed keys,
+  rewrite-in-place, ≤ ~50 lines, no history.
+- `.loop/<loop-id>/JOURNAL.jsonl` — the single append-only history (one typed
+  record per line, target ≤300 chars, evidence as pointers): `attempt`,
+  `oracle_change`, `pressure`, `consult`, `alignment_review`, `checkpoint`,
+  `halt`, `score_quarantine`, `bootstrap`. Read `tail -n 20` per pass, `jq` by
+  key otherwise. **No separate CHECKPOINTS / monitor file exists** — humans watch
+  via the documented journal one-liner.
+- `.loop/<loop-id>/DERIVATION.md` — write-once derivation record
+  (`primitive_bundle`, `divergences`, `overlays`, `derivation_read_set`,
+  `frontload`); read on demand (diagnostic / resume), not per pass.
+- `.loop/<loop-id>/PRESSURE.md` — the always-rendered pressure HUD (PINNED),
+  rendered from `.loop/<loop-id>/STATE.md` `pressure_objects` (the in-force set,
+  the source of truth) and re-read at step 0 each iteration. It is the canonical
+  pressure surface for `goal` / `story` / `greenfield`. `frontier` also renders
+  its pressure through the findings ledger + `pressure_status` (the projection,
+  `primitives/pressure-accounting.md`), so for `frontier`
+  `.loop/<loop-id>/PRESSURE.md` aliases that surface rather than inventing a
+  second one — consistent with the frontier Storage rule (findings ledger /
+  `.loop/<loop-id>/STATE.md`).
 
 **Archetype files:**
 
@@ -362,21 +377,26 @@ it still exists so every goal loop has the same resume surface. `.loop/<loop-id>
 and `.loop/<loop-id>/METRICS.md` are indexes: they may point to repo-native trace
 directories, performance reports, benchmark outputs, or generated artifacts.
 
-**Required `.loop/<loop-id>/STATE.md` keys, every archetype:**
+**Required `.loop/<loop-id>/STATE.md` keys, every archetype:** live status only,
+rewrite-in-place — no history (see the context-stack primitive).
 
-- `archetype`, `identity`, `primitive_bundle`, `divergences`, `overlays`
+- `archetype`, `identity`
 - `consult_tier`, `evaluator_tier`
-- `derivation_read_set`
-- `frontload: {resolved, defaulted, open_gaps}`
 - `artifacts: {canonical, repo_aliases}`
 - `iteration`, `phase`, `current_artifact`, `last_action`, `next_action`
 - `halt_cause`, `halt_scan`
-- `pressure_objects`, `pressure_ledger`, `pressure_consulted`
+- `pressure_objects` (in-force rows only, bounded by pressure-cap)
+
+The write-once derivation keys (primitive_bundle, divergences, overlays,
+derivation_read_set, frontload) live in `.loop/<loop-id>/DERIVATION.md`, not
+`STATE.md`; the former pressure_ledger / pressure_consulted are pressure /
+consult records in `.loop/<loop-id>/JOURNAL.jsonl` (see Common files above).
 
 **Archetype-specific `.loop/<loop-id>/STATE.md` keys:**
 
 - `goal` — `goal_version`, `current_criterion`, `stuck_counters`,
-  `final_verify`, `oracle_change_notes`.
+  `final_verify`. (The former `oracle_change_notes` is now an `oracle_change`
+  `JOURNAL.jsonl` record, not a STATE key.)
 - `story` — `storyboard_path`, `lane`, `surface_class`, `current_story`,
   `last_surface`, `last_story_family`, `same_family_count`, `fixture_mode`,
   `evidence_manifest`, `last_validation_commands`,
@@ -387,18 +407,20 @@ directories, performance reports, benchmark outputs, or generated artifacts.
   `pressure_status`, `pressure_debt`, `checkpoint_reason`, `next_pressure`,
   `trace_locations`, `metric_locations`, `guardrails`.
 - `greenfield` — `score_lock`, `phase_gates`, `current_stone_axis`,
-  `capability_list`, `user_halt_owner`. `rubric_version` and
-  `score_comparable_with` live in `.loop/<loop-id>/RUBRIC.md`, and
-  `target_hypotheses` lives in `.loop/<loop-id>/INTENT.md` — those files are
-  the canonical source (`templates/bodies/greenfield-body.md`,
-  `references/greenfield-invariants.md`), not `STATE.md`; `STATE.md` does not
-  duplicate them as a resume pointer, since `RUBRIC.md` is itself a required
-  file re-read every iteration.
+  `user_halt_owner`. `rubric_version` and `score_comparable_with` live in
+  `.loop/<loop-id>/RUBRIC.md`, `target_hypotheses` lives in
+  `.loop/<loop-id>/INTENT.md`, and the `capability_list` capability surface lives
+  in `.loop/<loop-id>/README.md` — those files are the canonical source
+  (`templates/bodies/greenfield-body.md`, `references/greenfield-invariants.md`),
+  not `STATE.md`; `STATE.md` does not duplicate them as a resume pointer, since
+  `RUBRIC.md` is itself a required file re-read every iteration.
 
 `frontier`'s `pressure_status` / `pressure_debt` / `checkpoint_reason` /
-`next_pressure` are the frontier projection of the common `pressure_objects` /
-`pressure_ledger` — a checkpoint-level aggregate over those rows (not a
-field-for-field rename), rendered as a checkpoint contract.
+`next_pressure` are the frontier projection of the common in-force
+`pressure_objects` — a checkpoint-level aggregate over those rows (not a
+field-for-field rename), rendered as a checkpoint contract; the transition
+history they summarize lives in `.loop/<loop-id>/JOURNAL.jsonl` `pressure`
+records, not a per-frontier ledger.
 
 **Hybrid merge rule.** A hybrid is a union over **active contracts**, not a
 blind union over all contributing archetypes:
@@ -507,6 +529,14 @@ write a ⚠️ block to `.loop/<loop-id>/STATE.md`.
   its STATE would read `iteration: 1 → criteria-met`, the re-entry machinery never
   firing. Run the loop-necessity gate (Phase 2) first; distance 0 to `goal` is
   necessary but not sufficient for a loop.
+- **A second history / monitor file.** `JOURNAL.jsonl` is the only history
+  surface; a CHECKPOINTS-style monitor file is a second history that drifts from
+  the first. Humans watch the loop via the documented journal one-liner, not a
+  separate artifact (ADR 0004).
+- **Unbounded `STATE.md` keys.** `STATE.md` is live status only,
+  rewrite-in-place. Any key that accumulates across iterations (an attempt log, a
+  pressure ledger, a consult log, a growing score log) is a history stream in
+  disguise — it belongs in `JOURNAL.jsonl`, not `STATE.md`.
 
 ## Composability
 
@@ -524,7 +554,7 @@ write a ⚠️ block to `.loop/<loop-id>/STATE.md`.
   `artifact-shape`, `convergence-shape`, `cadence-shape`, `consult-capability`)
   + shared blocks (`runner-contract`, `judgment-default`, `evidence-tier`,
   `frontload-audit`, `halt-cause-classifier`, `diagnostic-pattern`,
-  `evaluator-maturity`, `queue-as-second-artifact`, `pressure`,
+  `evaluator-maturity`, `queue-as-second-artifact`, `context-stack`, `pressure`,
   `pressure-accounting`) and
   the conditional `benchmark-frontier` / `eval-ladder` overlay.
 - `archetypes/` — `frontier`, `goal`, `story`, `greenfield`: irreducible loop
