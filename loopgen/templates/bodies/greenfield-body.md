@@ -82,8 +82,15 @@ From then on, gaps are ordinary iteration work, not a return to Bootstrap.
 
 ## Iteration protocol
 
-1. Read `.loop/<loop-id>/STATE.md` and `.loop/<loop-id>/PRESSURE.md` for
-   phase, score-lock, gate state, and any active pressure.
+1. **Read the state, tiered** (`primitives/context-stack.md`): the PINNED
+   surfaces first — re-render and read `.loop/<loop-id>/PRESSURE.md` from
+   `.loop/<loop-id>/STATE.md` `pressure_objects`, run pressure's step-0
+   maintenance (`primitives/pressure.md`), then read `.loop/<loop-id>/STATE.md`
+   (live status only) for phase, score-lock, and gate state. Then the WORKING
+   surfaces — `.loop/<loop-id>/RUBRIC.md` and `.loop/<loop-id>/INTENT.md` in full
+   (both are bounded-small by construction and exempt from index/splitting), and
+   `tail -n 20 .loop/<loop-id>/JOURNAL.jsonl`. Older journal history is an
+   on-demand `jq` read.
 2. If Bootstrap mode still applies, do that work instead and stop here.
 3. Diagnose the currently most imbalanced stone axis or rubric gap —
    imbalance-seeking (invariant 5), not a sequenced plan.
@@ -92,8 +99,13 @@ From then on, gaps are ordinary iteration work, not a return to Bootstrap.
    itself against a stone-axis, never to pad the toolbelt.
 5. Make the change, then score it against `.loop/<loop-id>/RUBRIC.md`; any
    score above 2 requires citation evidence (invariant 2) or it caps at 2.
-6. Update `.loop/<loop-id>/RUBRIC.md`, `.loop/<loop-id>/INTENT.md`,
-   `.loop/<loop-id>/STATE.md`, and `.loop/<loop-id>/README.md` so another
+6. Persist only what changed — not a wholesale rewrite of all four files every
+   pass: rewrite the touched live keys in `.loop/<loop-id>/STATE.md` in place,
+   append this pass's `attempt` / `pressure` / `consult` records (and, on a
+   rubric reframe, a `score_quarantine` record carrying the old-version scores)
+   to `.loop/<loop-id>/JOURNAL.jsonl`, and edit `.loop/<loop-id>/RUBRIC.md` /
+   `.loop/<loop-id>/INTENT.md` / `.loop/<loop-id>/README.md` only where this
+   iteration actually changed a criterion, hypothesis, or capability — so another
    runner can resume from the artifacts alone.
 7. Close per the runner contract: one focused commit for an accepted
    iteration with tracked-file changes (invariant 11); revert rejected diffs.
@@ -113,24 +125,47 @@ disposes. Convergence is `stone-reframe`: the artifact landing on the user's
 
 ## Artifacts to maintain
 
-- `.loop/<loop-id>/RUBRIC.md` — numbered criteria (8–12), 0–5 scale, concrete pixel/
-  artifact anchors. Every score >2 cites evidence (invariant 2). Carries
-  `rubric_version` + `score_comparable_with`; score quarantine on reframe
-  (invariant 4).
-- `.loop/<loop-id>/INTENT.md` — ≥3 live target hypotheses with invalidating evidence and
-  a cheap distinguishing probe each (invariant 3).
-- `.loop/<loop-id>/STATE.md` — `phase`, `iteration`, `score_lock`,
-  `phase_gates` (owner + value per gate), `current_stone_axis`,
-  `capability_list`, `user_halt_owner`, `halt_cause`, `halt_scan`,
-  `last_action`/`next_action`, `pressure_objects`, `pressure_ledger`,
-  `pressure_consulted`, the `Next action: HALT` hatch (owner: user).
-  `rubric_version`, `score_comparable_with`, and `target_hypotheses` live in
-  RUBRIC.md / INTENT.md, not here.
-- `.loop/<loop-id>/README.md` — how to fire, how to tune the rubric, how to halt, what
-  milestones look like.
+Each file has one tier and a bound (`primitives/context-stack.md`); read keys,
+not files.
+
+- `.loop/<loop-id>/PRESSURE.md` (PINNED) — pressure HUD, read at step 1.
+- `.loop/<loop-id>/STATE.md` (PINNED) — **live status only**, fixed keys,
+  rewrite-in-place, no history: `phase`, `iteration`, `score_lock`, `phase_gates`
+  (owner + value per gate), `current_stone_axis`, `user_halt_owner`,
+  `halt_cause`, `halt_scan`, `last_action` / `next_action`, `pressure_objects`
+  (in-force rows, ≤ `pressure-cap`), the `Next action: HALT` hatch (owner: user).
+  It does **not** hold `pressure_ledger`, `pressure_consulted`, or a growing score
+  log — those are `pressure` / `consult` / `score_quarantine` records in
+  `JOURNAL.jsonl`. `rubric_version`, `score_comparable_with`, and
+  `target_hypotheses` live in RUBRIC.md / INTENT.md; the `capability_list`
+  capability surface lives in README.md — STATE.md does not duplicate them.
+- `.loop/<loop-id>/RUBRIC.md` (WORKING) — numbered criteria (8–12), 0–5 scale,
+  concrete pixel / artifact anchors. Every score >2 cites evidence (invariant 2).
+  Carries `rubric_version` + `score_comparable_with`; on a reframe the
+  old-version scores are quarantined to `score_quarantine` journal records
+  (invariant 4), not accumulated in the rubric. Bounded-small — read whole,
+  exempt from index / splitting.
+- `.loop/<loop-id>/INTENT.md` (WORKING) — ≥3 live target hypotheses with
+  invalidating evidence and a cheap distinguishing probe each (invariant 3).
+  Bounded-small — read whole, exempt from index / splitting.
+- `.loop/<loop-id>/README.md` (WORKING) — how to fire, how to tune the rubric,
+  how to halt, what milestones look like; carries the `capability_list`
+  capability surface (domain tools installed, each justified against a
+  stone-axis).
+- `.loop/<loop-id>/JOURNAL.jsonl` (WORKING tail / ON-DEMAND keyed) — the single
+  append-only history: `attempt`, `pressure`, `consult`, `alignment_review`,
+  `checkpoint`, `halt`, `score_quarantine` records. `tail -n 20` per pass; `jq`
+  by key otherwise.
+- `.loop/<loop-id>/DERIVATION.md` (ON-DEMAND) — write-once derivation record
+  (`primitive_bundle`, `divergences`, `overlays`, `derivation_read_set`,
+  `frontload`); read on resume / diagnosis, not per pass.
+
+{{INCLUDE primitives/context-stack.md}}
 
 {{INCLUDE primitives/queue-as-second-artifact.md}}
-<!-- this archetype's queue is rubric+intent; it is an INDEX, not the source of intent -->
+<!-- this archetype's queue is rubric+intent; it is an INDEX, not the source of
+intent, and is exempt from the growth / archival discipline — RUBRIC.md and
+INTENT.md are bounded-small by construction (context-stack.md) -->
 ````
 
 ---
@@ -142,14 +177,20 @@ Placeholders populated during composition (see `templates/composed-prompt.md`):
 - `{{PROVENANCE}}` — the loopgen provenance preamble.
 - `{{MOTIVE}}` — the user's one-sentence intent ("build me something X-adjacent").
 - `{{FRONTLOAD_PREAMBLE}}` — resolved / defaulted / open-gap summary.
-- `{{PRESSURE_SURFACE}}` — the pressure weather block (`primitives/pressure.md`),
-  emitted only when ≥1 pressure object exists at compose time; stripped otherwise.
+- `{{PRESSURE_SURFACE}}` — the always-on pressure HUD block
+  (`primitives/pressure.md`), emitted in every composed prompt (no gate).
 - `{{SUBAGENT_PATTERNS}}` — the subagent-pattern catalog B/C/D
   (`primitives/subagent-patterns.md`), emitted only at `consult-tier ≥ 1` and
   filtered to that tier; stripped byte-identical at tier-0.
+- The Artifacts-to-maintain section inlines `primitives/context-stack.md` (the
+  memory model + STATE/JOURNAL/DERIVATION schema and context budget) and
+  `primitives/queue-as-second-artifact.md` (queue growth discipline; rubric+intent
+  is exempt) at compose (step 2).
 - `{{INVARIANTS}}` — inline the 11 invariants verbatim from
   `references/greenfield-invariants.md`.
-- `{{CAPABILITY_LIST}}` — domain-specific tools the loop may install (invariant 6).
+- `{{CAPABILITY_LIST}}` — domain-specific tools the loop may install
+  (invariant 6); the running list lives in `README.md`'s capability surface, not
+  as a growing `STATE.md` key.
 - `{{PHASE_GATES}}` — research/preloop checklist items with owners (invariant 10).
 
 Bootstrap mode and the iteration protocol are static prose — self-gated on
