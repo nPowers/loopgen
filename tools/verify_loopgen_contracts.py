@@ -36,6 +36,8 @@ BENCHMARK_ARTIFACTS = ROOT / "loopgen/references/benchmark-frontier-artifacts.md
 FRONTLOAD_AUDIT = ROOT / "loopgen/primitives/frontload-audit.md"
 SKILL = ROOT / "loopgen/SKILL.md"
 COMPOSED_PROMPT = ROOT / "loopgen/templates/composed-prompt.md"
+CONTEXT_STACK = ROOT / "loopgen/primitives/context-stack.md"
+PRESSURE = ROOT / "loopgen/primitives/pressure.md"
 
 NON_FRONTIER_BODIES = (
     GOAL_BODY,
@@ -43,6 +45,35 @@ NON_FRONTIER_BODIES = (
     GREENFIELD_BODY,
 )
 PRESSURE_ACCOUNTING_INCLUDE = "{{INCLUDE primitives/pressure-accounting.md}}"
+CONTEXT_STACK_INCLUDE = "{{INCLUDE primitives/context-stack.md}}"
+QUEUE_INCLUDE = "{{INCLUDE primitives/queue-as-second-artifact.md}}"
+
+# The context-stack memory model (ADR 0004). The single JOURNAL.jsonl history
+# surface enumerates exactly these record types; the STATE.md keys that used to
+# be append-only history now live in JOURNAL.jsonl or DERIVATION.md, so they must
+# be absent from every STATE.md key list.
+JOURNAL_RECORD_TYPES = (
+    "attempt",
+    "oracle_change",
+    "pressure",
+    "consult",
+    "alignment_review",
+    "checkpoint",
+    "halt",
+    "score_quarantine",
+    "bootstrap",
+)
+MOVED_STATE_KEYS = (
+    "pressure_ledger",
+    "pressure_consulted",
+    "oracle_change_notes",
+    "capability_list",
+    "primitive_bundle",
+    "divergences",
+    "overlays",
+    "derivation_read_set",
+    "frontload",
+)
 
 BODY_PATHS = {
     "frontier": FRONTIER_BODY,
@@ -66,15 +97,14 @@ PLACEHOLDERS = {
     "CASH_OUT_N": "3",
     "QUIET_SIGNAL_N": "3",
     "REVIEW_CLOSURE_OVERLAY": "",
-    # Always-on emitted slots, filled for every composed prompt. The verifier
-    # renders the zero-pressure pure case, so PRESSURE_SURFACE is stripped (empty)
-    # exactly as composed-prompt.md step 8 strips it when no pressure object exists.
+    # Always-on emitted slots, filled for every composed prompt.
     "PROVENANCE": "> Loop provenance — composed by /loopgen (verifier fixture).",
     "FRONTLOAD_PREAMBLE": "> Frontload — resolved: [motive]; defaulted: [thresholds]; open gaps: [none].",
-    "PRESSURE_SURFACE": "",
-    # Gated like PRESSURE_SURFACE: emitted only at consult-tier >= 1; the verifier
-    # renders the tier-0 pure case, so {{SUBAGENT_PATTERNS}} is stripped (empty)
-    # exactly as composed-prompt.md step 8 strips it.
+    # PRESSURE_SURFACE is now ALWAYS-ON (ADR 0004): render_frontier / render_body
+    # substitute the pressure.md block directly, so it is not a static "" here.
+    # {{SUBAGENT_PATTERNS}} stays gated — emitted only at consult-tier >= 1; the
+    # verifier renders the tier-0 pure case, so it is stripped (empty) exactly as
+    # composed-prompt.md step 8 strips it.
     "SUBAGENT_PATTERNS": "",
 }
 
@@ -201,6 +231,8 @@ def render_frontier(*, benchmark_overlay: bool) -> str:
     mode = benchmark_mode() if benchmark_overlay else ""
     prompt = prompt.replace("{{BENCHMARK_FRONTIER_MODE}}", mode)
     prompt = re.sub(r"\{\{INCLUDE ([^}]+)\}\}", include_text, prompt)
+    # Pressure surface is always-on (ADR 0004): substitute the pressure.md block.
+    prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))
     for key, value in PLACEHOLDERS.items():
         prompt = prompt.replace("{{" + key + "}}", value)
     leftovers = sorted(set(re.findall(r"\{\{[^}]+\}\}", prompt)))
@@ -220,9 +252,9 @@ COMMON_BODY_PLACEHOLDERS = {
     "PROVENANCE": "> Loop provenance — composed by /loopgen (verifier fixture).",
     "FRONTLOAD_PREAMBLE": "> Frontload — resolved: [motive]; defaulted: [thresholds]; open gaps: [none].",
     "MOTIVE": "Improve the repository's quality frontier without a fixed finish line.",
-    # Gated placeholders default to stripped (tier-0 / zero-pressure pure case);
-    # render_body(..., consult_tier=N) overrides SUBAGENT_PATTERNS below.
-    "PRESSURE_SURFACE": "",
+    # PRESSURE_SURFACE is always-on (ADR 0004) — render_body substitutes the
+    # pressure.md block directly. {{SUBAGENT_PATTERNS}} stays gated: stripped at
+    # tier-0, filled by render_body(..., consult_tier=N).
 }
 
 ARCHETYPE_BODY_PLACEHOLDERS = {
@@ -308,6 +340,8 @@ def render_body(archetype: str, *, consult_tier: int = 0) -> str:
     if archetype == "frontier":
         prompt = prompt.replace("{{BENCHMARK_FRONTIER_MODE}}", "")
     prompt = re.sub(r"\{\{INCLUDE ([^}]+)\}\}", include_text, prompt)
+    # Pressure surface is always-on (ADR 0004).
+    prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))
 
     if consult_tier >= 1:
         block = resolve_gated_block(SUBAGENT_PATTERNS)
@@ -876,6 +910,124 @@ def classify_mirror_violations() -> list[str]:
     return v
 
 
+# ── U11: context-stack memory-model contracts ──────────────────────────────
+
+
+def _context_stack_archetype_keys(cs: str) -> dict[str, list[str]]:
+    """Parse context-stack.md's `| <archetype> | <backticked keys> |` per-archetype
+    STATE-key table into {archetype: [keys]}."""
+    result: dict[str, list[str]] = {}
+    for arch in ("goal", "story", "frontier", "greenfield"):
+        m = re.search(rf"(?m)\|\s*`{arch}`\s*\|\s*(.+?)\s*\|\s*$", cs)
+        if m:
+            result[arch] = re.findall(r"`([a-z_]+)`", m.group(1))
+    return result
+
+
+def _context_stack_journal_types(cs: str) -> list[str]:
+    """The record-type column of context-stack.md's JOURNAL.jsonl table (dropping
+    the `t` header cell)."""
+    i = cs.find("Record types (`t`)")
+    if i == -1:
+        return []
+    block = cs[i:]
+    j = block.find("Access:")
+    if j != -1:
+        block = block[:j]
+    return [t for t in re.findall(r"(?m)^\|\s*`([a-z_]+)`\s*\|", block) if t != "t"]
+
+
+def body_include_violations() -> list[str]:
+    """U11: every archetype body must INCLUDE both `context-stack.md` and the
+    queue-growth block — the two primitives SKILL.md claims every body carries
+    (the audit caught the queue claim being false while no body wired it). A body
+    that drops either INCLUDE silently loses the memory model / growth discipline."""
+    v: list[str] = []
+    for arch, path in BODY_PATHS.items():
+        text = read(path)
+        if CONTEXT_STACK_INCLUDE not in text:
+            v.append(f"{arch} body missing {CONTEXT_STACK_INCLUDE}")
+        if QUEUE_INCLUDE not in text:
+            v.append(f"{arch} body missing {QUEUE_INCLUDE}")
+    skill = read(SKILL)
+    if "context-stack" not in skill:
+        v.append("SKILL.md does not claim context-stack is emitted every prompt")
+    if "queue-as-second-artifact" not in skill:
+        v.append("SKILL.md does not claim queue-as-second-artifact is wired")
+    return v
+
+
+def tiered_read_violations() -> list[str]:
+    """U11: no body's iteration protocol may mandate an unqualified whole-file read
+    of an append-only artifact — each body's read step must carry the tiered-read
+    vocabulary (a bounded `tail -n 20` journal read and an `index` queue read). A
+    regression to whole-file reads drops these tokens."""
+    v: list[str] = []
+    for arch, path in BODY_PATHS.items():
+        text = read(path)
+        if "tail -n 20" not in text:
+            v.append(f"{arch}: no bounded `tail -n 20` journal read in the protocol")
+        if "index" not in text.lower():
+            v.append(f"{arch}: no index/bounded queue-read language in the protocol")
+    return v
+
+
+def state_key_mirror_violations() -> list[str]:
+    """U11: SKILL.md's STATE-key lists must mirror context-stack.md's schema, and
+    every key moved out of STATE.md (to DERIVATION.md or JOURNAL.jsonl) must be
+    absent from both SKILL STATE lists (common + per-archetype)."""
+    skill = read(SKILL)
+    cs = read(CONTEXT_STACK)
+    v: list[str] = []
+
+    common = _common_state_keys(skill)
+    skill_state: set[str] = set(common)
+    skill_arch: dict[str, set[str]] = {}
+    for a in ("goal", "story", "frontier", "greenfield"):
+        keys = set(_archetype_state_keys(skill, a))
+        skill_arch[a] = keys
+        skill_state |= keys
+
+    for mk in MOVED_STATE_KEYS:
+        if mk in skill_state:
+            v.append(f"moved key `{mk}` still listed as a STATE.md key in SKILL.md")
+
+    for k in common:
+        if f"`{k}`" not in cs:
+            v.append(f"SKILL common STATE key `{k}` absent from context-stack.md schema")
+
+    cs_arch = _context_stack_archetype_keys(cs)
+    for a in ("goal", "story", "frontier", "greenfield"):
+        ck = set(cs_arch.get(a, []))
+        if skill_arch[a] != ck:
+            v.append(
+                f"{a} STATE-key mirror mismatch: SKILL={sorted(skill_arch[a])} "
+                f"context-stack={sorted(ck)}"
+            )
+    return v
+
+
+def journal_enum_violations() -> list[str]:
+    """U11: the JOURNAL.jsonl record-type enumeration must agree across
+    context-stack.md (the schema table) and SKILL.md (the common-file contract),
+    and context-stack.md's table must list exactly the canonical set."""
+    cs = read(CONTEXT_STACK)
+    skill = read(SKILL)
+    v: list[str] = []
+    canonical = set(JOURNAL_RECORD_TYPES)
+    for t in JOURNAL_RECORD_TYPES:
+        if f"`{t}`" not in cs:
+            v.append(f"context-stack.md missing journal record type `{t}`")
+        if f"`{t}`" not in skill:
+            v.append(f"SKILL.md missing journal record type `{t}`")
+    table = set(_context_stack_journal_types(cs))
+    if table - canonical:
+        v.append(f"context-stack journal table has non-canonical types: {sorted(table - canonical)}")
+    if canonical - table:
+        v.append(f"context-stack journal table missing types: {sorted(canonical - table)}")
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1119,6 +1271,65 @@ def run_checks() -> int:
             not classify_mirror,
             "classify_py_mirrors_skill_axis_matrix",
             "; ".join(classify_mirror),
+        )
+    )
+
+    # ── U11: context-stack memory-model contracts ──────────────────────────
+    body_includes = body_include_violations()
+    checks.append(
+        require(
+            not body_includes,
+            "bodies_include_context_stack_and_queue",
+            "; ".join(body_includes),
+        )
+    )
+
+    tiered = tiered_read_violations()
+    checks.append(
+        require(
+            not tiered,
+            "bodies_use_tiered_reads",
+            "; ".join(tiered),
+        )
+    )
+
+    key_mirror = state_key_mirror_violations()
+    checks.append(
+        require(
+            not key_mirror,
+            "state_key_skill_context_stack_mirror",
+            "; ".join(key_mirror),
+        )
+    )
+
+    journal_enum = journal_enum_violations()
+    checks.append(
+        require(
+            not journal_enum,
+            "journal_record_types_consistent",
+            "; ".join(journal_enum),
+        )
+    )
+
+    # Always-on pressure surface + context budget must actually reach the emitted
+    # prompt now (fixtures render PRESSURE_SURFACE always-on, ADR 0004).
+    checks.append(
+        require(
+            "Mandatory promotion" in pure and "Context budget" in pure,
+            "frontier_pressure_and_budget_emitted",
+        )
+    )
+    goal_render = render_body("goal")
+    checks.append(
+        require(
+            "final-verify not yet run" in goal_render,
+            "goal_verify_header_only_guard",
+        )
+    )
+    checks.append(
+        require(
+            "Mandatory promotion" in goal_render and "Context budget" in goal_render,
+            "goal_pressure_and_budget_emitted",
         )
     )
 
