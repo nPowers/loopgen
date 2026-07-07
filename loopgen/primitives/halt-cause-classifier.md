@@ -61,27 +61,52 @@ frontier or goal is complete. A prompt MUST make this distinction explicit:
 ## Non-terminal halt precondition
 
 Before emitting any non-terminal shared halt, the loop MUST scan its full
-search surface, not only the currently selected row:
+search surface, not only the currently selected row. The scan covers **every
+non-terminal row in the LIVE window** — every `OPEN` / `active` / unresolved row
+still on the re-read surface — never the archived rows:
 
 - frontier loops scan all homeostasis axes and all OPEN findings / anchors;
-- goal loops scan all acceptance rows and verifier/oracle gaps;
+- goal loops scan all OPEN acceptance rows and verifier/oracle gaps;
 - story loops scan storyboard lanes and unresolved promise rows;
 - greenfield loops scan rubric/intent hypotheses and blocked capability
   surfaces.
 
-A single blocked row is not enough to halt. If another reversible, in-scope
-intervention can move a different axis or strengthen the evaluator, the loop
-continues with that intervention. A non-terminal halt is valid only when every
-remaining useful intervention is blocked by the same external authority, would
-violate scope/budget, or is low-yield same-family polish with no fresh evidence.
+**Scanning LIVE is a complete scan, not a narrowing.** Growth discipline
+(`primitives/queue-as-second-artifact.md`) archives a row only once it reaches a
+**terminal** status, and the live index's running totals (open / closed / reopen
+counts) are updated before any archival — so the index proves the archive holds
+only terminal rows, which by definition need no re-scan. Assert those running
+totals as part of the scan: a non-terminal row can only be in LIVE, so if the
+open count and the visible OPEN rows disagree the archive move was buggy and the
+halt is blocked until reconciled. A single blocked row is not enough to halt. If
+another reversible, in-scope intervention can move a different axis or strengthen
+the evaluator, the loop continues with that intervention. A non-terminal halt is
+valid only when every remaining useful intervention is blocked by the same
+external authority, would violate scope/budget, or is low-yield same-family
+polish with no fresh evidence.
 
 For frontier loops, the halt scan must also emit the pressure accounting fields:
 `pressure_status`, `pressure_debt`, `checkpoint_reason`, and `next_pressure`.
 Checkpointing with no pressure scan, open pressure, or no checkpoint reason is
 invalid; the runner reports the frontier as active or externally paused instead.
 
-The final output for a non-terminal halt must include a compact "halt scan"
-naming each searched axis/queue class and why no safe continuation remains.
+### The halt-scan record (formalized once, shared by every archetype)
+
+Every non-terminal halt writes the scan in exactly two places, so no body
+hand-rolls its own shape (today frontier and story do; goal and greenfield omit
+it):
+
+- `.loop/<loop-id>/STATE.md` `halt_scan` — **overwrite-latest**: the most recent
+  scan only (each searched surface class → its state / why no continuation),
+  rewritten in place each halt. It is live status, never a history.
+- a `halt` record appended to `.loop/<loop-id>/JOURNAL.jsonl` — the durable
+  event: `{iter, cause, scan (surface→state), open}`. This is where halt history
+  accumulates; `STATE.md` keeps only the latest scan.
+
+The final output for a non-terminal halt reproduces that compact halt scan —
+naming each searched axis / queue class and why no safe continuation remains —
+and reports the artifact as OPEN or checkpointed per the completion semantics
+above.
 
 ## Archetype stop causes
 

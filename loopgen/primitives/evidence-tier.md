@@ -18,6 +18,12 @@ Every composed prompt, as its "Signal hierarchy" section.
 - This ranking is the substrate the `frontier` same-family admissibility rule
   and quiet-signal checkpoint key on (`archetypes/frontier.md`,
   `references/same-family-drift.md`).
+- **Tier ranks trust, not read-scope.** These tiers rank a surface's
+  *evidentiary authority* — what the loop may trust as proof for the next
+  intervention. They are orthogonal to `context-stack.md`'s PINNED / WORKING /
+  ON-DEMAND tiers, which rank *when and how much* of a file is re-read. The queue
+  is a tier-1/2 *trust* surface **and** a WORKING *read-scope* surface at the same
+  time; the two rankings are different axes and must never be conflated.
 
 ---
 

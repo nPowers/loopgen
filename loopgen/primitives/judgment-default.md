@@ -24,9 +24,11 @@ the narrow reversible choice + log over pausing:
 
 1. Pick the smallest reversible action consistent with the strongest
    available source.
-2. Record an Alignment Review with: problem · context · options
+2. Record an Alignment Review as an `alignment_review` record in
+   `.loop/<loop-id>/JOURNAL.jsonl` with: problem · context · options
    considered · chosen contract · alignment cost · rollback trigger ·
-   review question for the human.
+   review question for the human. Heavy detail is a pointer, not an inlined
+   blob, per the journal's ≤300-char target (`primitives/context-stack.md`).
 3. Continue. Human review happens after the fact.
 
 Escalate (do not proceed) only when the action is irreversible,

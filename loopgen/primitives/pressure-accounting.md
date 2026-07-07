@@ -9,9 +9,10 @@ benchmark artifact system.
 It is the **`frontier` projection of the universal `pressure` primitive**
 (`primitives/pressure.md`): the pressure field rendered as a checkpoint
 contract. The fields below (`pressure_status`, `pressure_debt`,
-`checkpoint_reason`, `next_pressure`) are the frontier view of the common
-`pressure_objects` / `pressure_ledger`. The inlined block (below the `---`) is
-unchanged, so frontier's emitted bytes stay byte-identical.
+`checkpoint_reason`, `next_pressure`) are a bounded checkpoint-level aggregate
+over the common in-force `pressure_objects`; the transition history they
+summarize now lives in `.loop/<loop-id>/JOURNAL.jsonl` `pressure` records, not a
+per-frontier ledger (`primitives/context-stack.md`).
 
 ## Include when
 
@@ -65,6 +66,17 @@ Invalid checkpoint states:
 
 ## Storage rule
 
-Do not invent a new artifact for generic frontier pressure. Use the existing
-findings ledger, trace index, or `.loop/<loop-id>/STATE.md`. Heavier artifact roles belong
-only to the benchmark-frontier overlay.
+Do not invent a **new artifact role** for generic frontier pressure — that rule
+guards against benchmark-overlay creep (the heavier candidate / frontier / trace
+roles belong only to the benchmark-frontier overlay). The in-force checkpoint
+fields above (`pressure_status` / `pressure_debt` / `checkpoint_reason` /
+`next_pressure`) are live status: keep them in the findings ledger or
+`.loop/<loop-id>/STATE.md`.
+
+This is **not** in tension with the durability split. Moving pressure's
+transition history (`pressure` records) and read-backs (`consult` records) into
+the common `.loop/<loop-id>/JOURNAL.jsonl` is not a new artifact *role* — it is
+the same mandated content placed in its correct *tier*
+(`primitives/context-stack.md`, `primitives/pressure.md`), exactly as
+`PRESSURE.md` is `STATE.md` `pressure_objects` rendered rather than a competing
+store. New role forbidden; correct tier required.

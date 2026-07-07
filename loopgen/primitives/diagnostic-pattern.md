@@ -31,6 +31,19 @@ If the loop's current primitive values no longer match its declared archetype,
 `target-shape` has changed (e.g. a frontier loop that has discovered a finite
 checklist) may need re-derivation via the full Phase 1–4 flow, not a patch.
 
+## Pre-context-stack recognition (loopgen addition)
+
+A loop composed before the context-stack model (ADR 0004) has the **old STATE
+shape**: an unbounded `attempt_log` / `pressure_ledger` / `pressure_consulted`
+living in `.loop/<loop-id>/STATE.md`, no `.loop/<loop-id>/JOURNAL.jsonl`, and no
+`.loop/<loop-id>/DERIVATION.md`. Recognize it when diagnosing and name it in the
+⚠️ block. **Do not migrate the existing `.loop/` dir** — it is gitignored
+execution scratch (ADR 0003), not a deliverable, so rewriting its accumulated
+history is churn with no payoff. The minimal mutation adds the journal + tier
+discipline to `.loop/<loop-id>/PROMPT.md` **going forward** (new records land in
+`JOURNAL.jsonl`; `STATE.md` stops growing and sheds its history keys), leaving
+the old history in place as-is.
+
 ## Composition notes
 
 - Reuses the `evidence-tier` ranking to decide which surfaces to trust when
