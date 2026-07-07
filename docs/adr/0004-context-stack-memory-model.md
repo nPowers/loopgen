@@ -121,10 +121,9 @@ index + OPEN/current sections, never the whole growing file.
 
 Positive:
 
-- Per-iteration ceremony drops from ~19k+ tokens (growing with loop age) toward
-  ~8k flat: PINNED ~1.5k (`PRESSURE.md` + `STATE.md`) + WORKING ~5k (queue index
-  + OPEN/current sections + `tail -n 20 JOURNAL.jsonl`); per-iteration write
-  ceremony ~1k vs the measured ~4k.
+- Per-iteration ceremony drops from ~19k+ tokens (growing with loop age) to a
+  projected **~6.5k flat** read-set + **~1k flat** write ceremony (see Projected
+  token model below), because every re-read surface is now O(1) in loop age.
 - History becomes one keyed, capped journal instead of four overlapping prose
   files; pressure is guaranteed a place in every iteration's context.
 - The verifier enforces the model, so the next archetype body cannot silently
@@ -137,6 +136,39 @@ Negative:
 - Existing `.loop/` dirs from before this change carry the old `STATE.md` shape;
   they are not migrated (execution scratch, per ADR 0003) — Diagnostic mode
   recognizes the old shape when retrofitting a live loop.
+
+## Projected token model
+
+The refactor's target is a per-iteration mandatory read-set that is **flat in
+loop age**, replacing the measured 8,821 → 37,537-token growth. These numbers are
+a projection derived from the contract caps, **not** a re-measured 33h run (the
+spec change does not make reproducing that run feasible here); each bound is what
+holds the estimate regardless of iteration count, and the verifier enforces the
+bound.
+
+**Per-iteration read-set (flat):**
+
+- PINNED ≈ 1.5k tok — `STATE.md` (fixed keys, ≤ ~50 lines) + `PRESSURE.md`
+  (in-force set ≤ `pressure-cap` = 12 rows + header). Bounded by fixed schema +
+  the pressure cap.
+- WORKING ≈ 5k tok — the queue **index** (`closed-retain-N` = 20 recent-closed +
+  the OPEN rows) + the handful of OPEN / current `## <id>` sections actually acted
+  on + `tail -n 20 JOURNAL.jsonl` (≤300 chars/record ≈ 1.5k). Bounded by
+  index+sections addressing + tail-N.
+- **Total ≈ 6.5k tok, flat** vs the measured 8.8k → 37.5k growing (the mandatory
+  read-set grew 4.25× over the baseline run).
+
+**Per-iteration write ceremony ≈ 1k tok** — one `attempt` record (≈75 tok) + an
+in-place `STATE.md` rewrite + a `pressure`/`consult` record + the `PRESSURE.md`
+re-render — vs the measured ~4k, and critically the write no longer *grows*:
+history appends to `JOURNAL.jsonl` (never re-read whole) instead of inflating a
+re-read `STATE.md` (which reached 105 KB, 88% one unbounded `attempt_log`).
+
+The number that matters is the slope, not the constant: every re-read surface is
+O(1) in loop age, so a 300-iteration loop pays the same per-pass ceremony as a
+3-iteration one. `bodies_use_tiered_reads` and
+`state_key_skill_context_stack_mirror` (in `tools/verify_loopgen_contracts.py`)
+enforce the caps that make this hold.
 
 ## Revisit Triggers
 
