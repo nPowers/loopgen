@@ -13,12 +13,17 @@ the `frontier` projection of this object, not a separate concept.
 
 ## Include when
 
-Emitted into a composed prompt as the `{{PRESSURE_SURFACE}}` block **only when
-≥1 pressure object exists at compose time** (authored or mined). With zero
-pressure objects the placeholder is left unsubstituted and stripped by the
-`composed-prompt.md` dead-section rule — a pure archetype with no seeded
-pressure stays byte-identical. Otherwise this file is a derivation-time
-contract, not emitted. No seed, no slope.
+**Always emitted.** Every composed prompt carries the `{{PRESSURE_SURFACE}}`
+block as its pinned pressure HUD — there is **no compose-time gate**. Seeded or
+mined rows are optional (a fresh loop may start with an empty in-force set), but
+the surface itself is unconditional: the mandatory promotion triggers in the
+emitted block are what keep it from going dead, so a loop that first discovers a
+pressure mid-run already has a place in context to record it. This reverses the
+former ≥1-object gate, whose measured failure was a `PRESSURE.md` that stayed a
+7-line placeholder while the loop's real pressures lived in checkpoints and
+`next_action` (ADR 0004; inbox note `2026-07-06-pressure-primitive-placeholder`,
+Option A). This file is also a derivation-time contract: read every authoring run
+so the frontload latent-pressure mining step has the modes + object schema.
 
 ## The pressure object
 
@@ -27,7 +32,7 @@ A pressure is a structured row in `.loop/<loop-id>/STATE.md` `pressure_objects` 
 
 | field | values | role |
 |---|---|---|
-| `id` | stable string | anchor for ledger + read-back |
+| `id` | stable string | anchor for its `pressure`/`consult` journal records + read-back |
 | `source` | `authored` · `mined` · `backpressure` · `overlay` | who put it in the field (human seed · latent-mined · fed back from an outcome · seeded by a composition overlay as a fixed contract, e.g. benchmark-frontier oracle-integrity — provenance is the overlay activation + bound object, exempt from the `mined` low/salience entry rule) |
 | `scope` | path / surface / criterion / dimension | what it covers |
 | `mode` | `salience` · `preference` · `burden` · `constraint` | how it bends a move (authority on the surface) |
@@ -45,14 +50,18 @@ is a wall; the other three are slopes.
 
 ## Placeholders
 
-`{{PRESSURE_SURFACE}}` — substituted verbatim with the block below the `---`
-when the gate holds; else stripped. The active rows themselves live in
-`.loop/<loop-id>/PRESSURE.md` (re-read each pass), not inlined into the prompt.
+`{{PRESSURE_SURFACE}}` — **always** substituted verbatim with the block below the
+`---` (no gate). The active rows themselves live in
+`.loop/<loop-id>/PRESSURE.md` (re-read each pass), not inlined into the prompt;
+the emitted block carries the row schema, the re-read contract, the mode law, the
+mandatory promotion triggers, and the backpressure instruction.
 
 ## Authoring guidance (not emitted)
 
-- **Gate.** Populate `{{PRESSURE_SURFACE}}` iff `count(pressure_objects) ≥ 1` at
-  compose; otherwise it is stripped, so a zero-pressure compose has no pressure section.
+- **Always on.** Emit `{{PRESSURE_SURFACE}}` in every composed prompt regardless
+  of `count(pressure_objects)`; a zero-pressure compose still carries the HUD and
+  its promotion triggers, so the surface is live the moment the loop mints its
+  first row. The in-force set may start empty; the block may not be absent.
 - **Compaction survival.** The *pointer* ("re-read `.loop/<loop-id>/PRESSURE.md` each
   pass") must sit in the durable prompt — it rides the runner's user-role
   continuation, which survives Codex compaction verbatim while the assistant
@@ -78,10 +87,11 @@ when the gate holds; else stripped. The active rows themselves live in
   signal a write was lost.
 - **Why the read-back is recorded.** The numbered iteration protocol in the
   body does not list `.loop/<loop-id>/PRESSURE.md`; the pressure read is a
-  precondition of step 1 that step 0 extends. Without a written
-  `pressure_consulted` record, "a pressure bent my plan" is prose the loop can
-  fabricate or silently skip; the record turns it into an artifact a later
-  pass — or an external trace review — can diff against the moves actually
+  precondition of step 1 that step 0 extends. Without a written `consult`
+  journal record (`.loop/<loop-id>/JOURNAL.jsonl` — the record type that replaces
+  the former `pressure_consulted` STATE key), "a pressure bent my plan" is prose
+  the loop can fabricate or silently skip; the record turns it into an artifact a
+  later pass — or an external trace review — can diff against the moves actually
   made.
 - **Why walls fail open.** The loop self-polices these rules, so a neglected
   `constraint` must un-brick rather than stay locked. The alternative
@@ -103,38 +113,57 @@ when the gate holds; else stripped. The active rows themselves live in
   tier-1/2 failure, so no per-criterion stuck counter ever trips — a
   *different* scope fails each pass, and some move is always legal — the
   oscillation itself is the failure and nothing per-criterion sees it. That is
-  why the `pressure_ledger` is read for an alternating pattern across a short
-  window, not just row by row. For `goal` this also surfaces as
+  why the `pressure` journal records are read (`jq` over
+  `.loop/<loop-id>/JOURNAL.jsonl`) for an alternating pattern across a short
+  window of recent passes, not just row by row. For `goal` this also surfaces as
   `partial-deadlock`; for `frontier` it feeds the structural-escalation
   bridge.
 - **Why payment needs a pre-registered channel.** Flipping a row to `paid` on
   the loop's own say-so is FIXED≠CLOSED laundering — narrating an unmet
   pressure as met to escape it. Pre-registering `satisfied_by` at creation,
-  and requiring an explicit re-stamp (recorded in `pressure_ledger`) to move
-  to a *stronger* channel, closes the loophole where a cheap green channel
+  and requiring an explicit re-stamp (recorded as a `pressure` journal record)
+  to move to a *stronger* channel, closes the loophole where a cheap green channel
   that never exercised the pressured scope is swapped in only at payment
   time.
 - **Why `stale` / `retired` carries the same evidence burden as `paid`.**
   Retiring is the easiest launder-and-shred exit: drop an inconvenient row to
-  `stale`, then let it collapse out of the ledger. Requiring the same
-  tier-1/2 cite that `expires` was met or the cause is externally gone (kept
-  in the ledger summary) is what blocks that exit; without it, the
-  paid-laundering escape just reroutes through `stale`.
-- **Ledger bound, precisely.** The ledger is bounded by `pressure-cap`·`K` +
-  `M` + 1: the in-force set (`active` + `hardened`) is capped at
-  `pressure-cap` (default 12, frontload-tunable alongside stuck-attempt-N /
-  quiet-signal-N when pressure is active), each row carrying at most `K`
-  (default 5) recent transitions before older in-flight transitions collapse
-  to a count + last state; a row that reaches a terminal status (`paid` /
-  `stale` / `retired`) collapses immediately to a one-line summary (id, final
-  status, evidence), and summaries beyond the most recent `M` (default 50)
-  collapse further to an aggregate count. No status escapes both caps.
-  `.loop/<loop-id>/PRESSURE.md`'s header is re-rendered from this rule set
-  every pass, so it carries the full arithmetic and survives even when the
-  emitted block below is summarized away by compaction — the emitted block
-  states only the bound.
+  `stale`, then let it drop out of the in-force set. Requiring the same
+  tier-1/2 cite that `expires` was met or the cause is externally gone (kept in
+  the `pressure` journal record for that transition) is what blocks that exit;
+  without it, the paid-laundering escape just reroutes through `stale`.
+- **Bound, precisely (two surfaces).** Pressure now lives across two tiers, each
+  with its own bound. **In-force set (PINNED):** the `active` + `hardened` rows in
+  `.loop/<loop-id>/STATE.md` `pressure_objects` are capped at `pressure-cap`
+  (default 12, frontload-tunable alongside stuck-attempt-N / quiet-signal-N when
+  pressure is active) — the only pressure surface re-read whole every pass, and
+  bounded by construction. **Transition history (ON-DEMAND):** every lifecycle
+  transition is a `pressure` journal record and every read-back a `consult`
+  record in `.loop/<loop-id>/JOURNAL.jsonl` — append-only, one line each, read
+  per pass only as `tail -n 20` and otherwise by `jq` key, so it carries no
+  per-pass re-read tax no matter how long the loop runs. This is what the old
+  `pressure_ledger`'s `K`/`M` collapse arithmetic bought, now bought instead by
+  the journal's tail-N + keyed-read discipline (`primitives/context-stack.md`).
+  `.loop/<loop-id>/PRESSURE.md`'s header is re-rendered every pass and carries
+  the in-force cap plus the journal pointer, so the discipline survives even when
+  the emitted block below is summarized away by compaction.
 
 ---
+
+## Pressure rows
+
+Every pressure is a structured row in `.loop/<loop-id>/STATE.md` `pressure_objects`
+(the in-force set, `active` / `hardened` only, bounded ≤ `pressure-cap`; rendered
+to `.loop/<loop-id>/PRESSURE.md`), never prose — prose pressure is decision-inert.
+Each row carries: `id` · `source` (`authored` / `mined` / `backpressure` /
+`overlay`) · `scope` · `mode` (`salience` / `preference` / `burden` /
+`constraint`) · `strength` (`low` / `medium` / `high`) · `satisfied_by` (a
+tier-1/2 signal from `evidence-tier.md`, never the loop's own prose) ·
+`on_violation` (`owes_proof` / `owes_explanation` / `blocks`) · `expires`
+(mandatory decay — no row without one) · `status` (`active` → `paid` /
+`hardened` / `stale` / `retired`). A row whose `satisfied_by` cannot cite tier-1/2
+evidence is cut, not rendered. Lifecycle transitions and read-backs are **not**
+stored here — they are `pressure` and `consult` records in
+`.loop/<loop-id>/JOURNAL.jsonl`.
 
 ## Pressure weather
 
@@ -159,10 +188,20 @@ When modes conflict on one scope, the stronger wins: `constraint` > `burden` >
 `preference` > `salience`. A row whose `satisfied_by` cannot cite tier-1/2
 evidence is cut, not rendered.
 
-**Record the read-back.** Each pass, write a `pressure_consulted` record to
-`.loop/<loop-id>/STATE.md`: every active row id mapped to the plan element it
-bent, or `no-effect: <reason>`. A pass with no `pressure_consulted` record has
-not completed step 0.
+**Record the read-back.** Each pass, append a `consult` record to
+`.loop/<loop-id>/JOURNAL.jsonl`: every active row id mapped to the plan element
+it bent, or `no-effect: <reason>`. A pass with no `consult` record has not
+completed step 0.
+
+**Mandatory promotion trigger.** Every failed verify, probe, eval, or review
+this pass **either** mints a `source: backpressure` row into
+`.loop/<loop-id>/STATE.md` `pressure_objects` (it renders into `PRESSURE.md`)
+**or** appends a `consult` record carrying `no-promotion: <reason>` that names
+why the failure earns no pressure. Silence is a protocol violation: a failure
+that neither mints a row nor logs a reasoned no-promotion is late consequence the
+next pass rediscovers cold — the exact dead-`PRESSURE.md` failure this always-on
+surface exists to prevent. This obligation is what makes the HUD carry the loop's
+real pressures instead of an empty placeholder.
 
 **Maintain walls or they fall.** Each pass, re-test every enforced
 `constraint` row — `status: active` **or** `hardened`, both still in force —
@@ -188,9 +227,11 @@ review — append a `source: backpressure` object to `.loop/<loop-id>/STATE.md`
 what failed, in the **softest** mode the failure justifies — default `burden`,
 never `constraint` from a single signal. A backpressure `constraint` requires
 the failure reproduced on a tier-1/2 channel, and even then carries an
-`expires`/reopen condition. Record its creation in `pressure_ledger`.
+`expires`/reopen condition. Record its creation as a `pressure` journal record.
+(A failure that mints no row must instead be logged as a `no-promotion` `consult`
+record — see the mandatory promotion trigger above.)
 
-When the `pressure_ledger` shows backpressure alternating between the same
+When the `pressure` journal records show backpressure alternating between the same
 two (or N) scopes over a short window of recent passes, with no net
 criterion-count progress, that is a **coupled-regression** signal, not endless
 work: halt with `genuine-escalate` (reason `coupled-regression`), naming the
@@ -204,7 +245,7 @@ that owes evidence, exactly like a queue row:
 - → `paid` **only** when `satisfied_by` cites fresh tier-1/2 evidence produced
   this run, on the channel **pre-registered at creation** — never a weaker or
   different one chosen at payment time. A strictly *stronger* channel may be
-  adopted only by an explicit re-stamp recorded in `pressure_ledger`.
+  adopted only by an explicit re-stamp recorded as a `pressure` journal record.
 - → `stale` / retired carries the **same** evidence burden as `paid`: cite the
   tier-1/2 signal that proves `expires` met or the cause externally gone —
   never the loop's own say-so.
@@ -214,14 +255,17 @@ that owes evidence, exactly like a queue row:
   `active` `constraint`, and can still be demoted or retired when its reopen
   condition is met.
 
-Record every transition in `.loop/<loop-id>/STATE.md` `pressure_ledger`, each
-with its evidence cite. A new `source: backpressure` row scoped to an
+Record every transition as a `pressure` journal record in
+`.loop/<loop-id>/JOURNAL.jsonl`, each with its evidence cite; the in-force row in
+`.loop/<loop-id>/STATE.md` `pressure_objects` is rewritten in place to its new
+status (a row that reaches a terminal status leaves the in-force set entirely —
+its history stays in the journal). A new `source: backpressure` row scoped to an
 already-pressured scope **merges into** the existing row, never appends a
 duplicate. More than `pressure-cap` in-force rows (`active` or `hardened`;
 default 12, frontload-tunable), or a row that keeps oscillating its mode
-(`constraint` ↔ `burden`) or re-stamping without ever reaching a terminal
-status (`paid` / `stale` / `retired`), is itself a halt / checkpoint cause (a
+(`constraint` ↔ `burden`) or re-stamping without ever reaching a terminal status
+(`paid` / `stale` / `retired`), is itself a halt / checkpoint cause (a
 `derivation-gap`, or `frontier`'s `checkpoint_reason`), not silent growth.
-`.loop/<loop-id>/PRESSURE.md`'s header carries the full ledger-cap arithmetic
-(per-row transition cap, terminal-row collapse) re-rendered each pass, so the
-discipline survives even when this block is summarized away.
+`.loop/<loop-id>/PRESSURE.md`'s header carries the in-force cap plus the journal
+pointer, re-rendered each pass, so the discipline survives even when this block
+is summarized away.
