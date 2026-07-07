@@ -16,16 +16,18 @@ all of them), as a framing note above the queue section.
 ## Composition notes
 
 - The concrete queue is chosen by `artifact-shape`: `acceptance-inventory`
-  (goal) · `storyboard` (story) · `rubric+intent` (greenfield) ·
-  `findings-ledger` (frontier).
+  (goal, `ACCEPTANCE.md`) · `storyboard` (story, `docs/storyboard.md`) ·
+  `rubric+intent` (greenfield, `RUBRIC.md` + `INTENT.md`) · `findings-ledger`
+  (frontier, `FINDINGS.md` + the `TRACES.md` / `METRICS.md` indexes). The
+  Growth-discipline block below is **parameterized on that `<artifact>`** — it
+  names `<artifact>` and `.loop/<loop-id>/archive/<artifact>.md`, so one wired
+  block serves every archetype rather than four hand-rolled copies.
 - The queue is a tier-1/2 surface in `evidence-tier.md`.
-- The Growth discipline below is not yet wired into the archetype bodies:
-  each body's inline queue discipline (`goal-body.md` on `ACCEPTANCE.md`,
-  `story-body.md` on `docs/storyboard.md`, `frontier-body.md` on
-  `FINDINGS.md` / `TRACES.md` / `METRICS.md`) does not yet cite
-  `closed-retain-N` or the `archive/<artifact>.md` move the way each cites
-  its own row-status contract, so only prompts that inline this primitive's
-  block carry the bound today.
+- **Wired, not aspirational.** Every archetype body INCLUDEs the block below via
+  `{{INCLUDE primitives/queue-as-second-artifact.md}}`, so the `closed-retain-N`
+  bound and the `archive/<artifact>.md` move ride into every composed prompt —
+  not only the ones that happened to inline the discipline. (This replaces the
+  earlier state where the bound lived in prose here but was carried by no body.)
 
 ---
 
@@ -44,10 +46,22 @@ source (human prompt, current docs, accepted issue/PR, reviewer guidance). An
 old row, prior evidence, or a prior screenshot cannot certify that a promise /
 criterion is still intended.
 
-## Row contract
+## Row contract — INDEX row vs FULL row
 
-Each row records, at minimum: source / provenance · confidence · what would
-prove it · status · reopen condition.
+The queue is stored as an **index table up top + one `## <id>` section per row**,
+so the per-pass read is the index plus the OPEN / current sections only, never
+the whole growing file (`primitives/context-stack.md`, WORKING tier). The two
+surfaces carry different fields:
+
+- **INDEX row** (in the table, re-read every pass): `id` · `status` · a
+  one-line summary · the running counters (open / closed / reopen, plus any
+  per-row stuck counter). Small and fixed-width, so the index stays cheap in the
+  live-row count.
+- **FULL row** (in the row's `## <id>` section, read on demand when acting on
+  that row): source / provenance · confidence · `satisfied_by` (what would prove
+  it) · reopen condition · `last_verification` (≤140 chars + an evidence
+  pointer). The heavy evidence is a pointer into a trace or `JOURNAL.jsonl`,
+  never an inlined blob in the row.
 
 For benchmark-frontier, candidate rows are stricter and live in the overlay
 artifact roles (`CANDIDATES`, `FRONTIER`, and `traces`) described in
@@ -56,26 +70,24 @@ inherited by pure frontier.
 
 ## Growth discipline (bounded re-read surface)
 
-Every queue artifact this primitive names — `.loop/<loop-id>/FINDINGS.md`,
-`.loop/<loop-id>/ACCEPTANCE.md`, `docs/storyboard.md`, the `.loop/<loop-id>/TRACES.md` /
-`.loop/<loop-id>/METRICS.md` indexes, `.loop/<loop-id>/CANDIDATES.jsonl` — is re-read in full
-every iteration; that re-read is this primitive's whole reason to exist. Left
-unbounded it only grows with loop lifetime: a 100+ iteration loop pays an
-ever-larger per-pass read tax on rows that already reached a terminal status
-and no longer bend any decision. `primitives/pressure.md`'s `pressure_ledger`
-already solves exactly this for the pressure surface — the in-force set capped
-at `pressure-cap` (default 12), each row's own transition history capped at `K`
-(default 5), and terminal rows collapsed to a one-line summary beyond the most
-recent `M` (default 50), so that ledger is bounded by `pressure-cap`·`K` + `M`
-+ 1 no matter how long the loop runs. This section generalizes that same cap
-pattern from the pressure ledger to every queue artifact:
+The queue artifact `<artifact>` — whichever one `artifact-shape` selected
+(goal's `ACCEPTANCE.md`, story's `docs/storyboard.md`, frontier's `FINDINGS.md`
+plus the `TRACES.md` / `METRICS.md` indexes, or a benchmark overlay's
+`CANDIDATES.jsonl`) — is on the WORKING re-read path every iteration; that
+re-read is this primitive's whole reason to exist. Left unbounded it only grows
+with loop lifetime: a 100+ iteration loop pays an ever-larger per-pass read tax
+on rows that already reached a terminal status and no longer bend any decision.
+`primitives/context-stack.md` states the general rule — a WORKING surface must be
+O(1) in loop age, read as an index + live rows, never whole-file — and
+`primitives/pressure.md` applies it to the pressure surface (in-force set capped
+at `pressure-cap`, transition history off-loaded to `JOURNAL.jsonl`). This
+section applies the same cap to the queue:
 
-- **LIVE holds OPEN + recent-closed only.** The canonical artifact (
-  `FINDINGS.md`, `ACCEPTANCE.md`, `docs/storyboard.md`, the `TRACES.md` /
-  `METRICS.md` index, `CANDIDATES.jsonl`) keeps every `OPEN` / `active` row plus
-  the `closed-retain-N` most-recently-closed rows (concrete default 20,
-  frontload-tunable alongside `quiet-signal-N` / `stuck-attempt-N` —
-  `frontload-audit.md`). A row that ages out of that window moves out of LIVE.
+- **LIVE holds OPEN + recent-closed only.** The canonical `<artifact>` keeps
+  every `OPEN` / `active` row plus the `closed-retain-N` most-recently-closed
+  rows (concrete default 20, frontload-tunable alongside `quiet-signal-N` /
+  `stuck-attempt-N` — `frontload-audit.md`). A row that ages out of that window
+  moves out of LIVE into the archive appendix below.
 - **Archival is a move, never a delete.** A row that ages out relocates
   losslessly to a per-artifact appendix at `.loop/<loop-id>/archive/<artifact>.md`
   (e.g. `.loop/<loop-id>/archive/FINDINGS.md`, `.loop/<loop-id>/archive/ACCEPTANCE.md`) —
@@ -97,6 +109,14 @@ pattern from the pressure ledger to every queue artifact:
   reopen count) before it is ever archived — archival moves the row, not the
   count — so nothing is silently forgotten even once the row itself leaves the
   re-read surface.
+- **Greenfield's `rubric+intent` is exempt from index/splitting and archival.**
+  `RUBRIC.md` (8–12 criteria) and `INTENT.md` (≥3 live hypotheses) are bounded
+  small by construction — they carry no OPEN/closed backlog that grows with loop
+  age — so they are re-read whole every pass without an index table or an archive
+  move, and the INDEX/FULL split above does not apply to them. Their one
+  unbounded-growth risk is old-rubric-version scores accumulating across a
+  reframe; that is handled by `score_quarantine` journal records
+  (`templates/bodies/greenfield-body.md`), not by aging rows out of the rubric.
 
 ## When prompt-only is valid
 
