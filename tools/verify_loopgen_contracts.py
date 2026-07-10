@@ -1622,9 +1622,10 @@ def run_checks() -> int:
     equilibrium_flat = one_line(playbook_equilibrium)
     required_terminal_tokens = (
         "iteration halted; frontier episode terminated (declared workset exhausted)",
-        "no normal reopen contract",
+        "terminal reopen policy",
         "does not auto-resume",
-        "a regression, or a new declared-workset version",
+        "an explicit per-row `reopen_condition`, a regression, or a new "
+        "declared-workset version",
         "frontier episode paused",
     )
     banned_terminal_tokens = (
@@ -1636,6 +1637,10 @@ def run_checks() -> int:
         "legitimate checkpoint",
         "the loop is at frontier equilibrium",
         "homeostatic-checkpoint` equilibrium",
+        # The variant text serves BOTH the guarded resolution and an explicitly
+        # requested terminal (which may hold a live contract): it must never
+        # assert frontload field values.
+        "reopen_contract: none",
     )
     checks.append(
         require(
@@ -1752,6 +1757,16 @@ def run_checks() -> int:
                 reopening_signal="none",
                 reopen_contract="none",
                 closure_basis=True,
+            ),
+            ("terminal", False),
+        ),
+        (
+            "explicit terminal + live contract → terminal, no compiler divergence",
+            dict(
+                requested="terminal",
+                reopening_signal="upstream release",
+                reopen_contract="dep-alert delivered via scheduled re-run",
+                closure_basis=False,
             ),
             ("terminal", False),
         ),

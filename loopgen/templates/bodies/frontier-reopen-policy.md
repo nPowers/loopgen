@@ -45,13 +45,14 @@ the loop artifact checkpointed, active, or gated.
 
 A frontier objective has no quality pass-line: it never completes by being
 good enough, and no frontier halt below is an objective-completion claim.
-This episode runs with **no normal reopen contract** — frontload recorded
-`reopen_contract: none` with its closure basis. `homeostatic-checkpoint`,
+This episode runs under a **terminal reopen policy**; the provenance
+divergence line records its basis (a guarded closed-corpus resolution, or an
+explicit request). `homeostatic-checkpoint`,
 `genuine-escalate`, `derivation-gap`, `signal-starvation`, and `wrong-loop`
 are valid invocation halts, but none is completion. When the full homeostasis
 scan proves no high-yield admissible intervention remains under the declared
 search surfaces, the episode **terminates** — declared workset exhausted —
-rather than waiting for a reopening signal that cannot arrive. Write:
+instead of waiting in a reopenable checkpoint. Write:
 
 ```text
 iteration halted; frontier episode terminated (declared workset exhausted)
@@ -59,8 +60,9 @@ iteration halted; frontier episode terminated (declared workset exhausted)
 
 Then list the full homeostasis scan as the termination's proof, plus any OPEN
 findings handed off for external routing. The episode does not auto-resume; a
-new episode may start only on an exceptional event — a regression, or a new
-declared-workset version. For any other frontier halt cause the episode is
+new episode may start only on an allowed exceptional event — an explicit
+per-row `reopen_condition`, a regression, or a new declared-workset version
+(`primitives/halt-shape.md`). For any other frontier halt cause the episode is
 paused, not exhausted: write `iteration halted; frontier episode paused
 (<cause>)` and leave the loop artifact paused or gated with its OPEN work
 listed. Do not mark a generic runner goal as complete for any frontier halt;
