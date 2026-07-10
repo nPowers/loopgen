@@ -102,6 +102,12 @@ surfaces differently — not all are constant, and not all are emitted):
 default): `target: finite-criteria` with `halt: equilibrium`/`manual-gated`, or
 with `convergence: homeostatic-checkpoint`.
 
+Not a contradiction: `frontier` + `reopen_contract: none` resolving to
+`halt-shape: requested=equilibrium → effective=terminal` is a
+**frontload-resolved divergence** (the guarded closed-corpus resolution,
+`primitives/halt-shape.md`) — the target stays `frontier-expanding`, and both
+requested and effective values are recorded in provenance.
+
 **`consult-capability` tiers** (detected at frontload time — probe for
 `mcp__agentify-desktop__*`, other `mcp__*` tools, `/second-opinion`,
 `/agentify`, PAL): `tier-0` none → drop scheduled-consult sections + substitute
