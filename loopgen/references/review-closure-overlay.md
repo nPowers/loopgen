@@ -47,17 +47,26 @@ Avoid one-selector-at-a-time promotions when a coherent family is ready.
 
 ## Anti-Collapse Rules
 
-- if the findings / ledger surface shows repeated same-family closures
-  across recent iterations (same invariant-kind applied across different
-  surfaces or enums — e.g. "add Display impl for enum X and swap
-  `{:?}` → `{}`" across many enums), force a mode break even when each
-  individual closure looks locally justified. A mode break is one of:
-  axis shift to a different disturbed homeostasis axis, citation of a
-  fresh failing trace / external finding that makes another same-axis
-  move genuinely necessary, or deferral via `stop-and-summarize`.
+- if the findings / ledger surface shows same-family concentration —
+  once five accepted closures exist, at least three of the most recent
+  five carrying the same `disturbed_axis` key (the closed four-value
+  vocabulary in the frontier body's Axes section) — force a mode break
+  even when each individual closure looks locally justified.
+  Concentration has two signatures: the same invariant-kind applied
+  across different surfaces or enums (e.g. "add Display impl for enum X
+  and swap `{:?}` → `{}`" across many enums), and probe rotation — a
+  new invariant-kind every round while the `disturbed_axis` key never
+  changes. A mode break is one of: axis shift to a different disturbed
+  homeostasis axis, citation of a fresh failing trace / external
+  finding that predates intervention selection, is independent of the
+  candidate change, and makes another same-axis move genuinely
+  necessary, or deferral via `stop-and-summarize`.
   Cosmetic, rustfmt, file-rotation, naming-cleanup, or ledger-only
-  changes do **not** satisfy a mode break — this is the specific
-  failure shape observed in the iter-64 case study.
+  changes do **not** satisfy a mode break — the specific failure shape
+  of the iter-64 case study — and neither does a genuine, non-cosmetic
+  closure that stays on the same axis — the Asymptote probe-rotation
+  failure shape (see the third drift in
+  `references/same-family-drift.md`).
 - if the next best move is another narrow ledger update rather than a
   product or evaluator intervention, pause and diagnose before repeating
 - treat the ledger as an evidence sink, not the main artifact of progress

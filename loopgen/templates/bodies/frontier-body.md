@@ -128,23 +128,24 @@ shape labels the correction.
 
 ### Axes
 
-- **Oracle trustworthiness** — is the evaluator producing discriminative,
-  honest signal?
+- **Oracle trustworthiness** (`oracle-trustworthiness`) — is the evaluator
+  producing discriminative, honest signal?
   Disturbance signs: false greens, low discrimination, coverage rising
   while defects survive, expensive runs on cheap changes, mocks
   masquerading as integration.
 
-- **Product capability** — does the product do what the motive says?
+- **Product capability** (`product-capability`) — does the product do what
+  the motive says?
   Disturbance signs: known defects, regressions, capability/intent gap,
   perf or cost drift, user-visible incoherence.
 
-- **Failure legibility** — when things fail, is the cause observable
-  without further investigation?
+- **Failure legibility** (`failure-legibility`) — when things fail, is the
+  cause observable without further investigation?
   Disturbance signs: opaque errors, stringified payloads, missing traces,
   stack traces that do not name the offending input.
 
-- **Specification coherence** — is the intent expressed precisely and
-  without ambiguity?
+- **Specification coherence** (`specification-coherence`) — is the intent
+  expressed precisely and without ambiguity?
   Disturbance signs: conflicting instructions, prose that resists
   execution, unclear success criteria, goal drift across commits.
 
@@ -156,6 +157,14 @@ shape labels the correction.
   while another degraded silently. Where no findings surface exists,
   fall back to recent commits as a weaker signal — but creating a
   findings surface is itself an evaluator-axis job when absent.
+
+The four parenthesized keys are the **closed `disturbed_axis` vocabulary**
+— every recorded intervention and finding carries exactly one of them,
+spelled exactly. Intervention diversity is the meta-axis: it is diagnosed,
+never recorded as a `disturbed_axis` value. When intervention-diversity
+disturbance triggers work, record the substantive axis the corrective
+intervention **lands on**. Concentration counting (see Same-family
+admissibility) groups by this key, so renaming a family cannot dodge it.
 
 {{RAMP_AXES_OVERRIDE}}
 
@@ -188,7 +197,7 @@ shape labels the correction.
 3. Pick the intervention that most restores balance. If two axes are
    equally disturbed, prefer the cheaper correction.
 4. Write the intervention's shape as a single line before editing: the
-   disturbed axis, the hypothesis, the success criterion, the rollback
+   `disturbed_axis` key, the hypothesis, the success criterion, the rollback
    condition.
 5. Make one small reversible change.
 6. Run the cheap validator; if it passes, run the stronger oracle.
@@ -363,22 +372,42 @@ memory.
 ### Same-family admissibility (forcing function)
 
 Intervention-diversity disturbance (see homeostasis axes) is not
-satisfied by cosmetic corrections. When the findings / ledger surface
-(or, absent one, recent commits) shows same-family concentration — the
-same invariant-kind applied across different surfaces or enums — the
-next accepted change must do at least one of:
+satisfied by cosmetic corrections. Concentration is counted on the
+findings index's `disturbed_axis` key (the closed four-value
+vocabulary above), never on the prose family name: once five accepted
+changes exist, same-family concentration means **at least three of the
+most recent five accepted changes carry the same `disturbed_axis`
+key**. Where no findings surface exists, fall back to recent commits
+as the weaker counting signal. Concentration has two signatures:
+
+- **same invariant-kind** applied across different surfaces or enums, and
+- **probe rotation** — a new invariant-kind every round (duplication →
+  magic-constants → regex literals → …) while the `disturbed_axis` key
+  never changes. Each find is real and gated; the axis is still stuck.
+
+When concentration is reached, the next accepted change must do at
+least one of:
 
 - shift intervention to a different disturbed axis, or
-- cite a fresh failing trace, external finding, or blocked claim that
-  makes another same-axis move genuinely necessary, or
+- cite a qualifying fresh signal — a failing trace, external finding,
+  or blocked claim — that makes another same-axis move genuinely
+  necessary. The signal must **predate this iteration's intervention
+  selection** and be **independent of the candidate change**: a
+  probe-scan / grep hit is not a qualifying signal, and neither is a
+  failing test authored after the fact to dress one up. The accepted
+  change must cite the signal as its anchor, or
 - halt / escalate with `stop-and-summarize` because only low-yield
   same-family work remains.
 
-Cosmetic, rustfmt, file-rotation, naming-cleanup, or ledger-only
-changes do **not** break concentration. They must be bundled with
-substantive work on another axis, or deferred until a new finding
-surfaces. Noticing concentration and then discharging the requirement
-with a syntactic repair is an iteration to reject, not accept.
+A genuine, non-cosmetic, fully-gated find that stays on the same axis
+does **not** satisfy the mode break — real output on a stuck axis is
+concentration continuing, not concentration broken. Cosmetic, rustfmt,
+file-rotation, naming-cleanup, or ledger-only changes do **not** break
+concentration either. They must be bundled with substantive work on
+another axis, or deferred until a new finding surfaces. Noticing
+concentration and then discharging the requirement with a syntactic
+repair — or with one more same-axis find — is an iteration to reject,
+not accept.
 
 **Restructure, don't retune.** When stuck, change the *constraint or
 environment* — the surface, the oracle, the decomposition — not the
@@ -503,10 +532,11 @@ never whole-file.
 - **Index row** (re-read every pass): `id` · `status` (the Frontier status
   taxonomy: `OPEN` / `FIXED_PENDING_CONFIRMATION` / `CLOSED_CONFIRMED` /
   `CLOSED_EXPECTED_RED_CONTROL` / `PAUSED_EXTERNAL` / `REJECTED_OUT_OF_SCOPE`) ·
-  a one-line summary · the disturbed axis · the running counters (open /
+  the `disturbed_axis` key (closed four-value vocabulary; see Axes) ·
+  a one-line summary · the running counters (open /
   fixed-pending / closed).
 - **Full section `## <finding-id>`** (read on demand when acting on it):
-  hypothesis · disturbed axis · `closure_criterion` · `freshness` · the failing
+  hypothesis · the `disturbed_axis` key · `closure_criterion` · `freshness` · the failing
   trace / metric pointer · reopen condition. Heavy evidence is a pointer into a
   trace or `JOURNAL.jsonl`, never an inlined blob.
 

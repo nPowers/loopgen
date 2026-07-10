@@ -133,7 +133,12 @@ The landed fix has three parts:
    must either shift axis, cite a fresh failing trace / external
    finding / blocked claim, or halt. Cosmetic / rustfmt /
    file-rotation / naming-cleanup / ledger-only changes do **not**
-   satisfy the mode break. This is the load-bearing fix; iter 64's
+   satisfy the mode break — and neither does a genuine, non-cosmetic
+   find that stays on the same homeostasis axis (the third drift,
+   below). The qualifying signal must predate intervention selection
+   and be independent of the candidate change; concentration itself is
+   counted on the findings index's closed `disturbed_axis` key, not on
+   the prose family name. This is the load-bearing fix; iter 64's
    rustfmt escape hatch is now an iteration to reject, not accept.
 
 3. **Add a quiet-signal checkpoint.** After N green iterations with
@@ -161,3 +166,42 @@ external review passes, or — when the platform matures —
 structured state like a platform event journal. In the meantime, the
 protocol's own rules need enough teeth that admissible responses to
 a diagnosed disturbance are genuinely corrective, not cosmetic.
+
+## Third Drift: Probe Rotation (Asymptote, 159 rounds)
+
+A third independent runner confirmed the drift from the expensive
+side. "Asymptote" — a 159-round autonomous `/refactor` loop on a
+frozen single-dev feature branch, 117 gated commits / 42 honest
+no-commits — never produced a rustfmt escape hatch. When the obvious
+structural duplication dried up, it kept producing value by
+**rotating the search probe**: duplication → magic-constants → regex
+literals → clamp patterns → hex formatting → sort comparators →
+equality chains → casts. Several rounds produced real, non-cosmetic,
+oracle-passing commits (`localeBase` naming a cryptic `/[.@]/`
+POSIX-locale split; `rgbToHex` completing the `hexToRgb` pair;
+`padToWidth` consolidating a CJK-width helper). None were cosmetic.
+And it was still 159 rounds on **one homeostasis axis**.
+
+### Mechanism
+
+Probe rotation is the expensive false mode-break. It looks like
+concentration-breaking — a different surface every round, genuine
+gated output — but the invariant-kind changes while the axis never
+does. An admissibility rule keyed on cosmetic-vs-real waves it
+through, because the output is real. The proof it was the wrong axis:
+a known product defect (a storage read path that throws where every
+sibling degrades gracefully) sat OPEN in the findings for ~12 rounds
+while the loop committed naming and formatting consolidations
+alongside it. The loop's flag-don't-fix discipline held; nothing
+forced the axis read.
+
+### Lesson (third)
+
+Cosmetic-vs-real is the wrong discriminator; **axis is the right
+one**. Concentration must be counted on a closed `disturbed_axis`
+vocabulary (invariant-kind rotation then cannot dodge the counter),
+and a genuine same-axis find must not satisfy the mode break — only
+an axis shift, a qualifying fresh signal that predates intervention
+selection and is independent of the candidate change, or an honest
+halt. Real output on a stuck axis is concentration continuing, not
+concentration broken.
