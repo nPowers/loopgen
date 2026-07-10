@@ -118,6 +118,16 @@ mandatory promotion triggers, and the backpressure instruction.
   window of recent passes, not just row by row. For `goal` this also surfaces as
   `partial-deadlock`; for `frontier` it feeds the structural-escalation
   bridge.
+- **Why consolidation reads the whole field.** Everything above is per-row
+  hygiene, and per-row hygiene has a measured blind spot: in the dota-market
+  pooler incident four rows were each individually justified — durable
+  receipts, plan coverage, proof-path gaps, a local-pass/prod-disagree
+  salience — while their shared cause (transaction transport semantics) sat one
+  layer below anything any single row scoped. Rows are maintained one at a
+  time; a field is read all at once. The consolidation round
+  (`primitives/context-stack.md`) is that read, and the emitted field-read
+  block below is its pressure-side half: clustering, debt-conserving merge,
+  and the substrate stamp.
 - **Why payment needs a pre-registered channel.** Flipping a row to `paid` on
   the loop's own say-so is FIXED≠CLOSED laundering — narrating an unmet
   pressure as met to escape it. Pre-registering `satisfied_by` at creation,
@@ -144,8 +154,10 @@ mandatory promotion triggers, and the backpressure instruction.
   `pressure_ledger`'s `K`/`M` collapse arithmetic bought, now bought instead by
   the journal's tail-N + keyed-read discipline (`primitives/context-stack.md`).
   `.loop/<loop-id>/PRESSURE.md`'s header is re-rendered every pass and carries
-  the in-force cap plus the journal pointer, so the discipline survives even when
-  the emitted block below is summarized away by compaction.
+  the in-force cap, the journal pointer, and the last-consolidation stamp
+  (`last consolidation: iter N · next due ~N+10`), so the discipline survives
+  even when the emitted block below is summarized away by compaction — and the
+  HUD itself shows when the loop last read its field.
 
 ---
 
@@ -279,6 +291,34 @@ oscillating its mode (`constraint` ↔ `burden`) or re-stamping without ever
 reaching a terminal status (`paid` / `stale` / `retired`) is likewise a halt /
 checkpoint cause (a `derivation-gap`, or `frontier`'s `checkpoint_reason`), not
 silent growth.
-`.loop/<loop-id>/PRESSURE.md`'s header carries the in-force cap plus the journal
-pointer, re-rendered each pass, so the discipline survives even when this block
-is summarized away.
+`.loop/<loop-id>/PRESSURE.md`'s header carries the in-force cap, the journal
+pointer, and the last-consolidation stamp (`last consolidation: iter N · next
+due ~N+10`), re-rendered each pass, so the discipline survives even when this
+block is summarized away.
+
+## Consolidation — the field read
+
+At the consolidation round (scheduled or forced — triggers and procedure in
+the Context stack's Consolidation section), read the in-force set as **one
+field**, not row by row: which rows cluster around a shared suspected cause?
+Per-row maintenance cannot see a cause that several individually-justified
+rows share.
+
+- **Merge across scopes, conserving the debt.** Rows clustered at a shared
+  cause merge into a single row scoped at that cause. The merged row inherits
+  the **strongest** mode and strength among its members and the **union** of
+  their pre-registered `satisfied_by` channels — paying it still means paying
+  those channels; a merge is never a launder and never a retirement. Each
+  absorbed row is recorded as a `pressure` journal record with
+  `merged-into: <id>`; its unpaid obligation survives in the merged row.
+- **Stamp the substrate.** When the cluster's members were each locally
+  correct — paid or verified on their own channels — yet the target did not
+  move, set `suspected_substrate: <layer>` on the merged row and in the
+  `consolidation` record: the violated contract likely sits below the code
+  (transport, pooler mode, driver semantics, deploy/env parity, service
+  identity). That stamp is what routes the next pass at the layer instead of
+  the symptoms.
+- **Promote the lesson.** What the field reading taught goes in the
+  `consolidation` record's `lesson`; a lesson that must keep bending future
+  passes is minted (or re-scoped) as a row — the round is a mint/merge channel,
+  never a quiet exit for rows that were losing their argument.

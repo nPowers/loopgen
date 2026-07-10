@@ -23,7 +23,7 @@ composed prompt.
    (file → tier → cap → access command → human watch command), the
    **context-health check** (the bounded step-0 audit from
    `primitives/context-stack.md` — caps, tail parse, evidence pointers resolve,
-   index/section agreement), the halt-cause
+   index/section agreement, consolidation due), the halt-cause
    quick list, and the iteration-protocol skeleton. Its purpose is that a
    post-compaction rehydration read is a bounded `sed -n '1,80p'
    .loop/<loop-id>/PROMPT.md`, not a two-chunk whole-file read — and that the
@@ -121,6 +121,13 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    STATE/JOURNAL/DERIVATION schema + context budget) and
    `{{INCLUDE primitives/queue-as-second-artifact.md}}` (queue growth discipline)
    in its Artifacts-to-maintain section; both resolve here.
+   When resolving `context-stack.md`, the composer **may** sharpen the
+   Consolidation round's substrate-audit wording with adjacent conceptual
+   lenses discovered in the host repo — a meta/reflection, substrate-audit,
+   contract/invariant-check, or environment-parity skill or doc — borrowed as
+   *concepts only*, never as a required dependency and never by naming a
+   private/custom skill in the emitted text: the emitted loop must stand
+   alone on any runner.
 3. **Fill placeholders** from the frontload audit + primitive bundle, including
    `{{PROVENANCE}}` and `{{FRONTLOAD_PREAMBLE}}`.
 4. **Emit the Operational core (ALWAYS), then no other synthesized sections.**

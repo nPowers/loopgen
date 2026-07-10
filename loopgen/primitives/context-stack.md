@@ -89,6 +89,20 @@ tier and bound:
   in-loop detector: a bounded command ritual whose failure routes to repair
   *before* task work, making the compliant path cheaper than the noncompliant
   one. (Hardening from the pre-ship design review, 2026-07-07 — see ADR 0004.)
+- **Consolidation is triggered, not only scheduled.** The measured incident
+  behind it (dota-market Supabase pooler phantom commits — ADR 0005) burned
+  iterations on locally-correct app-layer fixes while the violated contract
+  (transaction transport semantics) sat below the code; the decisive shift came
+  only when a fresh look attacked the contradiction directly. A cadence-only
+  round would let the loop grind until the next multiple of 10; the forced
+  triggers (2+ survived fixes, unmoved metric, local/durable disagreement,
+  impossible observation, defensive-code accumulation) fire the round the
+  moment the signals exist — and the signals are free, because the pressure
+  machinery already records them (`no-effect` consults, rows paid without
+  target movement). This is also why it is not a separate primitive: the
+  trigger data, the field being read, and the merge machinery all live in
+  pressure + journal already; a fifth artifact role would be the exact creep
+  the storage rules forbid.
 
 ---
 
@@ -175,7 +189,7 @@ Record types (`t`), each with `iter` (iteration) plus type-specific fields:
 | `halt` | a full halt-scan event fires | `cause`, `scan` (surface→state), `open` | all |
 | `score_quarantine` | greenfield reframes the rubric and quarantines old scores | `rubric_from`, `rubric_to`, `quarantined` | greenfield |
 | `bootstrap` | one-time setup completes | `what`, `files` | all |
-| `consolidation` | every ~10 iterations, on a criterion/story/anchor closure, or before final-verify | `lesson` (what recent attempts taught), `covers` (iter range / ids) | all |
+| `consolidation` | on the cadence or any forced trigger — see the Consolidation round below | `lesson` (what recent attempts taught), `covers` (iter range / ids), optional `field` (row-id clusters), `suspected_substrate`, `decision` | all |
 
 `consolidation` is the journal's lessons layer: events record *what happened*;
 a consolidation distills *what it taught* — compact enough that the tail-20
@@ -197,6 +211,60 @@ Access:
   analysis / Diagnostic mode), never a normal move.
 - **Human watch (WRITE-ONLY, external):**
   `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`.
+
+### Consolidation round — reading the field, auditing the substrate
+
+Consolidation is not just a summary: it is the pass where you stop advancing
+the queue and *feel where the pressure is* — the one bounded moment the loop
+reads its whole situation instead of the next row. It runs on a **schedule**
+(every ~10 iterations, on a criterion/story/anchor closure, or before
+final-verify) and is **forced early** by any of these triggers, whichever
+comes first:
+
+- the same scope survived **2+ correct-looking fixes** — attempts verified
+  locally, yet the pressure row on that scope logs `no-effect` or the target
+  does not move;
+- the target metric did not move after fixes that should have moved it;
+- a proof passes locally while production / durable state disagrees;
+- you hold an **impossible observation** — two facts that cannot both be true
+  under your current model (e.g. a transaction returned rows that later reads
+  cannot find);
+- recent fixes are adding defensive code without reducing uncertainty.
+
+The round is one bounded read-and-write, not an open investigation:
+
+1. **Read the field.** Take the whole in-force pressure set as one field, not
+   row by row: which rows cluster around a shared suspected cause? Name the
+   impossible observation if one exists. (Per-row hygiene cannot see this —
+   each row can be individually justified while the field says one thing.)
+2. **Audit the contract layer beneath the code.** When a cluster's members are
+   each locally correct yet the target does not move, the violated contract
+   usually sits one layer below what the loop is modeling. Enumerate the
+   guarantees the code relies on — deployed commit, environment/service-identity
+   parity, DB transport / pooler mode, driver transaction semantics, queue
+   ownership, external API authority — and classify each as **checked at
+   runtime**, **inferred from config**, or **unverified**. Any guarantee
+   required for correctness but unverified must become a runtime check, a
+   launch invariant, or an explicit blocked condition — or the loop's
+   confidence in the moves that assumed it is downgraded.
+3. **Act on the reading.** Merge clustered rows into one row scoped at the
+   shared cause (the merge conserves the debt — `primitives/pressure.md`);
+   stamp `suspected_substrate: <layer>` on the merged row and the record when
+   the cause sits below the code; promote what the window taught into the
+   record's `lesson`.
+4. **Decide, and record the decision** in the `consolidation` record's
+   `decision`: **continue** the loop as modeled; **fork** — route the named
+   contradiction to the consult channel as a fresh root-cause attack (attack
+   the contradiction directly, not the current criterion — a fresh look
+   unanchored from the queue is what breaks the frame); or **cleanup** — after
+   a substrate cause is confirmed, mint a row to audit symptom-era defensive
+   fixes ("does this code encode a permanent invariant, or compensate for the
+   old broken world?").
+
+Skipping a triggered consolidation to keep advancing the queue is the measured
+failure mode this round exists for: a loop that grinds on downstream symptoms,
+each fix locally reasonable, while the real violated contract sits a layer
+lower than anything it reads.
 
 ### `DERIVATION.md` — write-once derivation record (ON-DEMAND)
 
@@ -242,12 +310,18 @@ task work. Each line is one cheap command, not an investigation:
    `## <id>` section (status + counters).
 6. No whole-file read of an append-only artifact happened since the last check
    unless a diagnostic exception was named.
+7. The most recent `consolidation` record is within cadence (~10 iterations:
+   `jq -s '[.[]|select(.t=="consolidation")]|last.iter' JOURNAL.jsonl`) **and**
+   no forced consolidation trigger has fired since it (Consolidation round,
+   above).
 
 **A failed line is a routing, not a warning:** past-cap → archive/collapse now;
 unparseable tail → repair the malformed record now; dangling evidence → write
 the missing file or correct the record now; index/section disagreement →
 reconcile from the authoritative surface now (the index owns status/counters —
-`primitives/queue-as-second-artifact.md`); only then proceed to the iteration.
+`primitives/queue-as-second-artifact.md`); overdue or triggered consolidation →
+run the Consolidation round now, before the next attempt; only then proceed to
+the iteration.
 A violation that cannot be repaired locally is a `derivation-gap` halt, never
 something to work around. The check exists because a post-compaction pass
 half-remembers the contract: it makes the contract cheaper to re-honor than to

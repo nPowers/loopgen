@@ -1081,6 +1081,52 @@ def u13_hardening_violations() -> list[str]:
     return v
 
 
+def u14_consolidation_violations() -> list[str]:
+    """U14: the consolidation round is the contract-layer checkpoint (ADR 0005).
+    Prove the emitted contracts carry the round: forced triggers alongside the
+    cadence, the field read over the pressure set, the three-way substrate
+    classification, debt-conserving merge, the recorded decision, the
+    context-health consolidation line, the HUD recency stamp, and the
+    stand-alone constraint on compose-time lens borrowing."""
+    v: list[str] = []
+    cs = read(CONTEXT_STACK)
+    composed = read(COMPOSED_PROMPT)
+    pressure = read(ROOT / "loopgen/primitives/pressure.md")
+
+    emitted = cs.split("\n---\n", 1)[-1]
+    if "### Consolidation round" not in emitted:
+        v.append("context-stack emitted block missing the `### Consolidation round` section")
+    for marker in (
+        "correct-looking fixes",
+        "impossible observation",
+        "checked at\n   runtime",
+        "inferred from config",
+        "unverified",
+        "suspected_substrate",
+    ):
+        if marker.replace("\n   ", " ") not in emitted.replace("\n   ", " "):
+            v.append(f"consolidation round missing marker `{marker}`")
+    health = emitted.split("### Context-health check", 1)[-1]
+    if "consolidation" not in health:
+        v.append("context-health check missing the consolidation-due line (line 7)")
+    if "run the Consolidation round now" not in health:
+        v.append("context-health routing missing the overdue/triggered-consolidation route")
+
+    pressure_emitted = pressure.split("\n---\n", 1)[-1]
+    if "## Consolidation" not in pressure_emitted:
+        v.append("pressure.md emitted block missing the consolidation field-read section")
+    for marker in ("one\nfield", "merged-into", "suspected_substrate", "last consolidation: iter N"):
+        if marker.replace("\n", " ") not in pressure_emitted.replace("\n", " "):
+            v.append(f"pressure.md field read missing marker `{marker}`")
+    if "never a launder" not in pressure_emitted:
+        v.append("pressure.md merge must be marked as never a launder (debt conserved)")
+
+    flat_composed = " ".join(composed.split())
+    if "never as a required dependency" not in flat_composed or "stand alone" not in flat_composed:
+        v.append("composed-prompt.md lens borrowing missing the stand-alone / no-required-dependency constraint")
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1399,6 +1445,25 @@ def run_checks() -> int:
         require(
             "Context-health check" in pure and "Context-health check" in goal_render,
             "context_health_emitted",
+        )
+    )
+
+    # ── U14: consolidation round = contract-layer checkpoint (ADR 0005) ─────
+    consolidation = u14_consolidation_violations()
+    checks.append(
+        require(
+            not consolidation,
+            "u14_consolidation_contracts",
+            "; ".join(consolidation),
+        )
+    )
+    checks.append(
+        require(
+            all(
+                "Consolidation round" in render and "suspected_substrate" in render
+                for render in (pure, goal_render)
+            ),
+            "consolidation_emitted",
         )
     )
 

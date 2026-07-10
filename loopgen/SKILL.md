@@ -351,7 +351,12 @@ kick-off points the runner at `.loop/<loop-id>/PROMPT.md`. Every
   `halt`, `score_quarantine`, `bootstrap`, `consolidation`. Read `tail -n 20`
   per pass, `jq` by
   key otherwise. **No separate CHECKPOINTS / monitor file exists** — humans watch
-  via the documented journal one-liner.
+  via the documented journal one-liner. `consolidation` records are written by
+  the Consolidation round (`primitives/context-stack.md`): scheduled every ~10
+  iterations and **forced early** by contract-layer triggers (a scope surviving
+  2+ correct-looking fixes, an unmoved target metric, local proof vs durable
+  state disagreeing, an impossible observation) — the round reads the pressure
+  set as one field and audits the contract layer beneath the code (ADR 0005).
 - `.loop/<loop-id>/DERIVATION.md` — write-once derivation record
   (`primitive_bundle`, `divergences`, `overlays`, `derivation_read_set`,
   `frontload`); read on demand (diagnostic / resume), not per pass.
