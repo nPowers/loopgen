@@ -314,6 +314,52 @@ def render_frontier_playbook() -> str:
     )
 
 
+# ── guarded halt-shape resolution: executable spec (U4b) ──
+# Mirrors primitives/halt-shape.md's guarded closed-corpus resolution the way
+# classify.py mirrors SKILL.md's axis matrix; the guard_prose_conjuncts check
+# pins the prose so the two cannot drift silently. Field encoding: a named
+# value is the string itself; "none" is the literal token; None means the
+# field is absent (legacy artifacts / fixtures only — a fresh frontier
+# composition must emit the fields); "unresolved" means frontload could not
+# resolve it.
+
+
+class DerivationGap(Exception):
+    """Non-emittable path: an open_gaps entry, never a silent default."""
+
+
+def resolve_effective_halt_shape(
+    *,
+    archetype: str,
+    requested: str,
+    reopening_signal: str | None,
+    reopen_contract: str | None,
+    closure_basis: bool,
+) -> tuple[str, bool]:
+    """Returns (effective_halt_shape, compiler_derived_divergence)."""
+    if archetype != "frontier":
+        return requested, False
+    if reopening_signal is None and reopen_contract is None:
+        # Backward-compatibility ONLY (pre-existing artifacts, fixtures):
+        # composition-side, absent fields are a derivation gap for frontier.
+        return requested, False
+    if "unresolved" in (reopening_signal, reopen_contract):
+        raise DerivationGap("reopening contract unresolved")
+    named_signal = reopening_signal not in (None, "none")
+    named_contract = reopen_contract not in (None, "none")
+    if named_signal and not named_contract:
+        raise DerivationGap("named signal without an observable delivery channel")
+    if named_contract and not named_signal:
+        raise DerivationGap("delivery channel without a named signal")
+    if not named_signal and not named_contract:
+        if not closure_basis:
+            raise DerivationGap("reopen_contract none without a closure basis")
+        if requested == "equilibrium":
+            return "terminal", True  # the guarded implication
+        return requested, False  # explicit terminal honored as requested
+    return requested, False  # live reopen contract → pass through
+
+
 # ── generalized render, all four archetype bodies (dead-sections contract) ──
 # render_frontier() above is kept as-is (existing frontier-specific checks
 # assert on its exact fixture values). This is a second, generalized renderer
@@ -1197,7 +1243,7 @@ def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
         benchmark = render_frontier(benchmark_overlay=True)
-    except ContractError as exc:
+    except (ContractError, AssertionError) as exc:
         print(f"[FAIL] render_resolves_cleanly: {exc}")
         return 1
 
@@ -1533,6 +1579,217 @@ def run_checks() -> int:
         )
     )
 
+    # ── reopen-policy block + guarded halt-shape resolution (U4b) ──
+    playbook_equilibrium = render_frontier_playbook()
+    golden_exists = FRONTIER_EQUILIBRIUM_GOLDEN.exists()
+    checks.append(
+        require(
+            golden_exists,
+            "frontier_playbook_golden_present",
+            "missing tools/golden/frontier-body.equilibrium.md — run --capture-golden",
+        )
+    )
+    if golden_exists:
+        golden = FRONTIER_EQUILIBRIUM_GOLDEN.read_text(encoding="utf-8")
+        checks.append(
+            require(
+                playbook_equilibrium == golden,
+                "body_equilibrium_byte_identical",
+                "playbook drifted from the frozen golden; if the edit was "
+                "intentional, re-run --capture-golden and commit the golden "
+                "with the edit that moved it",
+            )
+        )
+
+    try:
+        playbook_terminal = render_frontier(
+            benchmark_overlay=False,
+            reopen_policy="terminal",
+            placeholder_overrides=PLAYBOOK_SENTINELS,
+        )
+        terminal_render_error = ""
+    except (ContractError, AssertionError, KeyError) as exc:
+        playbook_terminal = ""
+        terminal_render_error = str(exc)
+    checks.append(
+        require(
+            not terminal_render_error,
+            "reopen_policy_terminal_renders",
+            terminal_render_error,
+        )
+    )
+    terminal_flat = one_line(playbook_terminal)
+    equilibrium_flat = one_line(playbook_equilibrium)
+    required_terminal_tokens = (
+        "iteration halted; frontier episode terminated (declared workset exhausted)",
+        "no normal reopen contract",
+        "does not auto-resume",
+        "a regression, or a new declared-workset version",
+        "frontier episode paused",
+    )
+    banned_terminal_tokens = (
+        "iteration halted; frontier checkpointed",
+        "reopens automatically on strong new signal",
+    )
+    checks.append(
+        require(
+            not missing_tokens(terminal_flat, required_terminal_tokens),
+            "body_terminal_semantics",
+            ", ".join(missing_tokens(terminal_flat, required_terminal_tokens)),
+        )
+    )
+    checks.append(
+        require(
+            bool(terminal_flat)
+            and all(token not in terminal_flat for token in banned_terminal_tokens),
+            "body_terminal_no_equilibrium_residue",
+            "; ".join(t for t in banned_terminal_tokens if t in terminal_flat),
+        )
+    )
+    checks.append(
+        require(
+            "has no quality pass-line" in terminal_flat
+            and "has no quality pass-line" in equilibrium_flat,
+            "objective_no_pass_line_claim_in_both_variants",
+        )
+    )
+
+    reopen_policy_leaks = [
+        path.name
+        for path in NON_FRONTIER_BODIES
+        if "FRONTIER_REOPEN_POLICY" in read(path)
+        or "frontier episode terminated" in one_line(read(path))
+    ]
+    checks.append(
+        require(
+            not reopen_policy_leaks,
+            "reopen_policy_frontier_only",
+            ", ".join(reopen_policy_leaks),
+        )
+    )
+
+    guard_cases: list[tuple[str, dict, object]] = [
+        (
+            "named signal + channel → equilibrium, no divergence",
+            dict(
+                requested="equilibrium",
+                reopening_signal="new reviewed findings",
+                reopen_contract="inbox note delivered via scheduled re-run",
+                closure_basis=False,
+            ),
+            ("equilibrium", False),
+        ),
+        (
+            "none + enumerated domain + closure basis → guarded terminal",
+            dict(
+                requested="equilibrium",
+                reopening_signal="none",
+                reopen_contract="none",
+                closure_basis=True,
+            ),
+            ("terminal", True),
+        ),
+        (
+            "none without closure basis → gap",
+            dict(
+                requested="equilibrium",
+                reopening_signal="none",
+                reopen_contract="none",
+                closure_basis=False,
+            ),
+            DerivationGap,
+        ),
+        (
+            "named signal without delivery channel → gap",
+            dict(
+                requested="equilibrium",
+                reopening_signal="upstream release",
+                reopen_contract="none",
+                closure_basis=False,
+            ),
+            DerivationGap,
+        ),
+        (
+            "delivery channel without named signal → gap",
+            dict(
+                requested="equilibrium",
+                reopening_signal="none",
+                reopen_contract="ci webhook",
+                closure_basis=False,
+            ),
+            DerivationGap,
+        ),
+        (
+            "fields absent → legacy equilibrium, no divergence",
+            dict(
+                requested="equilibrium",
+                reopening_signal=None,
+                reopen_contract=None,
+                closure_basis=False,
+            ),
+            ("equilibrium", False),
+        ),
+        (
+            "unresolved → non-emittable",
+            dict(
+                requested="equilibrium",
+                reopening_signal="unresolved",
+                reopen_contract="unresolved",
+                closure_basis=False,
+            ),
+            DerivationGap,
+        ),
+        (
+            "explicitly requested terminal → terminal, no compiler divergence",
+            dict(
+                requested="terminal",
+                reopening_signal="none",
+                reopen_contract="none",
+                closure_basis=True,
+            ),
+            ("terminal", False),
+        ),
+    ]
+    guard_failures: list[str] = []
+    for case_name, kwargs, expected in guard_cases:
+        try:
+            got: object = resolve_effective_halt_shape(archetype="frontier", **kwargs)
+        except DerivationGap:
+            got = DerivationGap
+        if got != expected:
+            guard_failures.append(f"{case_name} (got {got!r})")
+    if resolve_effective_halt_shape(
+        archetype="goal",
+        requested="terminal",
+        reopening_signal=None,
+        reopen_contract=None,
+        closure_basis=False,
+    ) != ("terminal", False):
+        guard_failures.append("non-frontier passthrough")
+    checks.append(
+        require(
+            not guard_failures,
+            "guarded_halt_resolution_paths",
+            "; ".join(guard_failures),
+        )
+    )
+
+    halt_shape_flat = one_line(read(ROOT / "loopgen/primitives/halt-shape.md"))
+    guard_conjunct_tokens = (
+        "requested halt-shape == equilibrium",
+        "reopen_contract == none",
+        "closure_basis established",
+        "not** a biconditional",
+        "effective halt-shape := terminal",
+    )
+    checks.append(
+        require(
+            not missing_tokens(halt_shape_flat, guard_conjunct_tokens),
+            "guard_prose_conjuncts",
+            ", ".join(missing_tokens(halt_shape_flat, guard_conjunct_tokens)),
+        )
+    )
+
     ok = True
     for passed, line in checks:
         ok = ok and passed
@@ -1543,6 +1800,10 @@ def run_checks() -> int:
     print(f"pure_frontier_lines={pure_lines}")
     print(f"benchmark_frontier_lines={benchmark_lines}")
     print(f"benchmark_overlay_delta={benchmark_lines - pure_lines}")
+    print(
+        "frontier_terminal_policy_delta="
+        f"{len(playbook_terminal.splitlines()) - len(playbook_equilibrium.splitlines())}"
+    )
     return 0 if ok else 1
 
 
