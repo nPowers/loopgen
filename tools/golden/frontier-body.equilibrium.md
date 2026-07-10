@@ -646,7 +646,16 @@ history: every frontier `attempt` record carries the `disturbed_axis`
 key (`primitives/context-stack.md`), and once five `verdict: accepted`
 attempts exist, same-family concentration means **at least three of
 the most recent five accepted attempts carry the same `disturbed_axis`
-key**. The findings index is not the counter — one finding may absorb
+key**. Read the window with a targeted query, never from the tail-20
+read alone — a rejection streak pushes the last five accepted attempts
+past the default read:
+
+```sh
+jq -r 'select(.t=="attempt" and .verdict=="accepted") | .disturbed_axis' \
+  .loop/<loop-id>/JOURNAL.jsonl | tail -5
+```
+
+The findings index is not the counter — one finding may absorb
 several changes, and findings are unordered; the journal survives
 compaction precisely so this window stays reconstructable. Where no
 journal exists, fall back to recent commits as the weaker counting
