@@ -236,19 +236,54 @@ def benchmark_mode() -> str:
     return primitive[start:]
 
 
-def render_frontier(*, benchmark_overlay: bool) -> str:
+def render_frontier(
+    *, benchmark_overlay: bool, placeholder_overrides: dict[str, str] | None = None
+) -> str:
     prompt = frontier_template()
     mode = benchmark_mode() if benchmark_overlay else ""
     prompt = prompt.replace("{{BENCHMARK_FRONTIER_MODE}}", mode)
     prompt = re.sub(r"\{\{INCLUDE ([^}]+)\}\}", include_text, prompt)
     # Pressure surface is always-on (ADR 0004): substitute the pressure.md block.
     prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))
-    for key, value in PLACEHOLDERS.items():
+    placeholders = dict(PLACEHOLDERS)
+    if placeholder_overrides:
+        placeholders.update(placeholder_overrides)
+    for key, value in placeholders.items():
         prompt = prompt.replace("{{" + key + "}}", value)
     leftovers = sorted(set(re.findall(r"\{\{[^}]+\}\}", prompt)))
     if leftovers:
         raise AssertionError(f"unsubstituted placeholders: {leftovers}")
     return prompt
+
+
+# ── playbook render + frozen golden (R3, dev/plans/2026-06-23-001 U4) ──
+# The playbook is the executable portion of the rendered frontier prompt:
+# everything except the provenance preamble and the frontload preamble, which
+# legitimately vary per composition (provenance/frontload metadata is out of
+# R3's byte-identity scope). Fixed sentinels keep the render deterministic and
+# independent of the metadata-bearing fixtures, so frontload/provenance
+# contract changes (e.g. new reopening-contract fields) never dirty the golden.
+
+GOLDEN_DIR = ROOT / "tools/golden"
+FRONTIER_EQUILIBRIUM_GOLDEN = GOLDEN_DIR / "frontier-body.equilibrium.md"
+
+PLAYBOOK_SENTINELS = {
+    "PROVENANCE": "(provenance preamble — out of playbook scope)",
+    "FRONTLOAD_PREAMBLE": "(frontload preamble — out of playbook scope)",
+}
+
+
+def render_frontier_playbook() -> str:
+    """Pure-frontier playbook (effective-equilibrium reopen policy, no
+    benchmark overlay), provenance/frontload normalized to fixed sentinels.
+    This is the surface the frozen golden pins byte-for-byte.
+
+    Regeneration path for INTENTIONAL playbook edits:
+    `python3 tools/verify_loopgen_contracts.py --capture-golden` (then commit
+    the golden together with the edit that moved it)."""
+    return render_frontier(
+        benchmark_overlay=False, placeholder_overrides=PLAYBOOK_SENTINELS
+    )
 
 
 # ── generalized render, all four archetype bodies (dead-sections contract) ──
@@ -1480,6 +1515,13 @@ def run_checks() -> int:
     return 0 if ok else 1
 
 
+USAGE = (
+    "usage: verify_loopgen_contracts.py "
+    "[--print pure-frontier|benchmark-frontier|frontier-playbook] "
+    "[--capture-golden]"
+)
+
+
 def main(argv: list[str]) -> int:
     if len(argv) == 3 and argv[1] == "--print":
         if argv[2] == "pure-frontier":
@@ -1488,10 +1530,20 @@ def main(argv: list[str]) -> int:
         if argv[2] == "benchmark-frontier":
             print(render_frontier(benchmark_overlay=True))
             return 0
-        print("usage: verify_loopgen_contracts.py [--print pure-frontier|benchmark-frontier]", file=sys.stderr)
+        if argv[2] == "frontier-playbook":
+            print(render_frontier_playbook())
+            return 0
+        print(USAGE, file=sys.stderr)
         return 2
+    if len(argv) == 2 and argv[1] == "--capture-golden":
+        GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
+        FRONTIER_EQUILIBRIUM_GOLDEN.write_text(
+            render_frontier_playbook(), encoding="utf-8"
+        )
+        print(f"captured {FRONTIER_EQUILIBRIUM_GOLDEN.relative_to(ROOT)}")
+        return 0
     if len(argv) != 1:
-        print("usage: verify_loopgen_contracts.py [--print pure-frontier|benchmark-frontier]", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
         return 2
     return run_checks()
 
