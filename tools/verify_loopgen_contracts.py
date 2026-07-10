@@ -1880,6 +1880,16 @@ def run_checks() -> int:
             "compiler-derived halt-shape resolution",
         )
     )
+    frontload_flat = one_line(read(FRONTLOAD_AUDIT))
+    checks.append(
+        require(
+            not missing_tokens(frontload_flat, CLOSURE_BASIS_KEYS),
+            "closure_basis_keys_named_in_frontload",
+            "frontload-audit.md must name the closure-contract fields the "
+            "executable guard requires: "
+            + ", ".join(missing_tokens(frontload_flat, CLOSURE_BASIS_KEYS)),
+        )
+    )
 
     ok = True
     for passed, line in checks:

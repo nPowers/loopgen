@@ -97,8 +97,12 @@ For each checklist item, do exactly one of:
   whose only change source is its own commits (banned as positive signal by
   `references/same-family-drift.md` fix #1) is the canonical `none`. When it
   resolves to `none`, also record `closure_basis` — a compose-time **closure
-  contract**: the enumerated work-source domain, the declared search surfaces,
-  and the criterion that will establish declared-workset exhaustion at runtime.
+  contract** with three named, non-empty fields: `work_source_domain` (the
+  enumerated observable sources, each checked and absent), `declared_surfaces`
+  (the search surfaces the episode binds), and `exhaustion_criterion` (what
+  will establish declared-workset exhaustion at runtime). Free-text closure
+  prose without the three fields does not establish the basis — the guard
+  treats it as unproven (`open_gaps`).
   Never record runtime quiescence here — quiescence stays a runtime judgment
   owned by the halt scan. `reopening_signal: none` means no *normal,
   non-regression* reopen signal; regression is an exceptional re-entry path
