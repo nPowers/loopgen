@@ -85,6 +85,25 @@ For each checklist item, do exactly one of:
   answer key, or eval-set evolution), run the **Evaluator-integrity audit** (below).
   A loop with no bound oracle-object, or one over a deterministic non-LLM oracle,
   runs no audit and emits no integrity lines — the preamble is unchanged.
+- **Reopening contract** — for frontier-shaped tasks, ask: *what event outside
+  this execution can add admissible work after quiescence, and through what
+  channel will the runner observe and deliver it?* Record under `frontload`:
+  `reopening_signal: <named-trigger | none>` and
+  `reopen_contract: <channel+delivery | none>`. `none` is a **closed-world
+  inference** — legal only when the runner's observable work-source domain is
+  enumerated (inbound CI, review passes, scheduled re-runs, dependency alerts,
+  prod traffic, upstream releases — each checked and absent), never because the
+  branch merely looks static. A frozen branch / fixed corpus / single-dev loop
+  whose only change source is its own commits (banned as positive signal by
+  `references/same-family-drift.md` fix #1) is the canonical `none`. When it
+  resolves to `none`, also record `closure_basis` — a compose-time **closure
+  contract**: the enumerated work-source domain, the declared search surfaces,
+  and the criterion that will establish declared-workset exhaustion at runtime.
+  Never record runtime quiescence here — quiescence stays a runtime judgment
+  owned by the halt scan. `reopening_signal: none` means no *normal,
+  non-regression* reopen signal; regression is an exceptional re-entry path
+  under both halt policies, not a reopen contract. An asserted "static branch"
+  without the enumerated domain is an `open_gaps` entry, never a silent `none`.
 - **Parameters / thresholds** — quiet-signal N, stuck-attempt N, cash-out N.
 - **Horizon & context sizing** — estimate the run horizon (iterations / wall-clock
   to the target) and the working context each iteration must hold, *against the
@@ -103,7 +122,8 @@ For each checklist item, do exactly one of:
   escalate-mark, which becomes a runtime block or silent overspend.
 
 Each archetype adds its own items (named in `archetypes/*.md`): frontier —
-evaluator tier, ramp stages, two reward channels, frontier vector; goal —
+evaluator tier, ramp stages, two reward channels, frontier vector, reopening
+contract; goal —
 criteria source, authority order, final-verify, dependency topology; story —
 lane, surface class, storyboard path, fixtures, app URL; greenfield — target
 adjacency, INTENT hypotheses, model identity, paid APIs, preloop checklist.
@@ -185,7 +205,8 @@ grades itself against is not emittable on hope.
 
 ## Composition notes
 
-- Output: record under `.loop/<loop-id>/STATE.md` `frontload:` and fill the
+- Output: record under `.loop/<loop-id>/DERIVATION.md` `frontload:` (write-once
+  derivation record, `primitives/context-stack.md`) and fill the
   `{{FRONTLOAD_PREAMBLE}}` slot in `.loop/<loop-id>/PROMPT.md` naming exactly what was
   resolved / defaulted / left open.
 - `cadence-shape: deferred-fire-and-forget` raises the completeness bar — no

@@ -48,9 +48,20 @@ intervention; it is never picked from a menu.
   ledger-only changes do **not** break concentration) + homeostasis diagnosis.
 - **Ramp modes** — over-ramping, ramp scope creep, ramp bypass, ramp theater.
   Mitigation: ramp stages carry explicit checkable exit conditions.
+- **Closed-corpus equilibrium trap** — `halt-shape: equilibrium` waits for a
+  reopening signal that a frozen corpus can never deliver (the only change
+  source is the loop's own commits, banned as positive signal), so equilibrium
+  degenerates into indefinite polishing *by construction* (Asymptote: 159
+  rounds on a static branch; stop recommended 5× with no contract to honor it).
+  Mitigation: the reopening-contract frontload item
+  (`primitives/frontload-audit.md`) — `reopen_contract: none` with an
+  enumerated work-source domain and a closure basis resolves the effective
+  halt-shape to `terminal` (`primitives/halt-shape.md`).
 
 ## Extras
 
+- Frontload items: evaluator tier, ramp stages, two reward channels, frontier
+  vector, reopening contract (`primitives/frontload-audit.md`).
 - Includes `primitives/evaluator-maturity.md` (T0–T6 tiers + ramp stages 0–9).
 - Includes `primitives/pressure-accounting.md` so checkpointing is always
   explicit about pressure status, pressure debt, next pressure, and reason.

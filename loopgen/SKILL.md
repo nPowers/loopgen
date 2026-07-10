@@ -191,7 +191,8 @@ when frontload binds a concrete benchmark, evaluation, or harness object with an
 evaluation unit and evidence location. Benchmark/eval/harness language without
 a bound object is a derivation gap, not a silent generic frontier default.
 
-Record results under `.loop/<loop-id>/STATE.md` `frontload:` and produce the frontload
+Record results under `.loop/<loop-id>/DERIVATION.md` `frontload:` (the write-once
+derivation record — `primitives/context-stack.md`) and produce the frontload
 preamble (resolved / defaulted / open gaps). Anything unresolved, undefaulted,
 and unmarked is a **derivation gap** — name it explicitly; the emitted prompt's
 halt-cause classifier flags `derivation-gap` halts so the next pass closes it.
