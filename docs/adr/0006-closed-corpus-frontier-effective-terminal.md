@@ -93,12 +93,12 @@ candidate change.
   arrive. The **actuator** — making a dumb cron honor that contract — remains
   runner-side and deferred per ADR 0001 (loopgen writes the contract; the
   runner owns delivery and halt).
-- `tools/verify_loopgen_contracts.py` (49 checks) enforces: equilibrium
+- `tools/verify_loopgen_contracts.py` (50 checks) enforces: equilibrium
   playbook byte-identity against the frozen golden
   (`tools/golden/frontier-body.equilibrium.md`, regenerated only via
   `--capture-golden` committed with the moving edit), terminal-variant
   semantics with no equilibrium residue, frontier-only policy placement, the
-  guarded resolution over eight input paths via an executable spec
+  guarded resolution over twelve input paths via an executable spec
   (`resolve_effective_halt_shape`), and the prose conjuncts pinned against
   silent drift.
 - Reopening-contract fields are required for fresh frontier compositions;
@@ -110,7 +110,10 @@ candidate change.
   citation; D5 (route real story/greenfield tasks through `/loopgen`) is a
   standing routing rule, not a task.
 - Lineage anchor: the reopening-signal commit series on `main`
-  (`fd6ea6d..66f95dc`: D2, U1, U2, U3a, U4a, U3b, U4b), plan
+  (`fd6ea6d..66f95dc`: D2, U1, U2, U3a, U4a, U3b, U4b; review-round fixes
+  `8c9eed2..2a2f2c0`: journal-counted concentration, policy-neutral halt
+  prose, cause-neutral terminal variant, guard evidence hardening, durable
+  divergence triple), plan
   `dev/plans/2026-06-23-001` (local, GPT-Pro-reviewed v2). Builds on ADR 0001
   (runtime ownership), ADR 0004 (DERIVATION.md as the write-once derivation
   record).
