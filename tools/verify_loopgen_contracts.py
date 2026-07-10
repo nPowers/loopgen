@@ -236,12 +236,40 @@ def benchmark_mode() -> str:
     return primitive[start:]
 
 
+FRONTIER_REOPEN_POLICY_FILE = ROOT / "loopgen/templates/bodies/frontier-reopen-policy.md"
+
+REOPEN_POLICY_HEADINGS = {
+    "equilibrium": "## Equilibrium variant",
+    "terminal": "## Terminal variant",
+}
+
+
+def reopen_policy_variant(variant: str) -> str:
+    """Extract a {{FRONTIER_REOPEN_POLICY}} variant from its authoring file by
+    heading (composed-prompt.md steps 3/5). The verifier never duplicates the
+    block text — the file is the single source."""
+    heading = REOPEN_POLICY_HEADINGS[variant]
+    raw = read(FRONTIER_REOPEN_POLICY_FILE)
+    start = raw.index(heading) + len(heading)
+    next_headings = [
+        raw.index(h, start) for h in REOPEN_POLICY_HEADINGS.values() if h in raw[start:]
+    ]
+    end = min(next_headings) if next_headings else len(raw)
+    return raw[start:end].strip("\n")
+
+
 def render_frontier(
-    *, benchmark_overlay: bool, placeholder_overrides: dict[str, str] | None = None
+    *,
+    benchmark_overlay: bool,
+    reopen_policy: str = "equilibrium",
+    placeholder_overrides: dict[str, str] | None = None,
 ) -> str:
     prompt = frontier_template()
     mode = benchmark_mode() if benchmark_overlay else ""
     prompt = prompt.replace("{{BENCHMARK_FRONTIER_MODE}}", mode)
+    prompt = prompt.replace(
+        "{{FRONTIER_REOPEN_POLICY}}", reopen_policy_variant(reopen_policy)
+    )
     prompt = re.sub(r"\{\{INCLUDE ([^}]+)\}\}", include_text, prompt)
     # Pressure surface is always-on (ADR 0004): substitute the pressure.md block.
     prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))
@@ -384,6 +412,9 @@ def render_body(archetype: str, *, consult_tier: int = 0) -> str:
     prompt = raw_body_template(BODY_PATHS[archetype])
     if archetype == "frontier":
         prompt = prompt.replace("{{BENCHMARK_FRONTIER_MODE}}", "")
+        prompt = prompt.replace(
+            "{{FRONTIER_REOPEN_POLICY}}", reopen_policy_variant("equilibrium")
+        )
     prompt = re.sub(r"\{\{INCLUDE ([^}]+)\}\}", include_text, prompt)
     # Pressure surface is always-on (ADR 0004).
     prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))

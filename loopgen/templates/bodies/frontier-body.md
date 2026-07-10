@@ -490,24 +490,7 @@ cause so the user (and the next derivation) can route it back:
 - `wrong-loop` — the work belongs in a different loop type (a
   finite-checklist closure should reroute to the `goal` archetype via `/loopgen`).
 
-### Frontier checkpoint semantics
-
-A frontier objective has no quality pass-line: it never completes by being
-good enough, and no frontier halt below is an objective-completion claim.
-`homeostatic-checkpoint`, `genuine-escalate`, `derivation-gap`,
-`signal-starvation`, and `wrong-loop` are valid invocation halts, but none is
-completion. When halting for any frontier cause, write:
-
-```text
-iteration halted; frontier checkpointed
-```
-
-Then list either the next pressure / unresolved OPEN findings / anchors, or the
-full homeostasis scan proving no high-yield admissible intervention remains.
-The episode reopens automatically on strong new signal delivered through the
-reopen contract named at frontload. Do not mark a generic runner goal as
-complete for any frontier halt; at most, mark the invocation complete and leave
-the loop artifact checkpointed, active, or gated.
+{{FRONTIER_REOPEN_POLICY}}
 
 `derivation-gap` is the feedback signal. It tells the user the
 checklist was incomplete; add the missed item to next run's Frontload
@@ -601,6 +584,12 @@ Placeholders populated during derivation (see SKILL.md step 6):
   row split) at compose (step 2).
 - `{{FRONTIER_VECTOR}}` — the named dimensions this repo's frontier moves
   along, one per line.
+- `{{FRONTIER_REOPEN_POLICY}}` — the checkpoint/termination semantics block,
+  selected from `effective_halt_shape` (`primitives/halt-shape.md`, guarded
+  closed-corpus resolution): equilibrium variant by default, terminal variant
+  for a closed corpus. Both variants live in
+  `templates/bodies/frontier-reopen-policy.md`; extracted by heading, never
+  duplicated.
 - `{{BENCHMARK_FRONTIER_MODE}}` — the Benchmark Frontier Mode overlay block
   (`primitives/benchmark-frontier.md`), emitted only when frontload resolved a
   concrete benchmark/eval/harness object; stripped byte-identical otherwise.

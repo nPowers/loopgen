@@ -1,0 +1,68 @@
+# frontier-reopen-policy (body block variants)
+
+The `{{FRONTIER_REOPEN_POLICY}}` block in `frontier-body.md` — the frontier
+playbook's reopen-policy semantics, selected at compose time from
+`effective_halt_shape` (the guarded closed-corpus resolution,
+`primitives/halt-shape.md`):
+
+- `equilibrium` — the archetype default and every pass-through case → the
+  **Equilibrium variant**, byte-for-byte.
+- `terminal` — the guarded closed-corpus resolution, or an explicitly
+  requested terminal frontier → the **Terminal variant**.
+
+The variants live here as authoring content: the composer (composed-prompt.md
+steps 3/5) and the verifier (`tools/verify_loopgen_contracts.py`,
+`reopen_policy_variant`) both extract them from this file by variant heading;
+neither duplicates the text. Everything above the `---` separator is spec,
+never emitted.
+
+---
+
+## Equilibrium variant
+
+### Frontier checkpoint semantics
+
+A frontier objective has no quality pass-line: it never completes by being
+good enough, and no frontier halt below is an objective-completion claim.
+`homeostatic-checkpoint`, `genuine-escalate`, `derivation-gap`,
+`signal-starvation`, and `wrong-loop` are valid invocation halts, but none is
+completion. When halting for any frontier cause, write:
+
+```text
+iteration halted; frontier checkpointed
+```
+
+Then list either the next pressure / unresolved OPEN findings / anchors, or the
+full homeostasis scan proving no high-yield admissible intervention remains.
+The episode reopens automatically on strong new signal delivered through the
+reopen contract named at frontload. Do not mark a generic runner goal as
+complete for any frontier halt; at most, mark the invocation complete and leave
+the loop artifact checkpointed, active, or gated.
+
+## Terminal variant
+
+### Frontier termination semantics
+
+A frontier objective has no quality pass-line: it never completes by being
+good enough, and no frontier halt below is an objective-completion claim.
+This episode runs with **no normal reopen contract** — frontload recorded
+`reopen_contract: none` with its closure basis. `homeostatic-checkpoint`,
+`genuine-escalate`, `derivation-gap`, `signal-starvation`, and `wrong-loop`
+are valid invocation halts, but none is completion. When the full homeostasis
+scan proves no high-yield admissible intervention remains under the declared
+search surfaces, the episode **terminates** — declared workset exhausted —
+rather than waiting for a reopening signal that cannot arrive. Write:
+
+```text
+iteration halted; frontier episode terminated (declared workset exhausted)
+```
+
+Then list the full homeostasis scan as the termination's proof, plus any OPEN
+findings handed off for external routing. The episode does not auto-resume; a
+new episode may start only on an exceptional event — a regression, or a new
+declared-workset version. For any other frontier halt cause the episode is
+paused, not exhausted: write `iteration halted; frontier episode paused
+(<cause>)` and leave the loop artifact paused or gated with its OPEN work
+listed. Do not mark a generic runner goal as complete for any frontier halt;
+at most, mark the invocation complete and leave the loop artifact terminated
+(declared workset exhausted), paused, or gated.

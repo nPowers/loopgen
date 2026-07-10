@@ -129,7 +129,13 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    private/custom skill in the emitted text: the emitted loop must stand
    alone on any runner.
 3. **Fill placeholders** from the frontload audit + primitive bundle, including
-   `{{PROVENANCE}}` and `{{FRONTLOAD_PREAMBLE}}`.
+   `{{PROVENANCE}}` and `{{FRONTLOAD_PREAMBLE}}`. For frontier,
+   `{{FRONTIER_REOPEN_POLICY}}` fills from `effective_halt_shape`
+   (`primitives/halt-shape.md` guarded closed-corpus resolution): the
+   equilibrium variant by default and in every pass-through case, the terminal
+   variant when the guard resolved (or the user requested) terminal. Both
+   variants are extracted by heading from
+   `templates/bodies/frontier-reopen-policy.md`, never re-authored inline.
 4. **Emit the Operational core (ALWAYS), then no other synthesized sections.**
    Right after Motive, emit the compact Operational core (union order 3a):
    synthesize it from the body's iteration protocol + the context-stack budget
@@ -149,7 +155,12 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    - `cadence-shape` → swap the checkpoint/cadence block (e.g. chapter cadence
      into a frontier body).
    - `convergence-shape` → swap the stop-signal block (e.g. capstone-plus-closer).
-   - `halt-shape` → swap the reopen-policy block (e.g. checkpoint-with-reopen).
+   - `halt-shape` → swap the reopen-policy block. For frontier this is the
+     `{{FRONTIER_REOPEN_POLICY}}` selection from `effective_halt_shape` (step
+     3; variants in `templates/bodies/frontier-reopen-policy.md`); for other
+     archetypes, swap the body's reopen block (e.g. checkpoint-with-reopen).
+     A compiler-derived requested→effective divergence is named in provenance
+     with both values.
    - `artifact-shape` → add the divergent queue artifact contract to the nearest
      archetype's canonical files; forbidden divergences route away instead.
    Patches are additive/substitutive; they must not perturb untouched sections.
