@@ -328,13 +328,26 @@ class DerivationGap(Exception):
     """Non-emittable path: an open_gaps entry, never a silent default."""
 
 
+CLOSURE_BASIS_KEYS = ("work_source_domain", "declared_surfaces", "exhaustion_criterion")
+
+
+def closure_basis_established(closure_basis: dict | None) -> bool:
+    """The compose-time closure contract: an enumerated observable work-source
+    domain, the declared search surfaces, and the criterion that will establish
+    declared-workset exhaustion at runtime. All three, non-empty — a bare flag
+    cannot prove a closed-world inference."""
+    return isinstance(closure_basis, dict) and all(
+        closure_basis.get(key) for key in CLOSURE_BASIS_KEYS
+    )
+
+
 def resolve_effective_halt_shape(
     *,
     archetype: str,
     requested: str,
     reopening_signal: str | None,
     reopen_contract: str | None,
-    closure_basis: bool,
+    closure_basis: dict | None,
 ) -> tuple[str, bool]:
     """Returns (effective_halt_shape, compiler_derived_divergence)."""
     if archetype != "frontier":
@@ -343,17 +356,24 @@ def resolve_effective_halt_shape(
         # Backward-compatibility ONLY (pre-existing artifacts, fixtures):
         # composition-side, absent fields are a derivation gap for frontier.
         return requested, False
+    if reopening_signal is None or reopen_contract is None:
+        # A fresh composition emits both fields together; one without the
+        # other is incomplete frontload evidence, never a resolvable state.
+        raise DerivationGap("partially recorded reopening contract")
     if "unresolved" in (reopening_signal, reopen_contract):
         raise DerivationGap("reopening contract unresolved")
-    named_signal = reopening_signal not in (None, "none")
-    named_contract = reopen_contract not in (None, "none")
+    named_signal = reopening_signal != "none"
+    named_contract = reopen_contract != "none"
     if named_signal and not named_contract:
         raise DerivationGap("named signal without an observable delivery channel")
     if named_contract and not named_signal:
         raise DerivationGap("delivery channel without a named signal")
     if not named_signal and not named_contract:
-        if not closure_basis:
-            raise DerivationGap("reopen_contract none without a closure basis")
+        if not closure_basis_established(closure_basis):
+            raise DerivationGap(
+                "reopen_contract none without an established closure basis "
+                f"(needs non-empty {', '.join(CLOSURE_BASIS_KEYS)})"
+            )
         if requested == "equilibrium":
             return "terminal", True  # the guarded implication
         return requested, False  # explicit terminal honored as requested
@@ -1679,6 +1699,11 @@ def run_checks() -> int:
         )
     )
 
+    full_closure = dict(
+        work_source_domain="enumerated: no inbound CI/review/schedule/dep-alert",
+        declared_surfaces="duplication scan + findings ledger + oracle gaps",
+        exhaustion_criterion="full homeostasis scan quiescent under declared surfaces",
+    )
     guard_cases: list[tuple[str, dict, object]] = [
         (
             "named signal + channel → equilibrium, no divergence",
@@ -1686,7 +1711,7 @@ def run_checks() -> int:
                 requested="equilibrium",
                 reopening_signal="new reviewed findings",
                 reopen_contract="inbox note delivered via scheduled re-run",
-                closure_basis=False,
+                closure_basis=None,
             ),
             ("equilibrium", False),
         ),
@@ -1696,7 +1721,7 @@ def run_checks() -> int:
                 requested="equilibrium",
                 reopening_signal="none",
                 reopen_contract="none",
-                closure_basis=True,
+                closure_basis=full_closure,
             ),
             ("terminal", True),
         ),
@@ -1706,7 +1731,7 @@ def run_checks() -> int:
                 requested="equilibrium",
                 reopening_signal="none",
                 reopen_contract="none",
-                closure_basis=False,
+                closure_basis=None,
             ),
             DerivationGap,
         ),
@@ -1716,7 +1741,7 @@ def run_checks() -> int:
                 requested="equilibrium",
                 reopening_signal="upstream release",
                 reopen_contract="none",
-                closure_basis=False,
+                closure_basis=None,
             ),
             DerivationGap,
         ),
@@ -1726,7 +1751,7 @@ def run_checks() -> int:
                 requested="equilibrium",
                 reopening_signal="none",
                 reopen_contract="ci webhook",
-                closure_basis=False,
+                closure_basis=None,
             ),
             DerivationGap,
         ),
@@ -1736,7 +1761,7 @@ def run_checks() -> int:
                 requested="equilibrium",
                 reopening_signal=None,
                 reopen_contract=None,
-                closure_basis=False,
+                closure_basis=None,
             ),
             ("equilibrium", False),
         ),
@@ -1746,7 +1771,7 @@ def run_checks() -> int:
                 requested="equilibrium",
                 reopening_signal="unresolved",
                 reopen_contract="unresolved",
-                closure_basis=False,
+                closure_basis=None,
             ),
             DerivationGap,
         ),
@@ -1756,7 +1781,7 @@ def run_checks() -> int:
                 requested="terminal",
                 reopening_signal="none",
                 reopen_contract="none",
-                closure_basis=True,
+                closure_basis=full_closure,
             ),
             ("terminal", False),
         ),
@@ -1766,9 +1791,43 @@ def run_checks() -> int:
                 requested="terminal",
                 reopening_signal="upstream release",
                 reopen_contract="dep-alert delivered via scheduled re-run",
-                closure_basis=False,
+                closure_basis=None,
             ),
             ("terminal", False),
+        ),
+        (
+            "signal recorded without the contract field → gap (partial absence)",
+            dict(
+                requested="equilibrium",
+                reopening_signal="upstream release",
+                reopen_contract=None,
+                closure_basis=None,
+            ),
+            DerivationGap,
+        ),
+        (
+            "contract recorded without the signal field → gap (partial absence)",
+            dict(
+                requested="equilibrium",
+                reopening_signal=None,
+                reopen_contract="none",
+                closure_basis=None,
+            ),
+            DerivationGap,
+        ),
+        (
+            "none + incomplete closure evidence → gap (bare flag insufficient)",
+            dict(
+                requested="equilibrium",
+                reopening_signal="none",
+                reopen_contract="none",
+                closure_basis=dict(
+                    work_source_domain="enumerated: none inbound",
+                    declared_surfaces="",
+                    exhaustion_criterion="",
+                ),
+            ),
+            DerivationGap,
         ),
     ]
     guard_failures: list[str] = []
@@ -1784,7 +1843,7 @@ def run_checks() -> int:
         requested="terminal",
         reopening_signal=None,
         reopen_contract=None,
-        closure_basis=False,
+        closure_basis=None,
     ) != ("terminal", False):
         guard_failures.append("non-frontier passthrough")
     checks.append(
