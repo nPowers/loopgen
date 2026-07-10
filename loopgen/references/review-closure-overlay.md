@@ -47,8 +47,9 @@ Avoid one-selector-at-a-time promotions when a coherent family is ready.
 
 ## Anti-Collapse Rules
 
-- if the findings / ledger surface shows same-family concentration —
-  once five accepted closures exist, at least three of the most recent
+- if the journal's accepted `attempt` records (or, absent a journal,
+  the findings / ledger surface) show same-family concentration —
+  once five accepted attempts exist, at least three of the most recent
   five carrying the same `disturbed_axis` key (the closed four-value
   vocabulary in the frontier body's Axes section) — force a mode break
   even when each individual closure looks locally justified.
@@ -71,9 +72,10 @@ Avoid one-selector-at-a-time promotions when a coherent family is ready.
   product or evaluator intervention, pause and diagnose before repeating
 - treat the ledger as an evidence sink, not the main artifact of progress
 
-These rules key on the framework's findings / ledger surface, not on the
-recent commit log. The iteration does not re-read its own narrative to
-pattern-match on drift; the persisted findings do. Where no findings
+These rules key on the loop's persisted intervention history — journal
+`attempt` records first, the findings / ledger surface second — not on
+the recent commit log. The iteration does not re-read its own narrative
+to pattern-match on drift; the persisted records do. Where neither
 surface exists, coverage is degraded — creating one is itself a valid
 evaluator-axis intervention; until then, anti-collapse falls back to
 the weaker commit-log signal.

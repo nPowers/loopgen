@@ -180,7 +180,7 @@ Record types (`t`), each with `iter` (iteration) plus type-specific fields:
 
 | `t` | Written when | Key fields | Archetypes |
 |---|---|---|---|
-| `attempt` | each iteration's attempt resolves | `ac`/`anchor`, `action`, `verdict`, `evidence` (pointer) | all |
+| `attempt` | each iteration's attempt resolves | `ac`/`anchor`, `action`, `verdict`, `evidence` (pointer); frontier also `disturbed_axis` (the closed axis key — the same-family counter's evidence) | all |
 | `oracle_change` | an oracle / criterion is added, edited, or re-scoped | `ac`, `from`, `to`, `why` | goal (+ any with an oracle) |
 | `pressure` | a pressure row transitions (replaces `pressure_ledger`) | `id`, `from`, `to`, `evidence` | all |
 | `consult` | step-0 pressure read-back (replaces `pressure_consulted`) | `consulted` (id→plan-element) or `no-promotion: <reason>` | all |

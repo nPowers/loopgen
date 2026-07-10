@@ -373,12 +373,17 @@ memory.
 
 Intervention-diversity disturbance (see homeostasis axes) is not
 satisfied by cosmetic corrections. Concentration is counted on the
-findings index's `disturbed_axis` key (the closed four-value
-vocabulary above), never on the prose family name: once five accepted
-changes exist, same-family concentration means **at least three of the
-most recent five accepted changes carry the same `disturbed_axis`
-key**. Where no findings surface exists, fall back to recent commits
-as the weaker counting signal. Concentration has two signatures:
+`disturbed_axis` key (the closed four-value vocabulary above), never
+on the prose family name, over the journal's ordered intervention
+history: every frontier `attempt` record carries the `disturbed_axis`
+key (`primitives/context-stack.md`), and once five `verdict: accepted`
+attempts exist, same-family concentration means **at least three of
+the most recent five accepted attempts carry the same `disturbed_axis`
+key**. The findings index is not the counter — one finding may absorb
+several changes, and findings are unordered; the journal survives
+compaction precisely so this window stays reconstructable. Where no
+journal exists, fall back to recent commits as the weaker counting
+signal. Concentration has two signatures:
 
 - **same invariant-kind** applied across different surfaces or enums, and
 - **probe rotation** — a new invariant-kind every round (duplication →

@@ -639,12 +639,17 @@ memory.
 
 Intervention-diversity disturbance (see homeostasis axes) is not
 satisfied by cosmetic corrections. Concentration is counted on the
-findings index's `disturbed_axis` key (the closed four-value
-vocabulary above), never on the prose family name: once five accepted
-changes exist, same-family concentration means **at least three of the
-most recent five accepted changes carry the same `disturbed_axis`
-key**. Where no findings surface exists, fall back to recent commits
-as the weaker counting signal. Concentration has two signatures:
+`disturbed_axis` key (the closed four-value vocabulary above), never
+on the prose family name, over the journal's ordered intervention
+history: every frontier `attempt` record carries the `disturbed_axis`
+key (`primitives/context-stack.md`), and once five `verdict: accepted`
+attempts exist, same-family concentration means **at least three of
+the most recent five accepted attempts carry the same `disturbed_axis`
+key**. The findings index is not the counter — one finding may absorb
+several changes, and findings are unordered; the journal survives
+compaction precisely so this window stays reconstructable. Where no
+journal exists, fall back to recent commits as the weaker counting
+signal. Concentration has two signatures:
 
 - **same invariant-kind** applied across different surfaces or enums, and
 - **probe rotation** — a new invariant-kind every round (duplication →
@@ -914,7 +919,7 @@ Record types (`t`), each with `iter` (iteration) plus type-specific fields:
 
 | `t` | Written when | Key fields | Archetypes |
 |---|---|---|---|
-| `attempt` | each iteration's attempt resolves | `ac`/`anchor`, `action`, `verdict`, `evidence` (pointer) | all |
+| `attempt` | each iteration's attempt resolves | `ac`/`anchor`, `action`, `verdict`, `evidence` (pointer); frontier also `disturbed_axis` (the closed axis key — the same-family counter's evidence) | all |
 | `oracle_change` | an oracle / criterion is added, edited, or re-scoped | `ac`, `from`, `to`, `why` | goal (+ any with an oracle) |
 | `pressure` | a pressure row transitions (replaces `pressure_ledger`) | `id`, `from`, `to`, `evidence` | all |
 | `consult` | step-0 pressure read-back (replaces `pressure_consulted`) | `consulted` (id→plan-element) or `no-promotion: <reason>` | all |

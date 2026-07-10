@@ -137,8 +137,10 @@ The landed fix has three parts:
    find that stays on the same homeostasis axis (the third drift,
    below). The qualifying signal must predate intervention selection
    and be independent of the candidate change; concentration itself is
-   counted on the findings index's closed `disturbed_axis` key, not on
-   the prose family name. This is the load-bearing fix; iter 64's
+   counted on the closed `disturbed_axis` key carried by the journal's
+   accepted `attempt` records (an ordered history that survives
+   compaction), not on the prose family name or the unordered findings
+   index. This is the load-bearing fix; iter 64's
    rustfmt escape hatch is now an iteration to reject, not accept.
 
 3. **Add a quiet-signal checkpoint.** After N green iterations with
