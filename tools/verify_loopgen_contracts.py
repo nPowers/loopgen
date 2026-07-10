@@ -1861,12 +1861,23 @@ def run_checks() -> int:
         "closure_basis established",
         "not** a biconditional",
         "effective halt-shape := terminal",
+        "{requested, effective, resolution_basis}",
     )
     checks.append(
         require(
             not missing_tokens(halt_shape_flat, guard_conjunct_tokens),
             "guard_prose_conjuncts",
             ", ".join(missing_tokens(halt_shape_flat, guard_conjunct_tokens)),
+        )
+    )
+    context_stack_flat = one_line(read(CONTEXT_STACK))
+    checks.append(
+        require(
+            "{requested, effective, resolution_basis}" in context_stack_flat,
+            "divergence_triple_durable_in_derivation",
+            "DERIVATION.md divergences must define the "
+            "{requested, effective, resolution_basis} triple for "
+            "compiler-derived halt-shape resolution",
         )
     )
 

@@ -1016,7 +1016,11 @@ pass**. Records how this loop was composed:
 
 - `primitive_bundle` — the classified axis values.
 - `divergences` — each axis whose value differs from the nearest archetype, with
-  its source.
+  its source. A compiler-derived resolution (the halt-shape guarded
+  closed-corpus rule) records the full triple
+  `{requested, effective, resolution_basis}` — the emitted provenance line
+  renders from it, and resume / diagnostic readers reconstruct why the emitted
+  block was selected without re-deriving.
 - `overlays` — active composition overlays.
 - `derivation_read_set` — the files `/loopgen` read to compose this loop.
 - `frontload` — `{resolved, defaulted, open_gaps}`.

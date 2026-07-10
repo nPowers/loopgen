@@ -70,7 +70,10 @@ prompt names both.
   Provenance records both sides when they differ —
   `halt-shape: requested=equilibrium → effective=terminal
   (reopen_contract=none; closure_basis: <…>)` — and emits no divergence line
-  when they agree. The episode always stops at quiescence under both policies;
+  when they agree. The durable copy lives in `DERIVATION.md` `divergences` as
+  the triple `{requested, effective, resolution_basis}`
+  (`primitives/context-stack.md`); the provenance line renders from it, so
+  resume / diagnostic readers reconstruct the selection without re-deriving. The episode always stops at quiescence under both policies;
   only the reactivation policy and the halt label differ.
   `reopening_signal: none` means no *normal, non-regression* reopen signal —
   regression is exceptional re-entry under both policies, never a reopen
