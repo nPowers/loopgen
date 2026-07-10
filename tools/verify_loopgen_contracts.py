@@ -1630,6 +1630,12 @@ def run_checks() -> int:
     banned_terminal_tokens = (
         "iteration halted; frontier checkpointed",
         "reopens automatically on strong new signal",
+        # Policy-assuming common prose repaired in the review round: a terminal
+        # render carrying any of these contradicts its own policy block.
+        "A frontier halt is a checkpoint",
+        "legitimate checkpoint",
+        "the loop is at frontier equilibrium",
+        "homeostatic-checkpoint` equilibrium",
     )
     checks.append(
         require(

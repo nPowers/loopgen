@@ -476,13 +476,14 @@ admissibility) groups by this key, so renaming a family cannot dodge it.
    `git status --short`, and resolve tracked diffs. If the accepted
    intervention changed tracked files, make one focused Conventional Commit;
    unattended local commits are authorized by default. If the change is not
-   accepted, revert it or continue the same evidence loop; do not checkpoint with
+   accepted, revert it or continue the same evidence loop; do not stop with
    stale ledgers or unresolved dirty tracked diffs except for an explicit
    runner-ceiling crash-recovery checkpoint that names the diff and next command
    in state.
 9. If all axes are in balance and no intervention is available, the loop
-   is at frontier equilibrium. Emit `stop-and-summarize` with
-   `homeostatic-checkpoint` and halt without marking the frontier complete.
+   is quiescent. Emit `stop-and-summarize` with
+   `homeostatic-checkpoint` and halt without marking the frontier complete;
+   the reopen policy (Halt conditions) names the episode's disposition.
 
 ### Structural escalation bridge
 
@@ -734,13 +735,15 @@ Default N = 3; set per repo as `3`.
 ## Halt conditions
 
 Halt = emit `stop-and-summarize`. Escalate (rare, irreversible-only) is a
-separate signal — see the Runner contract. A frontier halt is a checkpoint,
-not completion.
+separate signal — see the Runner contract. A frontier halt is never objective
+completion; the reopen policy below decides whether it is a checkpoint or an
+episode termination.
 
 - No OPEN findings for 2 consecutive review rounds.
 
 - All five homeostasis axes in balance and no intervention is available
-  (`homeostatic-checkpoint` equilibrium).
+  (the `homeostatic-checkpoint` cause; its disposition follows the reopen
+  policy below).
 
 ### Halt-cause classifier
 
@@ -753,9 +756,10 @@ cause so the user (and the next derivation) can route it back:
 - `genuine-escalate` — irreversible / external / authority-needed (paid
   API budget, public-publish, secrets, product direction with unclear
   rollback, source conflict between authoritative-current sources).
-- `homeostatic-checkpoint` — legitimate checkpoint; all five homeostasis axes
-  in balance, no high-yield admissible intervention available. This does not
-  mean the frontier is complete.
+- `homeostatic-checkpoint` — quiescence: all five homeostasis axes in
+  balance, no high-yield admissible intervention available. Never objective
+  completion; the reopen policy below decides checkpoint vs episode
+  termination.
 - `signal-starvation` — quiet-signal checkpoint fired; outer channel
   ran or stop-and-summarize.
 - `wrong-loop` — the work belongs in a different loop type (a
