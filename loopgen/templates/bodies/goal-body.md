@@ -339,7 +339,7 @@ When emitting `criteria-met`, `stop-and-summarize`, or
   - the `story` archetype if the next job is discovering or reconciling product
     promises before a finite implementation target exists.
 
-Before labeling any of the four **non-terminal** causes above
+Before labeling any of the four **non-success** causes above
 (`partial-deadlock`, `derivation-gap`, `genuine-escalate`, `wrong-loop`),
 scan every non-terminal acceptance row in the ACCEPTANCE index and every
 verifier/oracle gap — not just the row in hand. The index's running totals prove
@@ -349,7 +349,7 @@ scan, not a narrowing (`primitives/halt-cause-classifier.md`).
 "Partial completion is not success"); the same scan discipline extends to the
 other three: a single blocked row never halts the loop while another reversible,
 in-scope move remains — another criterion still open, a verifier repair, or an
-oracle gap that can be closed. The final output of a non-terminal halt must
+oracle gap that can be closed. The final output of a non-success halt must
 include a compact halt scan naming each row/class scanned and why no safe
 continuation remains, recorded as `halt_scan` in `.loop/<loop-id>/STATE.md`
 (overwrite-latest) **and** appended as a `halt` record to

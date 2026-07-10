@@ -675,7 +675,7 @@ When no `ready` story exists, **do not halt** — continue discovery and
 alignment-prep (see Iteration protocol §3, §4). The classification is the
 point.
 
-Before any non-terminal halt (`derivation-gap`, `genuine-escalate`,
+Before any non-success halt (`derivation-gap`, `genuine-escalate`,
 `signal-starvation`, `wrong-loop`), scan every storyboard lane and every
 unresolved promise row **in the storyboard index**, not only the currently
 selected story. The index's running counters prove the archive holds only
@@ -683,7 +683,7 @@ resolved rows, so scanning the LIVE index is a complete scan, not a narrowing
 (`primitives/halt-cause-classifier.md`). A single blocked row never halts the
 loop by itself; if another reversible, in-scope story, alignment step, or
 source/browser/e2e pass can still move a different lane or surface, continue with
-it instead. A non-terminal halt is valid only when every remaining useful
+it instead. A non-success halt is valid only when every remaining useful
 intervention is blocked by the same external authority, would violate
 scope/budget, or is low-yield same-family polish with no fresh evidence.
 
@@ -702,7 +702,7 @@ Before `stop-and-summarize`, perform a completion audit:
   (overwrite-latest) and append a `halt` record to
   `.loop/<loop-id>/JOURNAL.jsonl` (`primitives/halt-cause-classifier.md`)
 
-Include a compact halt scan in the final output for any non-terminal halt:
+Include a compact halt scan in the final output for any non-success halt:
 
 ```text
 halt scan:

@@ -246,7 +246,7 @@ classification is a failed frontier iteration.
 
 ### Homeostasis-before-halt rule
 
-Before any non-terminal halt (`genuine-escalate`, `derivation-gap`,
+Before any non-success halt (`genuine-escalate`, `derivation-gap`,
 `signal-starvation`, or `wrong-loop`), run a final homeostasis scan across all
 five axes and every OPEN finding / anchor. A single blocked anchor is not enough
 to halt the frontier loop. If product work is blocked, look for evaluator,
@@ -492,10 +492,11 @@ cause so the user (and the next derivation) can route it back:
 
 ### Frontier checkpoint semantics
 
-Frontier loops do not self-complete. `homeostatic-checkpoint`,
-`genuine-escalate`, `derivation-gap`, `signal-starvation`, and `wrong-loop` are
-valid invocation halts, but none is completion. When halting for any frontier
-cause, write:
+A frontier objective has no quality pass-line: it never completes by being
+good enough, and no frontier halt below is an objective-completion claim.
+`homeostatic-checkpoint`, `genuine-escalate`, `derivation-gap`,
+`signal-starvation`, and `wrong-loop` are valid invocation halts, but none is
+completion. When halting for any frontier cause, write:
 
 ```text
 iteration halted; frontier checkpointed
@@ -503,9 +504,10 @@ iteration halted; frontier checkpointed
 
 Then list either the next pressure / unresolved OPEN findings / anchors, or the
 full homeostasis scan proving no high-yield admissible intervention remains.
-Do not mark a generic runner goal as complete for any frontier halt; at most,
-mark the invocation complete and leave the loop artifact checkpointed, active,
-or gated.
+The episode reopens automatically on strong new signal delivered through the
+reopen contract named at frontload. Do not mark a generic runner goal as
+complete for any frontier halt; at most, mark the invocation complete and leave
+the loop artifact checkpointed, active, or gated.
 
 `derivation-gap` is the feedback signal. It tells the user the
 checklist was incomplete; add the missed item to next run's Frontload

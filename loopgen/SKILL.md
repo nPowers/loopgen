@@ -296,12 +296,16 @@ invisible — fix it.
 The emitted prompt MUST also distinguish invocation halt from archetype
 completion. Shared halt causes (`genuine-escalate`, `derivation-gap`,
 `signal-starvation`, `wrong-loop`) are not completion claims by themselves.
-Frontier's `homeostatic-checkpoint` also does not mean completion; frontier
-loops checkpoint and reopen on fresh signal. Only non-frontier archetype
+Frontier's `homeostatic-checkpoint` also does not mean completion: a frontier
+objective never completes by being good enough; the episode either checkpoints
+and reopens on fresh signal (effective `equilibrium`) or terminates on
+declared-workset exhaustion (effective `terminal`) — ending the execution, not
+the objective. Only non-frontier archetype
 success causes may say the loop is complete. If a prompt can halt on a shared
 cause, it must tell the runner to report the frontier/queue/story as open or
 checkpointed and list the unresolved artifact rows or halt scan.
-It must also require a full search-surface scan before any non-terminal halt,
+It must also require a full search-surface scan before any non-success halt —
+including a frontier episode termination —
 so one blocked row cannot stop a frontier/story/greenfield/goal loop while
 another in-scope evaluator, observability, specification, verifier, or queue
 repair move remains.

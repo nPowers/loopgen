@@ -70,7 +70,7 @@ composed prompt.
     status-theater prohibition, forbidden shortcuts; `frontier` adds same-family
     admissibility + frontier anchor; `goal` adds the oracle-drift guard).
 11. **Halt conditions** — archetype body + **Halt-cause classifier** ALWAYS
-    (`primitives/halt-cause-classifier.md`, including the archetype's terminal
+    (`primitives/halt-cause-classifier.md`, including the archetype's stop
     cause).
 12. **Artifacts to maintain** — the canonical files required by the active
     artifact contracts (`artifact-shape`, divergent primitive add-ons, overlays),
@@ -229,13 +229,18 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    halt from archetype completion. Shared halt causes (`genuine-escalate`,
    `derivation-gap`, `signal-starvation`, `wrong-loop`) never mean the
    frontier, goal, story, or greenfield artifact is complete by themselves.
-   Frontier's `homeostatic-checkpoint` also does not mean completion; frontier
-   loops checkpoint and reopen on fresh signal. Only non-frontier
-   archetype-terminal success causes may claim completion. If this distinction
-   is absent, patch the prompt before emitting.
-   Also verify that any non-terminal shared halt requires a full search-surface
-   scan first, so a single blocked row cannot stop the loop while another
-   reversible in-scope intervention remains.
+   Frontier's `homeostatic-checkpoint` also does not mean completion: a
+   frontier objective has no quality pass-line and never completes by being
+   good enough, while the episode either checkpoints-and-reopens (effective
+   `equilibrium`) or terminates on declared-workset exhaustion (effective
+   `terminal`, `primitives/halt-shape.md`) — episode termination ends the
+   execution, not the objective. Only non-frontier archetype-terminal success
+   causes may claim completion. If this distinction is absent, patch the
+   prompt before emitting.
+   Also verify that any non-success shared halt — including a frontier episode
+   termination — requires a full search-surface scan first, so a single blocked
+   row cannot stop the loop while another reversible in-scope intervention
+   remains.
 10. **Emit** (see `SKILL.md` Artifact + state contracts and Phase 4): common
    files + nearest archetype files + divergent primitive add-ons + active
    overlay files.
