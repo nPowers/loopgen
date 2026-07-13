@@ -455,6 +455,10 @@ Important add-ons:
 - `target-shape: frontier-expanding` adds `.loop/<loop-id>/TRACES.md`,
   `.loop/<loop-id>/METRICS.md`, `frontier_vector`, `trace_locations`,
   `metric_locations`, and `guardrails` when those are not already present.
+  `frontier_vector` / `guardrails` are compact one-line live rows seeded once
+  from `{{FRONTIER_VECTOR}}` at bootstrap; thereafter runtime admission
+  through the earned dimension lifecycle
+  (`primitives/frontier-vector-adequacy.md`) is the only mutation path.
 - `artifact-shape: findings-ledger` adds the full frontier artifact set:
   `.loop/<loop-id>/FINDINGS.md`, `.loop/<loop-id>/TRACES.md`, and `.loop/<loop-id>/METRICS.md`.
 - `artifact-shape: acceptance-inventory` adds `.loop/<loop-id>/ACCEPTANCE.md` and

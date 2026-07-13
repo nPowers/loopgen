@@ -190,7 +190,15 @@ never a candidate status and never silent.
 ### Green-trace rule
 
 Green search traces, zero OPEN generic findings, and no changed files are not a
-checkpoint. The loop must expand one of: candidate, case, control, metric,
-project category, evaluator dimension, or artifact audit. If budget or external
+checkpoint. The loop must expand one of: candidate, case, control,
+project category, or artifact audit — or, for a new metric / evaluator
+dimension, open a dimension candidate through the vector-adequacy lifecycle
+(never a direct edit). Admission of a new Pareto dimension is an **atomic
+projection change**: `FRONTIER.json` `pareto_dimensions` gains the id, every
+current member scores the new metric in its `metric_vector`, and the
+cost/receipt evidence is durable **before** the live vector switches —
+partial backfill means not admitted yet. Backfill cost obeys the frontload
+budget rules; unaffordable backfill leaves the candidate pending, never a
+silent overspend. If budget or external
 authority blocks expansion, halt as `PAUSED_EXTERNAL` with
 `pressure_debt: explicitly_deferred`, not as complete.

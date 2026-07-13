@@ -72,7 +72,8 @@ search surface, not only the currently selected row. The scan covers **every
 non-terminal row in the LIVE window** — every `OPEN` / `active` / unresolved row
 still on the re-read surface — never the archived rows:
 
-- frontier loops scan all homeostasis axes and all OPEN findings / anchors;
+- frontier loops scan all homeostasis axes and all OPEN findings / anchors,
+  and record the frontier-vector adequacy result;
 - goal loops scan all OPEN acceptance rows and verifier/oracle gaps;
 - story loops scan storyboard lanes and unresolved promise rows;
 - greenfield loops scan rubric/intent hypotheses and blocked capability
@@ -98,8 +99,10 @@ declared workset is exhausted requires the full scan as its proof. A terminal
 reopen policy never licenses skipping the scan.
 
 For frontier loops, the halt scan must also emit the pressure accounting fields:
-`pressure_status`, `pressure_debt`, `checkpoint_reason`, and `next_pressure`.
-Checkpointing with no pressure scan, open pressure, or no checkpoint reason is
+`pressure_status`, `pressure_debt`, `checkpoint_reason`, and `next_pressure` —
+plus the vector-adequacy line. Checkpointing with no pressure scan, open
+pressure, no checkpoint reason, an unscanned frontier vector, or a
+dimension-candidate probe still pending is
 invalid; the runner reports the frontier as active or externally paused instead.
 
 ### The halt-scan record (formalized once, shared by every archetype)

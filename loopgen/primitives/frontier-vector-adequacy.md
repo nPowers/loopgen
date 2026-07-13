@@ -200,10 +200,11 @@ derivation (a new loop id = new workset version) can admit the dimension.
 ### Benchmark projection parity (overlay only)
 
 Under the benchmark-frontier overlay, admission is an atomic projection
-change. The live vector cannot switch until: `FRONTIER.json`
-`pareto_dimensions` contains the new id; **every current member** carries the
-new metric in its `metric_vector`; and the cost/receipt evidence is durable.
-Partial member backfill means **not admitted yet** — the vector remains
+change. The live vector cannot switch until the overlay's Pareto projection
+lists the new dimension id, **every current member** carries the new metric in
+its metric vector, and the cost/receipt evidence is durable (the overlay block
+names the exact role fields). Partial member backfill means **not admitted
+yet** — the vector remains
 unchanged. Backfill cost obeys the existing frontload budget rules: free/local
 scoring proceeds; one bounded paid action uses authorized-or-defer; repeated
 metered evaluation requires the operative `## Budget policy` with write-ahead

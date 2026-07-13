@@ -275,18 +275,21 @@ ability to expose the next weakness. If discovery
 finds pressure, set the frontier active and continue. If discovery is blocked by
 budget or external authority, halt as `PAUSED_EXTERNAL`, not checkpoint.
 
-Homeostasis is not the end of the frontier loop; it is the signal to return to
-the ramp shape at a wider radius. When known axes are balanced, the next useful
-move is usually an expansion ramp: add a new project category, stronger outer
-check, adversarial control, evaluator dimension, or
-representation/performance measurement before resuming product improvement.
-Treat the initial ramp as the first instance of this recurring pattern, not a
-one-time preface.
+Homeostasis is not the end of the frontier loop. When known axes are balanced,
+run the vector-adequacy scan (Frontier-vector adequacy below): decide with
+evidence whether the live vector can still distinguish meaningful progress,
+and route the residual — ordinary work on an existing dimension,
+consolidation, evaluator work on an unmeasurable channel, or at most one
+dimension candidate. Widening the frontier is earned through that lifecycle —
+a stronger outer check or adversarial control still needs its anchor — never
+by inventing a new axis to escape quiescence.
 
 The halt is valid only when every remaining useful intervention is either
 blocked by the same external authority, outside scope, or low-yield same-family
 polish with no fresh evidence, the active pressure-discovery move found no new
-admissible pressure, and no expansion-ramp option exists inside scope/budget.
+admissible pressure, and the vector-adequacy scan is recorded — the vector
+adequate, or its single candidate resolved (falsified, admitted, or handed
+off).
 Record the pressure fields and include the scan in the final response, saved as
 `halt_scan` in `.loop/<loop-id>/STATE.md` (overwrite-latest) and appended as a
 `halt` record to `.loop/<loop-id>/JOURNAL.jsonl`
@@ -300,7 +303,7 @@ halt scan:
 - specification coherence: <balanced/drifting/blocked> - <why no safe move>
 - intervention diversity: <balanced/drifting/blocked> - <why no safe move>
 pressure discovery: <what was searched/evaluated> - <pressure found or why none>
-expansion ramp: <new radius considered> - <ramp started or why none>
+vector adequacy: <adequate | candidate-opened | candidate-falsified | candidate-admitted | candidate-handoff> - <evidence, or why no scan was possible>
 pressure_status: <open/paid/blocked/exhausted>
 pressure_debt: <none/low/medium/high/explicitly_deferred>
 checkpoint_reason: <plateau_after_active_pressure/budget_exhausted/evaluator_invalid/risk_limit_hit/target_gap_unresolved/negative_result_saved; required for every checkpoint; pressure_status=open checkpoint is invalid>
@@ -319,6 +322,8 @@ first; the axis in disturbance implies the label.
 - restoring intervention diversity → whichever axis has been
   under-corrected
 - nothing to restore → `stop-and-summarize`
+
+{{INCLUDE primitives/frontier-vector-adequacy.md}}
 
 ## Rules
 
@@ -482,7 +487,9 @@ After `{{CASH_OUT_N}}` consecutive non-product accepted changes at T3+,
 the next accepted change must do one of:
 
 1. use the improved signal to select or complete product work,
-2. run the outer channel and update the frontier vector,
+2. run the outer channel and score it against the live frontier vector (a
+   dimension change is earned through the vector-adequacy lifecycle, never a
+   direct edit),
 3. create or run a stronger anti-overfitting check, or
 4. emit `stop-and-summarize`.
 
@@ -614,7 +621,9 @@ Placeholders populated during derivation (see SKILL.md step 6):
 - The Artifacts-to-maintain section inlines `primitives/context-stack.md` (the
   memory model + STATE/JOURNAL/DERIVATION schema and context budget) and
   `primitives/queue-as-second-artifact.md` (queue growth discipline + INDEX/FULL
-  row split) at compose (step 2).
+  row split) at compose (step 2). The body also inlines
+  `primitives/frontier-vector-adequacy.md` (the earned frontier-dimension
+  lifecycle) after the Homeostasis section, resolved the same way.
 - `{{FRONTIER_VECTOR}}` — the **bootstrap seed** for the live vector: the
   named dimensions this repo's frontier moves along, one per line. Normalized
   into `STATE.md` `frontier_vector` on first bootstrap and never re-applied

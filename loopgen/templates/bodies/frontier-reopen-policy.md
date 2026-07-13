@@ -39,6 +39,12 @@ reopen contract named at frontload. Do not mark a generic runner goal as
 complete for any frontier halt; at most, mark the invocation complete and leave
 the loop artifact checkpointed, active, or gated.
 
+Under this policy a dimension candidate that survives its pre-registered probe
+may be **admitted in-episode** through the admission transaction
+(Frontier-vector adequacy): the `checkpoint` journal record commits it and the
+loop continues — an admitted dimension is fresh pressure, never a reason to
+halt.
+
 ## Terminal variant
 
 ### Frontier termination semantics
@@ -68,3 +74,11 @@ paused, not exhausted: write `iteration halted; frontier episode paused
 listed. Do not mark a generic runner goal as complete for any frontier halt;
 at most, mark the invocation complete and leave the loop artifact terminated
 (declared workset exhausted), paused, or gated.
+
+Under this policy the live frontier vector **never mutates** — the initial
+vector is part of the declared workset's identity, and the episode finishes
+the frame it declared. A dimension candidate gets at most one bounded probe
+attempt, only inside the declared surfaces and existing budget; a candidate
+that survives is recorded as `handoff` output for a new declared-workset
+version (a fresh `/loopgen` derivation), attached to the halt summary. The
+admission transaction does not apply in this episode.

@@ -49,7 +49,8 @@ composed prompt.
    is stripped, leaving the prompt byte-identical. Carried by all four bodies.
 7. **Archetype body** — the nearest archetype's body, placeholders filled.
    Conditional sub-sections by archetype:
-   - `frontier`: Frontier vector · Core law · Homeostasis (5 axes) · Evaluator
+   - `frontier`: Frontier vector · Core law · Homeostasis (5 axes) ·
+     Frontier-vector adequacy · Evaluator
      maturity · Reward channels · Same-family admissibility · Frontier anchor.
    - `goal`: Oracle principles · Terminal contract · Goal version · Acceptance
      inventory · Verifier discipline · Channels · Dependency topology ·

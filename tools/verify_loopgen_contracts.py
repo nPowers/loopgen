@@ -295,6 +295,7 @@ def render_frontier(
 
 GOLDEN_DIR = ROOT / "tools/golden"
 FRONTIER_EQUILIBRIUM_GOLDEN = GOLDEN_DIR / "frontier-body.equilibrium.md"
+FRONTIER_BENCHMARK_GOLDEN = GOLDEN_DIR / "frontier-body.benchmark.equilibrium.md"
 
 PLAYBOOK_SENTINELS = {
     "PROVENANCE": "(provenance preamble — out of playbook scope)",
@@ -312,6 +313,16 @@ def render_frontier_playbook() -> str:
     the golden together with the edit that moved it)."""
     return render_frontier(
         benchmark_overlay=False, placeholder_overrides=PLAYBOOK_SENTINELS
+    )
+
+
+def render_frontier_benchmark_playbook() -> str:
+    """Benchmark-overlay playbook (effective-equilibrium reopen policy),
+    provenance/frontload normalized to the same sentinels — the second frozen
+    golden (fva-U3), so overlay-visible contract text (green-trace reroute,
+    projection parity) is pinned byte-for-byte alongside the pure render."""
+    return render_frontier(
+        benchmark_overlay=True, placeholder_overrides=PLAYBOOK_SENTINELS
     )
 
 
@@ -1413,6 +1424,66 @@ def u16_workset_identity_violations() -> list[str]:
     return v
 
 
+def u17_admission_wiring_violations() -> list[str]:
+    """U17 (fva-U3): every vector-mutation path routes through the adequacy
+    lifecycle. The expansion-ramp scan line is replaced by the vector-adequacy
+    line; cash-out option 2 no longer instructs a direct vector edit; the
+    benchmark green-trace expansion routes dimension growth through the
+    lifecycle with atomic projection parity; the reopen-policy variants split
+    the authority (equilibrium admits in-episode and continues, terminal never
+    mutates and hands off); the shared halt precondition names the adequacy
+    result."""
+    v: list[str] = []
+    body = read(FRONTIER_BODY)
+    body_flat = " ".join(body.split())
+    if "expansion ramp:" in body:
+        v.append("expansion-ramp scan line survives in the body (must be replaced)")
+    if "vector adequacy: <adequate" not in body:
+        v.append("halt scan missing the vector-adequacy line")
+    if "update the frontier vector" in body_flat:
+        v.append("direct vector-mutation instruction survives (cash-out option 2)")
+    if "never a direct edit" not in body_flat:
+        v.append("cash-out reroute missing the never-a-direct-edit clause")
+
+    equilibrium = " ".join(reopen_policy_variant("equilibrium").split())
+    terminal = " ".join(reopen_policy_variant("terminal").split())
+    if "admitted in-episode" not in equilibrium:
+        v.append("equilibrium variant missing in-episode admission authority")
+    if "the loop continues" not in equilibrium:
+        v.append("equilibrium variant missing admission-continues semantics")
+    if "admitted in-episode" in terminal or "may be **admitted" in terminal:
+        v.append("terminal variant carries admission authority (must be handoff-only)")
+    for pin, name in (
+        ("never mutates", "terminal non-mutation"),
+        ("`handoff` output for a new declared-workset version", "terminal handoff route"),
+        ("at most one bounded probe attempt", "terminal single-probe bound"),
+    ):
+        if pin not in terminal:
+            v.append(f"terminal variant missing {name} (`{pin}`)")
+
+    bench = " ".join(read(BENCHMARK_FRONTIER).split())
+    for pin, name in (
+        ("through the vector-adequacy lifecycle", "green-trace reroute"),
+        ("atomic projection change", "atomicity clause"),
+        ("partial backfill means not admitted yet", "partial-backfill rule"),
+        ("never a silent overspend", "backfill budget rule"),
+    ):
+        if pin not in bench:
+            v.append(f"benchmark overlay missing {name} (`{pin}`)")
+    artifacts = " ".join(read(BENCHMARK_ARTIFACTS).split())
+    if "changes only through the frontier-vector admission" not in artifacts:
+        v.append("FRONTIER role missing the pareto_dimensions parity rule")
+
+    halt_cause = " ".join(
+        read(ROOT / "loopgen/primitives/halt-cause-classifier.md").split()
+    )
+    if "record the frontier-vector adequacy result" not in halt_cause:
+        v.append("halt precondition missing the adequacy-result requirement")
+    if "dimension-candidate probe still pending" not in halt_cause:
+        v.append("halt validity missing the pending-probe invalidation")
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1764,13 +1835,30 @@ def run_checks() -> int:
     )
     checks.append(
         require(
-            "frontier-vector-adequacy" not in pure
-            and "frontier-vector-adequacy" not in benchmark
+            "## Frontier-vector adequacy" in pure
+            and "## Frontier-vector adequacy" in benchmark
             and "{{INCLUDE primitives/frontier-vector-adequacy.md}}"
-            not in read(FRONTIER_BODY),
-            "vector_adequacy_dormant_until_wired",
-            "the primitive leaked into rendered prompts before the "
-            "runtime-admission unit (fva-U3) wires the body",
+            in read(FRONTIER_BODY),
+            "vector_adequacy_wired_into_frontier",
+            "fva-U3 wires the lifecycle into the body; the emitted block must "
+            "appear in both frontier renders",
+        )
+    )
+    for other_body in NON_FRONTIER_BODIES:
+        checks.append(
+            require(
+                "frontier-vector-adequacy" not in read(other_body),
+                f"vector_adequacy_frontier_only_{other_body.stem}",
+            )
+        )
+
+    # ── U17: every vector-mutation path routes through the lifecycle (fva-U3) ──
+    admission_wiring = u17_admission_wiring_violations()
+    checks.append(
+        require(
+            not admission_wiring,
+            "u17_admission_wiring_contracts",
+            "; ".join(admission_wiring),
         )
     )
 
@@ -1811,6 +1899,26 @@ def run_checks() -> int:
                 "playbook drifted from the frozen golden; if the edit was "
                 "intentional, re-run --capture-golden and commit the golden "
                 "with the edit that moved it",
+            )
+        )
+    benchmark_golden_exists = FRONTIER_BENCHMARK_GOLDEN.exists()
+    checks.append(
+        require(
+            benchmark_golden_exists,
+            "frontier_benchmark_golden_present",
+            "missing tools/golden/frontier-body.benchmark.equilibrium.md — "
+            "run --capture-golden",
+        )
+    )
+    if benchmark_golden_exists:
+        benchmark_golden = FRONTIER_BENCHMARK_GOLDEN.read_text(encoding="utf-8")
+        checks.append(
+            require(
+                render_frontier_benchmark_playbook() == benchmark_golden,
+                "body_benchmark_byte_identical",
+                "benchmark playbook drifted from its frozen golden; if the "
+                "edit was intentional, re-run --capture-golden and commit "
+                "both goldens with the edit that moved them",
             )
         )
 
@@ -1854,6 +1962,9 @@ def run_checks() -> int:
         # requested terminal (which may hold a live contract): it must never
         # assert frontload field values.
         "reopen_contract: none",
+        # fva-U3: admission authority is equilibrium-only; a terminal render
+        # carrying it contradicts its own non-mutation policy.
+        "admitted in-episode",
     )
     checks.append(
         require(
@@ -2153,6 +2264,10 @@ def main(argv: list[str]) -> int:
             render_frontier_playbook(), encoding="utf-8"
         )
         print(f"captured {FRONTIER_EQUILIBRIUM_GOLDEN.relative_to(ROOT)}")
+        FRONTIER_BENCHMARK_GOLDEN.write_text(
+            render_frontier_benchmark_playbook(), encoding="utf-8"
+        )
+        print(f"captured {FRONTIER_BENCHMARK_GOLDEN.relative_to(ROOT)}")
         return 0
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)

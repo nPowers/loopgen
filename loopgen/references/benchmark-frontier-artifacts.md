@@ -91,6 +91,15 @@ deferred_pressure:             # present only when pressure_status: blocked
 become `product_progress`. A blocked candidate keeps its earned row `status` and
 records its unpaid pressure here, in `deferred_pressure`, never as a row status.
 
+`pareto_dimensions` changes only through the frontier-vector admission
+transaction (`primitives/frontier-vector-adequacy.md`): the new dimension id
+lands here, every current member's `metric_vector` carries the new metric, and
+the receipts are durable **before** `.loop/<loop-id>/STATE.md`
+`frontier_vector` switches — partial backfill means not admitted yet, and the
+projection and live vector must never disagree. Under an effective terminal
+reopen policy the live vector never changes; a surviving candidate is handoff
+output for the next declared-workset version.
+
 When `eval_health != calibrated`, the loop may claim harness progress only.
 Product progress waits for calibrated or explicitly bounded evaluator pressure.
 When the overlay seeds oracle-integrity rows, an unpaid row holds `eval_health`
