@@ -237,19 +237,31 @@ rows share.
 
 ## Frontier vector
 
-This repository's evidence-backed frontier moves along these dimensions:
+This repository's evidence-backed frontier moves along these dimensions
+(bootstrap seed):
 
 - correctness
 - legibility
 - evaluator trustworthiness
 
+The seed is bootstrap input only. On first bootstrap, normalize it into
+`.loop/<loop-id>/STATE.md` `frontier_vector` — compact one-line rows
+`{"id": <stable unique>, "channel_ref": <pointer | null>}`, at most eight —
+with a matching one-line `guardrails` id → pointer map. A legacy name-only
+entry becomes `{id: <name>, channel_ref: null}` — never dropped, never given
+an invented channel. Thereafter **STATE is the sole authority for the live
+vector**: this prompt never overwrites it, and every dimension change is
+earned at runtime through the vector-adequacy lifecycle — evidence-admitted,
+never edited into this section. At the cap, merge or supersede with evidence;
+never append a ninth dimension.
+
 Every accepted change must record a before → after delta on at least one
 dimension while preserving the guardrails on the others. "Different from
 the last change" is not frontier movement by itself.
 
-If a dimension cannot yet be measured, the accepted change must be
-`evaluator` / `observability` / `specification` work that makes it
-measurable.
+If a dimension cannot yet be measured (`channel_ref: null`), the accepted
+change must be `evaluator` / `observability` / `specification` work that
+makes it measurable.
 
 ## Core law
 
@@ -342,6 +354,13 @@ the same mandated content placed in its correct *tier*
 (`primitives/context-stack.md`, `primitives/pressure.md`), exactly as
 `PRESSURE.md` is `STATE.md` `pressure_objects` rendered rather than a competing
 store. New role forbidden; correct tier required.
+
+The frontier-vector lifecycle obeys the same rule: the live vector and
+guardrail map are compact one-line `.loop/<loop-id>/STATE.md` keys
+(`frontier_vector`, `guardrails` — live status), a dimension candidate is an
+ordinary findings-ledger row, its probe an ordinary `attempt` record, and an
+admission delta a `checkpoint` record — no vector artifact, no candidate
+ledger, no parallel history surface.
 
 
 
@@ -620,7 +639,8 @@ must carry one of these statuses:
   discoverable.
 - `FIXED_PENDING_CONFIRMATION` — changed this iteration; needs a later pass or
   independent oracle before closure.
-- `CLOSED_CONFIRMED` — independently confirmed fixed.
+- `CLOSED_CONFIRMED` — independently confirmed resolved (a fix confirmed, or a
+  dimension candidate independently admitted or falsified).
 - `CLOSED_EXPECTED_RED_CONTROL` — intentionally failing control that proves the
   evaluator rejects bad output.
 - `PAUSED_EXTERNAL` — blocked on explicit external authority, budget, secret, or
@@ -840,10 +860,12 @@ not files.
   (`primitives/pressure-accounting.md`).
 - `.loop/<loop-id>/STATE.md` (PINNED) — **live status only**, fixed keys,
   rewrite-in-place, no history: `phase`, `iteration`, `last_action`,
-  `next_action`, `halt_cause`, `halt_scan`, `frontier_vector`, `current_anchor`,
+  `next_action`, `halt_cause`, `halt_scan`, `frontier_vector` (one line, ≤ 8
+  `{id, channel_ref}` rows — the live vector authority), `current_anchor`,
   `reward_channels`, `pressure_objects` (in-force rows, ≤ `pressure-cap`),
   `pressure_status`, `pressure_debt`, `checkpoint_reason`, `next_pressure`,
-  `trace_locations`, `metric_locations`, `guardrails`. It does **not** hold
+  `trace_locations`, `metric_locations`, `guardrails` (one line, dimension
+  id → guardrail pointer). It does **not** hold
   `pressure_ledger`, `pressure_consulted`, or a per-attempt log — those are
   `pressure` / `consult` / `attempt` records in `JOURNAL.jsonl`.
 - `.loop/<loop-id>/FINDINGS.md` (WORKING) — the findings-ledger queue (see
@@ -1032,7 +1054,13 @@ pass**. Records how this loop was composed:
   block was selected without re-deriving.
 - `overlays` — active composition overlays.
 - `derivation_read_set` — the files `/loopgen` read to compose this loop.
-- `frontload` — `{resolved, defaulted, open_gaps}`.
+- `frontload` — `{resolved, defaulted, open_gaps}`. For frontier this carries
+  the reopening-contract fields, and when the reopening contract resolved to
+  a closed-world `none`, the four-field `closure_basis` plus
+  `declared_workset_version: <loop-id>` —
+  the workset version is the loop id the derivation minted; this file is
+  write-once, so a running loop can never mint a new version or mutate the
+  declared workset's identity.
 
 ### Context budget
 

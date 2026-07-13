@@ -329,17 +329,31 @@ class DerivationGap(Exception):
     """Non-emittable path: an open_gaps entry, never a silent default."""
 
 
-CLOSURE_BASIS_KEYS = ("work_source_domain", "declared_surfaces", "exhaustion_criterion")
+CLOSURE_BASIS_KEYS = (
+    "work_source_domain",
+    "declared_surfaces",
+    "exhaustion_criterion",
+    "initial_frontier_vector",
+)
+LEGACY_CLOSURE_BASIS_KEYS = CLOSURE_BASIS_KEYS[:3]
 
 
 def closure_basis_established(closure_basis: dict | None) -> bool:
     """The compose-time closure contract: an enumerated observable work-source
-    domain, the declared search surfaces, and the criterion that will establish
-    declared-workset exhaustion at runtime. All three, non-empty — a bare flag
-    cannot prove a closed-world inference."""
-    return isinstance(closure_basis, dict) and all(
-        closure_basis.get(key) for key in CLOSURE_BASIS_KEYS
-    )
+    domain, the declared search surfaces, the criterion that will establish
+    declared-workset exhaustion at runtime, and the initial frontier vector
+    (part of the declared workset's identity — fva-U2). All four, non-empty,
+    for a fresh composition — a bare flag cannot prove a closed-world
+    inference. Back-compat ONLY (mirrors the absent-reopening-fields rule): a
+    pre-existing artifact that never recorded `initial_frontier_vector` (key
+    absent) keeps resolving under its original three-field semantics; a
+    *present but empty* fourth field is partial closure evidence, never
+    legacy."""
+    if not isinstance(closure_basis, dict):
+        return False
+    if "initial_frontier_vector" not in closure_basis:
+        return all(closure_basis.get(key) for key in LEGACY_CLOSURE_BASIS_KEYS)
+    return all(closure_basis.get(key) for key in CLOSURE_BASIS_KEYS)
 
 
 def resolve_effective_halt_shape(
@@ -1346,6 +1360,59 @@ def u15_vector_adequacy_violations() -> list[str]:
     return v
 
 
+def u16_workset_identity_violations() -> list[str]:
+    """U16 (fva-U2): storage, authority, and workset compatibility. Pins the
+    four-field fresh closure contract + loop-id-as-version rule in the
+    authoring surfaces (frontload-audit, halt-shape, context-stack), the
+    seed-vs-live vector authority and compact row schema in the frontier body,
+    and the legacy paths (three-field basis; name-only vector rows never
+    dropped). The executable half lives in closure_basis_established and the
+    guard_cases fixtures."""
+    v: list[str] = []
+    frontload = " ".join(read(FRONTLOAD_AUDIT).split())
+    halt_shape = " ".join(read(ROOT / "loopgen/primitives/halt-shape.md").split())
+    cs = " ".join(read(CONTEXT_STACK).split())
+    body = " ".join(read(FRONTIER_BODY).split())
+
+    for pin, where, name in (
+        ("four named, non-empty fields", frontload, "frontload four-field contract"),
+        ("`initial_frontier_vector`", frontload, "frontload fourth field"),
+        ("`declared_workset_version: <loop-id>`", frontload, "frontload version rule"),
+        ("legacy back-compat only, never a fresh-composition path", frontload,
+         "frontload legacy sentence"),
+        ("`initial_frontier_vector`", halt_shape, "halt-shape fourth field"),
+        ("never implies the frame changed", halt_shape, "version≠identity rule"),
+        ("a derivation gap, never legacy", halt_shape, "halt-shape empty-field rule"),
+        ("`declared_workset_version: <loop-id>`", cs, "DERIVATION version field"),
+        ("write-once, so a running loop can never mint", cs, "no-self-mint rule"),
+        ("(bootstrap seed)", body, "body seed label"),
+        ("STATE is the sole authority for the live vector", body, "body live authority"),
+        ("never dropped, never given an invented channel", body, "legacy row conversion"),
+        ("never append a ninth dimension", body, "body cap"),
+    ):
+        if pin not in where:
+            v.append(f"missing {name} (`{pin}`)")
+
+    # max-pack arithmetic: the documented STATE schema at its documented worst
+    # case — every common + frontier live key one line each, plus 12 in-force
+    # pressure rows (one line each; the vector + guardrail keys stay one line
+    # regardless of dimension count ≤ 8) — must fit the ~50-line PINNED bound.
+    skill = read(SKILL)
+    common = _common_state_keys(skill)
+    frontier_keys = _archetype_state_keys(skill, "frontier")
+    if not common or not frontier_keys:
+        v.append("max-pack: state-key parsers returned empty (parser drift?)")
+    else:
+        max_pack = len(common) + len(frontier_keys) + 12
+        if max_pack > 50:
+            v.append(
+                f"max-pack STATE arithmetic exceeds the ~50-line bound: "
+                f"{len(common)} common + {len(frontier_keys)} frontier + 12 "
+                f"pressure rows = {max_pack}"
+            )
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1707,6 +1774,24 @@ def run_checks() -> int:
         )
     )
 
+    # ── U16: workset identity + seed-vs-live vector authority (fva-U2) ──
+    workset_identity = u16_workset_identity_violations()
+    checks.append(
+        require(
+            not workset_identity,
+            "u16_workset_identity_contracts",
+            "; ".join(workset_identity),
+        )
+    )
+    checks.append(
+        require(
+            "(bootstrap seed)" in one_line(pure)
+            and "STATE is the sole authority for the live vector" in one_line(pure)
+            and "(bootstrap seed)" in one_line(benchmark),
+            "seed_vs_live_authority_emitted",
+        )
+    )
+
     # ── reopen-policy block + guarded halt-shape resolution (U4b) ──
     playbook_equilibrium = render_frontier_playbook()
     golden_exists = FRONTIER_EQUILIBRIUM_GOLDEN.exists()
@@ -1808,6 +1893,12 @@ def run_checks() -> int:
     )
 
     full_closure = dict(
+        work_source_domain="enumerated: no inbound CI/review/schedule/dep-alert",
+        declared_surfaces="duplication scan + findings ledger + oracle gaps",
+        exhaustion_criterion="full homeostasis scan quiescent under declared surfaces",
+        initial_frontier_vector="- correctness\n- legibility\n- evaluator trustworthiness",
+    )
+    legacy_closure = dict(
         work_source_domain="enumerated: no inbound CI/review/schedule/dep-alert",
         declared_surfaces="duplication scan + findings ledger + oracle gaps",
         exhaustion_criterion="full homeostasis scan quiescent under declared surfaces",
@@ -1934,6 +2025,26 @@ def run_checks() -> int:
                     declared_surfaces="",
                     exhaustion_criterion="",
                 ),
+            ),
+            DerivationGap,
+        ),
+        (
+            "legacy three-field basis (fourth key absent) → guarded terminal preserved",
+            dict(
+                requested="equilibrium",
+                reopening_signal="none",
+                reopen_contract="none",
+                closure_basis=legacy_closure,
+            ),
+            ("terminal", True),
+        ),
+        (
+            "fresh basis with empty initial_frontier_vector → gap (partial, never legacy)",
+            dict(
+                requested="equilibrium",
+                reopening_signal="none",
+                reopen_contract="none",
+                closure_basis=dict(legacy_closure, initial_frontier_vector=""),
             ),
             DerivationGap,
         ),

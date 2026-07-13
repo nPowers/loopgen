@@ -97,12 +97,22 @@ For each checklist item, do exactly one of:
   whose only change source is its own commits (banned as positive signal by
   `references/same-family-drift.md` fix #1) is the canonical `none`. When it
   resolves to `none`, also record `closure_basis` — a compose-time **closure
-  contract** with three named, non-empty fields: `work_source_domain` (the
+  contract** with four named, non-empty fields: `work_source_domain` (the
   enumerated observable sources, each checked and absent), `declared_surfaces`
-  (the search surfaces the episode binds), and `exhaustion_criterion` (what
-  will establish declared-workset exhaustion at runtime). Free-text closure
-  prose without the three fields does not establish the basis — the guard
-  treats it as unproven (`open_gaps`).
+  (the search surfaces the episode binds), `exhaustion_criterion` (what
+  will establish declared-workset exhaustion at runtime), and
+  `initial_frontier_vector` (the seed vector the episode binds — part of the
+  declared workset's *identity*, so a terminal episode finishes the frame it
+  declared rather than enlarging it). Free-text closure
+  prose without the named fields does not establish the basis — the guard
+  treats it as unproven (`open_gaps`). Alongside the basis, record
+  `declared_workset_version: <loop-id>` — the workset *version* is the
+  zero-padded loop id `/loopgen` already minted, never a value the loop
+  increments: a new derivation necessarily gets a new version, and a running
+  loop cannot mint one (`DERIVATION.md` is write-once). A pre-existing
+  artifact whose recorded basis has only the original three fields continues
+  under the semantics it was composed with — legacy back-compat only, never a
+  fresh-composition path.
   Never record runtime quiescence here — quiescence stays a runtime judgment
   owned by the halt scan. `reopening_signal: none` means no *normal,
   non-regression* reopen signal; regression is an exceptional re-entry path

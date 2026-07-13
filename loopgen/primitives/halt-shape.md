@@ -11,7 +11,11 @@ prompt names both.
 
 - `terminal` — the current execution does not auto-resume; a new execution may
   start only on an allowed exceptional event — an explicit per-row
-  `reopen_condition`, a regression, or a new declared-workset version.
+  `reopen_condition`, a regression, or a new declared-workset version (a fresh
+  `/loopgen` derivation: the workset version **is** the loop id, so only
+  operator action mints one — a surviving frontier-dimension candidate is
+  handed off to that path, never admitted in-episode,
+  `primitives/frontier-vector-adequacy.md`).
 - `equilibrium` — checkpoints at homeostatic balance; reopens
   **automatically** on strong new signal (externally reviewed finding, typed
   failing trace, oracle verdict, metric movement). Requires a live **reopen
@@ -82,8 +86,23 @@ prompt names both.
   frontload-resolved **divergence, not a contradiction**: the target stays
   `frontier-expanding`; nothing here weakens the `finite-criteria` +
   `equilibrium` contradiction above.
+- **Workset identity vs version.** The closure basis a fresh frontier
+  composition records has four named fields — `work_source_domain`,
+  `declared_surfaces`, `exhaustion_criterion`, `initial_frontier_vector`
+  (`primitives/frontload-audit.md`) — and those four fields **are** the
+  declared workset's identity: under effective `terminal` the initial vector
+  is part of the frame being finished, so the live vector never mutates
+  in-episode. The workset *version* is the zero-padded loop id the derivation
+  already minted (`declared_workset_version: <loop-id>`) — a new derivation
+  necessarily gets a new version even for an identical workset, so version
+  inequality never implies the frame changed, and a running loop cannot mint
+  either (write-once `DERIVATION.md`).
 - For frontier compositions the reopening-contract fields are **required** —
   their absence is a derivation gap (`open_gaps`), not a default. Treating
   absent fields as legacy `equilibrium` is backward-compatibility for
   pre-existing loop artifacts and verifier fixtures only, never a fresh
-  composition path.
+  composition path. The same back-compat rule covers the closure basis: a
+  pre-existing artifact that never recorded `initial_frontier_vector` (field
+  absent, original three fields non-empty) keeps resolving under the
+  semantics it was composed with; a fresh composition recording the field
+  empty is partial closure evidence — a derivation gap, never legacy.

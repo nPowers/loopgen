@@ -280,7 +280,13 @@ pass**. Records how this loop was composed:
   block was selected without re-deriving.
 - `overlays` — active composition overlays.
 - `derivation_read_set` — the files `/loopgen` read to compose this loop.
-- `frontload` — `{resolved, defaulted, open_gaps}`.
+- `frontload` — `{resolved, defaulted, open_gaps}`. For frontier this carries
+  the reopening-contract fields, and when the reopening contract resolved to
+  a closed-world `none`, the four-field `closure_basis` plus
+  `declared_workset_version: <loop-id>` —
+  the workset version is the loop id the derivation minted; this file is
+  write-once, so a running loop can never mint a new version or mutate the
+  declared workset's identity.
 
 ### Context budget
 

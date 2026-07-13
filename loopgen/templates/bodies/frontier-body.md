@@ -32,17 +32,29 @@ Your job is to improve the repository's evidence-backed frontier.
 
 ## Frontier vector
 
-This repository's evidence-backed frontier moves along these dimensions:
+This repository's evidence-backed frontier moves along these dimensions
+(bootstrap seed):
 
 {{FRONTIER_VECTOR}}
+
+The seed is bootstrap input only. On first bootstrap, normalize it into
+`.loop/<loop-id>/STATE.md` `frontier_vector` — compact one-line rows
+`{"id": <stable unique>, "channel_ref": <pointer | null>}`, at most eight —
+with a matching one-line `guardrails` id → pointer map. A legacy name-only
+entry becomes `{id: <name>, channel_ref: null}` — never dropped, never given
+an invented channel. Thereafter **STATE is the sole authority for the live
+vector**: this prompt never overwrites it, and every dimension change is
+earned at runtime through the vector-adequacy lifecycle — evidence-admitted,
+never edited into this section. At the cap, merge or supersede with evidence;
+never append a ninth dimension.
 
 Every accepted change must record a before → after delta on at least one
 dimension while preserving the guardrails on the others. "Different from
 the last change" is not frontier movement by itself.
 
-If a dimension cannot yet be measured, the accepted change must be
-`evaluator` / `observability` / `specification` work that makes it
-measurable.
+If a dimension cannot yet be measured (`channel_ref: null`), the accepted
+change must be `evaluator` / `observability` / `specification` work that
+makes it measurable.
 
 ## Core law
 
@@ -354,7 +366,8 @@ must carry one of these statuses:
   discoverable.
 - `FIXED_PENDING_CONFIRMATION` — changed this iteration; needs a later pass or
   independent oracle before closure.
-- `CLOSED_CONFIRMED` — independently confirmed fixed.
+- `CLOSED_CONFIRMED` — independently confirmed resolved (a fix confirmed, or a
+  dimension candidate independently admitted or falsified).
 - `CLOSED_EXPECTED_RED_CONTROL` — intentionally failing control that proves the
   evaluator rejects bad output.
 - `PAUSED_EXTERNAL` — blocked on explicit external authority, budget, secret, or
@@ -557,10 +570,12 @@ not files.
   (`primitives/pressure-accounting.md`).
 - `.loop/<loop-id>/STATE.md` (PINNED) — **live status only**, fixed keys,
   rewrite-in-place, no history: `phase`, `iteration`, `last_action`,
-  `next_action`, `halt_cause`, `halt_scan`, `frontier_vector`, `current_anchor`,
+  `next_action`, `halt_cause`, `halt_scan`, `frontier_vector` (one line, ≤ 8
+  `{id, channel_ref}` rows — the live vector authority), `current_anchor`,
   `reward_channels`, `pressure_objects` (in-force rows, ≤ `pressure-cap`),
   `pressure_status`, `pressure_debt`, `checkpoint_reason`, `next_pressure`,
-  `trace_locations`, `metric_locations`, `guardrails`. It does **not** hold
+  `trace_locations`, `metric_locations`, `guardrails` (one line, dimension
+  id → guardrail pointer). It does **not** hold
   `pressure_ledger`, `pressure_consulted`, or a per-attempt log — those are
   `pressure` / `consult` / `attempt` records in `JOURNAL.jsonl`.
 - `.loop/<loop-id>/FINDINGS.md` (WORKING) — the findings-ledger queue (see
@@ -600,8 +615,10 @@ Placeholders populated during derivation (see SKILL.md step 6):
   memory model + STATE/JOURNAL/DERIVATION schema and context budget) and
   `primitives/queue-as-second-artifact.md` (queue growth discipline + INDEX/FULL
   row split) at compose (step 2).
-- `{{FRONTIER_VECTOR}}` — the named dimensions this repo's frontier moves
-  along, one per line.
+- `{{FRONTIER_VECTOR}}` — the **bootstrap seed** for the live vector: the
+  named dimensions this repo's frontier moves along, one per line. Normalized
+  into `STATE.md` `frontier_vector` on first bootstrap and never re-applied
+  after — post-bootstrap, STATE is the sole authority.
 - `{{FRONTIER_REOPEN_POLICY}}` — the checkpoint/termination semantics block,
   selected from `effective_halt_shape` (`primitives/halt-shape.md`, guarded
   closed-corpus resolution): equilibrium variant by default, terminal variant

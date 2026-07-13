@@ -80,3 +80,10 @@ the same mandated content placed in its correct *tier*
 (`primitives/context-stack.md`, `primitives/pressure.md`), exactly as
 `PRESSURE.md` is `STATE.md` `pressure_objects` rendered rather than a competing
 store. New role forbidden; correct tier required.
+
+The frontier-vector lifecycle obeys the same rule: the live vector and
+guardrail map are compact one-line `.loop/<loop-id>/STATE.md` keys
+(`frontier_vector`, `guardrails` — live status), a dimension candidate is an
+ordinary findings-ledger row, its probe an ordinary `attempt` record, and an
+admission delta a `checkpoint` record — no vector artifact, no candidate
+ledger, no parallel history surface.
