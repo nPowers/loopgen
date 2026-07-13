@@ -1,6 +1,9 @@
 # ADR 0006: closed-corpus frontier resolves to effective-terminal via a frontload reopening contract
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by ADR 0007: `closure_basis` gains
+  `initial_frontier_vector` as a fourth identity field, and "a new
+  declared-workset version" is defined as a fresh derivation's loop id —
+  only operator action mints one)
 - **Date:** 2026-07-09
 - **Deciders:** provi, Claude (Fable 5)
 

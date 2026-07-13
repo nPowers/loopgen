@@ -94,9 +94,14 @@ BODY_PATHS = {
 }
 
 
+# The one fixture authority for the seed vector (fva-U4): the pure render, the
+# generalized body render, and the closure-basis guard fixtures all derive
+# from this constant so they cannot drift apart.
+FRONTIER_VECTOR_FIXTURE = "- correctness\n- legibility\n- evaluator trustworthiness"
+
 PLACEHOLDERS = {
     "MOTIVE": "Improve the repository's quality frontier without a fixed finish line.",
-    "FRONTIER_VECTOR": "- correctness\n- legibility\n- evaluator trustworthiness",
+    "FRONTIER_VECTOR": FRONTIER_VECTOR_FIXTURE,
     "EVALUATOR_TIER": "T3",
     "RAMP_GUIDANCE": "",
     "CHEAP_CHANNEL": "python3 tools/verify_loopgen_contracts.py",
@@ -424,7 +429,7 @@ COMMON_BODY_PLACEHOLDERS = {
 
 ARCHETYPE_BODY_PLACEHOLDERS = {
     "frontier": {
-        "FRONTIER_VECTOR": "- correctness\n- legibility\n- evaluator trustworthiness",
+        "FRONTIER_VECTOR": FRONTIER_VECTOR_FIXTURE,
         "EVALUATOR_TIER": "T3",
         "RAMP_GUIDANCE": "",
         "CHEAP_CHANNEL": "python3 tools/verify_loopgen_contracts.py",
@@ -1862,6 +1867,30 @@ def run_checks() -> int:
         )
     )
 
+    # ── fva-U4 parity: single-source evidence bar + exact golden set ──
+    evidence_bar = "two independent residuals"
+    checks.append(
+        require(
+            evidence_bar in one_line(read(FRONTIER_VECTOR_ADEQUACY))
+            and evidence_bar not in one_line(read(FRONTIER_BODY))
+            and evidence_bar
+            not in one_line(
+                read(ROOT / "loopgen/templates/bodies/frontier-reopen-policy.md")
+            ),
+            "candidate_evidence_bar_single_source",
+            "the candidate evidence threshold lives only in the primitive; "
+            "variants and body defer to it rather than restating it",
+        )
+    )
+    checks.append(
+        require(
+            {p.name for p in GOLDEN_DIR.glob("*.md")}
+            == {FRONTIER_EQUILIBRIUM_GOLDEN.name, FRONTIER_BENCHMARK_GOLDEN.name},
+            "golden_dir_exactly_two_pinned_renders",
+            f"unexpected golden set: {sorted(p.name for p in GOLDEN_DIR.glob('*.md'))}",
+        )
+    )
+
     # ── U16: workset identity + seed-vs-live vector authority (fva-U2) ──
     workset_identity = u16_workset_identity_violations()
     checks.append(
@@ -2007,7 +2036,7 @@ def run_checks() -> int:
         work_source_domain="enumerated: no inbound CI/review/schedule/dep-alert",
         declared_surfaces="duplication scan + findings ledger + oracle gaps",
         exhaustion_criterion="full homeostasis scan quiescent under declared surfaces",
-        initial_frontier_vector="- correctness\n- legibility\n- evaluator trustworthiness",
+        initial_frontier_vector=FRONTIER_VECTOR_FIXTURE,
     )
     legacy_closure = dict(
         work_source_domain="enumerated: no inbound CI/review/schedule/dep-alert",
