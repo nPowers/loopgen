@@ -170,8 +170,9 @@ that cannot be completed is still a derivation gap, not a reason to guess.
 - every reference named by the nearest archetype's `## Extras`
 - every primitive/reference named by active overlays
 
-For frontier-shaped tasks, read `primitives/evaluator-maturity.md` and
-`primitives/pressure-accounting.md`. When benchmark language appears or the
+For frontier-shaped tasks, read `primitives/evaluator-maturity.md`,
+`primitives/pressure-accounting.md`, and
+`primitives/frontier-vector-adequacy.md`. When benchmark language appears or the
 benchmark-frontier overlay activates, read `primitives/benchmark-frontier.md`,
 `primitives/eval-ladder.md`, `references/benchmark-frontier-artifacts.md`, and
 `references/benchmark-frontier-example.md`. When `consult-tier ≥ 1`,

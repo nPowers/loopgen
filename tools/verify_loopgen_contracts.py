@@ -38,6 +38,7 @@ SKILL = ROOT / "loopgen/SKILL.md"
 COMPOSED_PROMPT = ROOT / "loopgen/templates/composed-prompt.md"
 CONTEXT_STACK = ROOT / "loopgen/primitives/context-stack.md"
 PRESSURE = ROOT / "loopgen/primitives/pressure.md"
+FRONTIER_VECTOR_ADEQUACY = ROOT / "loopgen/primitives/frontier-vector-adequacy.md"
 
 NON_FRONTIER_BODIES = (
     GOAL_BODY,
@@ -1259,6 +1260,92 @@ def u14_consolidation_violations() -> list[str]:
     return v
 
 
+DIMENSION_OUTCOME_VALUES = ("pending", "admitted", "falsified", "handoff")
+
+DISTURBED_AXIS_VALUES = (
+    "oracle-trustworthiness",
+    "product-capability",
+    "failure-legibility",
+    "specification-coherence",
+)
+
+
+def u15_vector_adequacy_violations() -> list[str]:
+    """U15 (fva-U1): the earned frontier-dimension lifecycle is pinned while
+    DORMANT — authored and derivation-read, not yet composed into any render.
+    Pins the closed dimension_outcome enum, the outcome→status mapping, the
+    probe→disturbed_axis mapping (closed four, never a candidate id), terminal
+    non-mutation authority, the eight-dimension cap, the independence gate for
+    same-pass closure, the checkpoint-record commit semantics, and seed-vs-live
+    vector authority. The dormancy half (absent from renders, checked in
+    run_checks) is flipped by the runtime-admission unit (fva-U3)."""
+    if not FRONTIER_VECTOR_ADEQUACY.exists():
+        return ["missing loopgen/primitives/frontier-vector-adequacy.md"]
+    text = read(FRONTIER_VECTOR_ADEQUACY)
+    if "\n---\n" not in text:
+        return ["frontier-vector-adequacy.md missing the `---` spec separator"]
+    v: list[str] = []
+    emitted = text.split("\n---\n", 1)[-1]
+    flat = " ".join(emitted.split())
+
+    for leak in ("## Purpose", "## Include when", "## Authoring guidance"):
+        if leak in emitted:
+            v.append(f"emitted block leaks authoring scaffolding `{leak}`")
+
+    line = next((ln for ln in emitted.splitlines() if "dimension_outcome:" in ln), None)
+    if line is None:
+        v.append("dimension_candidate schema missing the dimension_outcome field")
+    else:
+        tokens = {t.strip() for t in line.split(":", 1)[1].split("|") if t.strip()}
+        if tokens != set(DIMENSION_OUTCOME_VALUES):
+            v.append(
+                f"dimension_outcome enum must be exactly {DIMENSION_OUTCOME_VALUES}, "
+                f"got {sorted(tokens)}"
+            )
+
+    for pin in (
+        "`pending` → `OPEN`",
+        "`admitted` → `CLOSED_CONFIRMED`",
+        "`falsified` → `CLOSED_CONFIRMED`",
+        "`handoff` → `PAUSED_EXTERNAL`",
+    ):
+        if pin not in flat:
+            v.append(f"outcome→status mapping missing `{pin}`")
+
+    for axis in DISTURBED_AXIS_VALUES:
+        if f"`{axis}`" not in emitted:
+            v.append(f"probe-axis mapping missing closed value `{axis}`")
+    if "never enter" not in flat or "closed `disturbed_axis` vocabulary" not in flat:
+        v.append("missing the candidate-id-never-a-disturbed_axis pin")
+
+    for pin, name in (
+        ("never mutate the live vector", "terminal non-mutation rule"),
+        ("no live-vector delta", "terminal no-delta invariant"),
+        ("never append a ninth", "eight-dimension cap"),
+        ("at most **one** bounded probe attempt", "terminal single-probe bound"),
+        ("one candidate per quiescence event", "single-candidate bound"),
+    ):
+        if pin not in flat:
+            v.append(f"missing {name} (`{pin}`)")
+
+    if "outside the candidate's change cone" not in flat:
+        v.append("missing the independence gate (change-cone clause)")
+    if "may not author, mutate, or validate its own confirming channel" not in flat:
+        v.append("missing the self-confirmation prohibition")
+    if "does not imply `stop-and-summarize`" not in flat:
+        v.append("missing the checkpoint-record-does-not-halt pin")
+    if "STATE is the sole authority" not in flat:
+        v.append("missing the seed-vs-live authority statement")
+
+    skill = read(SKILL)
+    if "primitives/frontier-vector-adequacy.md" not in skill:
+        v.append("SKILL.md frontier read list missing frontier-vector-adequacy")
+    archetype = read(ROOT / "loopgen/archetypes/frontier.md")
+    if "frontier-vector-adequacy" not in archetype:
+        v.append("archetypes/frontier.md missing the dimension-lifecycle extra")
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1596,6 +1683,27 @@ def run_checks() -> int:
                 for render in (pure, goal_render)
             ),
             "consolidation_emitted",
+        )
+    )
+
+    # ── U15: frontier-vector adequacy — dormant earned-dimension lifecycle ──
+    vector_adequacy = u15_vector_adequacy_violations()
+    checks.append(
+        require(
+            not vector_adequacy,
+            "u15_vector_adequacy_contracts",
+            "; ".join(vector_adequacy),
+        )
+    )
+    checks.append(
+        require(
+            "frontier-vector-adequacy" not in pure
+            and "frontier-vector-adequacy" not in benchmark
+            and "{{INCLUDE primitives/frontier-vector-adequacy.md}}"
+            not in read(FRONTIER_BODY),
+            "vector_adequacy_dormant_until_wired",
+            "the primitive leaked into rendered prompts before the "
+            "runtime-admission unit (fva-U3) wires the body",
         )
     )
 

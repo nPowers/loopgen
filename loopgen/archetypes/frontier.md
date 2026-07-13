@@ -48,6 +48,13 @@ intervention; it is never picked from a menu.
   ledger-only changes do **not** break concentration) + homeostasis diagnosis.
 - **Ramp modes** — over-ramping, ramp scope creep, ramp bypass, ramp theater.
   Mitigation: ramp stages carry explicit checkable exit conditions.
+- **Endless axis invention** — quiescence is escaped by hypothesizing a fresh
+  frontier dimension each time balance is reached, so the loop never
+  checkpoints. Mitigation: the earned dimension lifecycle
+  (`primitives/frontier-vector-adequacy.md`) — one candidate per quiescence
+  event, a pre-registered discriminative probe, a hard eight-dimension cap,
+  and terminal episodes never mutating the live vector (surviving candidates
+  become handoff for the next declared-workset version).
 - **Closed-corpus equilibrium trap** — `halt-shape: equilibrium` waits for a
   reopening signal that a frozen corpus can never deliver (the only change
   source is the loop's own commits, banned as positive signal), so equilibrium
@@ -65,6 +72,11 @@ intervention; it is never picked from a menu.
 - Includes `primitives/evaluator-maturity.md` (T0–T6 tiers + ramp stages 0–9).
 - Includes `primitives/pressure-accounting.md` so checkpointing is always
   explicit about pressure status, pressure debt, next pressure, and reason.
+- Carries `primitives/frontier-vector-adequacy.md` — the earned
+  frontier-dimension lifecycle (the vector-adequacy scan that replaces
+  open-ended expansion prose; frontier dimensions are the one coordinate
+  vocabulary allowed to evolve, and only by evidence). Currently
+  derivation-read; the body wiring lands with the runtime-admission unit.
 - Applies `primitives/benchmark-frontier.md` only when frontload binds a
   benchmark/eval/harness object. This is an overlay, not a fifth archetype.
 - Applies `references/review-closure-overlay.md` when the branch is in closure

@@ -12,7 +12,11 @@ stop. A composed prompt names both.
   one repo state (`criteria-met`).
 - `homeostatic-checkpoint` — all homeostasis axes are currently balanced and no
   high-yield admissible intervention is available. This stops the invocation
-  without claiming the frontier is complete.
+  without claiming the frontier is complete. For frontier, quiescence includes
+  a recorded vector-adequacy result
+  (`primitives/frontier-vector-adequacy.md`): balanced axes with the frontier
+  vector unscanned, or with a dimension-candidate probe still pending, is not
+  checkpointable quiescence.
 - `capstone-plus-closer` — the run completes a capstone deliverable, then a
   closer pass that reconciles / seals the queue (a chapter ends with a closer).
 - `stone-reframe` — the artifact lands on the user's *reframed* target and

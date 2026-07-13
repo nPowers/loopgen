@@ -60,6 +60,11 @@ unpinned. These are the two moving-target values, and both routinely arrive as a
 The read must record both halves — `{value, dimension|adjacency: <named |
 UNDEFINED>}` — and an UNDEFINED dimension is a **target derivation gap** (the
 frontier-vector / target-adjacency frontload item), never a silent default.
+The frontload-bound dimensions are the *seed* only: once the loop bootstraps,
+the live vector is runtime state whose growth is governed by the earned
+dimension lifecycle (`primitives/frontier-vector-adequacy.md`) — a new
+dimension is admitted by evidence at runtime, never appended by derivation
+prose.
 Classification succeeding is not the same as the loop being runnable: a clean
 match — even an exact, distance-0 one — to `frontier`/`greenfield` yields a
 **`frontier_candidate`, `runnable: false`**, not a launchable loop. A vague
