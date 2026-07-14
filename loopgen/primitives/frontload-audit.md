@@ -100,7 +100,9 @@ For each checklist item, do exactly one of:
   contract** with four named, non-empty fields: `work_source_domain` (the
   enumerated observable sources, each checked and absent), `declared_surfaces`
   (the search surfaces the episode binds), `exhaustion_criterion` (what
-  will establish declared-workset exhaustion at runtime), and
+  will establish declared-workset exhaustion at runtime; for frontier this
+  must name the full frontier scan — homeostasis, pressure discovery, and
+  vector adequacy — rather than homeostasis alone), and
   `initial_frontier_vector` (the seed vector the episode binds — part of the
   declared workset's *identity*, so a terminal episode finishes the frame it
   declared rather than enlarging it). Free-text closure

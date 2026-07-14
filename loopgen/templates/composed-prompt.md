@@ -243,16 +243,21 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    frontier, goal, story, or greenfield artifact is complete by themselves.
    Frontier's `homeostatic-checkpoint` also does not mean completion: a
    frontier objective has no quality pass-line and never completes by being
-   good enough, while the episode either checkpoints-and-reopens (effective
-   `equilibrium`) or terminates on declared-workset exhaustion (effective
+   good enough. The checkpoint fires only after the full frontier scan reaches
+   quiescence — balanced homeostasis, no admissible pressure, and resolved
+   vector adequacy with no candidate awaiting a probe or confirmation and no
+   newly admitted dimension requiring continuation. The episode then
+   either checkpoints-and-reopens (effective `equilibrium`) or terminates on
+   declared-workset exhaustion (effective
    `terminal`, `primitives/halt-shape.md`) — episode termination ends the
    execution, not the objective. Only non-frontier archetype-terminal success
    causes may claim completion. If this distinction is absent, patch the
    prompt before emitting.
    Also verify that any non-success shared halt — including a frontier episode
-   termination — requires a full search-surface scan first, so a single blocked
-   row cannot stop the loop while another reversible in-scope intervention
-   remains.
+   termination — requires a full search-surface scan first; for frontier this
+   includes pressure discovery and vector adequacy, so a single blocked row or
+   provisional balance cannot stop the loop while another reversible in-scope
+   intervention remains.
 10. **Emit** (see `SKILL.md` Artifact + state contracts and Phase 4): common
    files + nearest archetype files + divergent primitive add-ons + active
    overlay files.

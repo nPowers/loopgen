@@ -56,9 +56,12 @@ pressure_debt: unrecorded
 ```
 
 Benchmark-frontier rejects this as a checkpoint. Green search traces and zero
-OPEN generic rows do not pay pressure debt. The next move must expand one of:
-candidate, case, control, metric, project category, evaluator dimension, or
-artifact audit.
+OPEN generic rows do not pay pressure debt. The next move must perform one
+evidence-anchored pressure-discovery expansion across candidate, case, control,
+project category, or artifact audit. A genuinely new metric or evaluator
+dimension opens a candidate through vector adequacy rather than changing the
+vector directly. If the move finds no admissible pressure and vector adequacy
+resolves adequate, the existing halt logic may proceed.
 
 If live-agent budget or external authority blocks that expansion, the loop must
 halt as:

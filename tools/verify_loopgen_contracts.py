@@ -33,6 +33,7 @@ BENCHMARK_FRONTIER = ROOT / "loopgen/primitives/benchmark-frontier.md"
 PRESSURE_ACCOUNTING = ROOT / "loopgen/primitives/pressure-accounting.md"
 SUBAGENT_PATTERNS = ROOT / "loopgen/primitives/subagent-patterns.md"
 BENCHMARK_ARTIFACTS = ROOT / "loopgen/references/benchmark-frontier-artifacts.md"
+BENCHMARK_EXAMPLE = ROOT / "loopgen/references/benchmark-frontier-example.md"
 FRONTLOAD_AUDIT = ROOT / "loopgen/primitives/frontload-audit.md"
 SKILL = ROOT / "loopgen/SKILL.md"
 COMPOSED_PROMPT = ROOT / "loopgen/templates/composed-prompt.md"
@@ -1301,14 +1302,12 @@ DISTURBED_AXIS_VALUES = (
 
 
 def u15_vector_adequacy_violations() -> list[str]:
-    """U15 (fva-U1): the earned frontier-dimension lifecycle is pinned while
-    DORMANT — authored and derivation-read, not yet composed into any render.
+    """U15 (fva-U1): the earned frontier-dimension lifecycle contract is pinned.
     Pins the closed dimension_outcome enum, the outcome→status mapping, the
     probe→disturbed_axis mapping (closed four, never a candidate id), terminal
     non-mutation authority, the eight-dimension cap, the independence gate for
     same-pass closure, the checkpoint-record commit semantics, and seed-vs-live
-    vector authority. The dormancy half (absent from renders, checked in
-    run_checks) is flipped by the runtime-admission unit (fva-U3)."""
+    vector authority. Runtime placement and mode authority are pinned by U17."""
     if not FRONTIER_VECTOR_ADEQUACY.exists():
         return ["missing loopgen/primitives/frontier-vector-adequacy.md"]
     text = read(FRONTIER_VECTOR_ADEQUACY)
@@ -1317,6 +1316,11 @@ def u15_vector_adequacy_violations() -> list[str]:
     v: list[str] = []
     emitted = text.split("\n---\n", 1)[-1]
     flat = " ".join(emitted.split())
+    authoring_flat = " ".join(text.split("\n---\n", 1)[0].split())
+
+    for stale in ("Currently dormant", "not yet composed into rendered prompts"):
+        if stale in authoring_flat:
+            v.append(f"vector-adequacy authoring contract still claims `{stale}`")
 
     for leak in ("## Purpose", "## Include when", "## Authoring guidance"):
         if leak in emitted:
@@ -1353,7 +1357,7 @@ def u15_vector_adequacy_violations() -> list[str]:
         ("no live-vector delta", "terminal no-delta invariant"),
         ("never append a ninth", "eight-dimension cap"),
         ("at most **one** bounded probe attempt", "terminal single-probe bound"),
-        ("one candidate per quiescence event", "single-candidate bound"),
+        ("one candidate per provisional-balance event", "single-candidate bound"),
     ):
         if pin not in flat:
             v.append(f"missing {name} (`{pin}`)")
@@ -1373,6 +1377,8 @@ def u15_vector_adequacy_violations() -> list[str]:
     archetype = read(ROOT / "loopgen/archetypes/frontier.md")
     if "frontier-vector-adequacy" not in archetype:
         v.append("archetypes/frontier.md missing the dimension-lifecycle extra")
+    if "body wiring lands with" in " ".join(archetype.split()):
+        v.append("archetypes/frontier.md still describes vector adequacy as future wiring")
     return v
 
 
@@ -1394,6 +1400,7 @@ def u16_workset_identity_violations() -> list[str]:
         ("four named, non-empty fields", frontload, "frontload four-field contract"),
         ("`initial_frontier_vector`", frontload, "frontload fourth field"),
         ("`declared_workset_version: <loop-id>`", frontload, "frontload version rule"),
+        ("full frontier scan", frontload, "frontload exhaustion criterion scope"),
         ("legacy back-compat only, never a fresh-composition path", frontload,
          "frontload legacy sentence"),
         ("`initial_frontier_vector`", halt_shape, "halt-shape fourth field"),
@@ -1445,10 +1452,28 @@ def u17_admission_wiring_violations() -> list[str]:
         v.append("expansion-ramp scan line survives in the body (must be replaced)")
     if "vector adequacy: <adequate" not in body:
         v.append("halt scan missing the vector-adequacy line")
+    for non_halting_result in ("candidate-opened", "candidate-admitted"):
+        if non_halting_result in next(
+            (line for line in body.splitlines() if line.startswith("vector adequacy:")),
+            "",
+        ):
+            v.append(
+                f"halt scan admits non-halting vector result `{non_halting_result}`"
+            )
+    if "candidate-falsified-confirmed" not in body:
+        v.append("halt scan does not distinguish confirmed falsification")
     if "update the frontier vector" in body_flat:
         v.append("direct vector-mutation instruction survives (cash-out option 2)")
     if "never a direct edit" not in body_flat:
         v.append("cash-out reroute missing the never-a-direct-edit clause")
+    stale_early_halt = (
+        "If all axes are in balance and no intervention is available, "
+        "the loop is quiescent."
+    )
+    if stale_early_halt in body_flat:
+        v.append("iteration protocol still declares quiescence before vector adequacy")
+    if "provisional balance" not in body_flat or "not yet quiescent" not in body_flat:
+        v.append("iteration protocol missing provisional-balance ordering")
 
     equilibrium = " ".join(reopen_policy_variant("equilibrium").split())
     terminal = " ".join(reopen_policy_variant("terminal").split())
@@ -1456,6 +1481,8 @@ def u17_admission_wiring_violations() -> list[str]:
         v.append("equilibrium variant missing in-episode admission authority")
     if "the loop continues" not in equilibrium:
         v.append("equilibrium variant missing admission-continues semantics")
+    if "full frontier scan" not in equilibrium or "vector adequacy" not in equilibrium:
+        v.append("equilibrium variant narrows the halt proof to homeostasis")
     if "admitted in-episode" in terminal or "may be **admitted" in terminal:
         v.append("terminal variant carries admission authority (must be handoff-only)")
     for pin, name in (
@@ -1465,6 +1492,8 @@ def u17_admission_wiring_violations() -> list[str]:
     ):
         if pin not in terminal:
             v.append(f"terminal variant missing {name} (`{pin}`)")
+    if "full frontier scan" not in terminal or "vector adequacy" not in terminal:
+        v.append("terminal variant narrows declared-workset exhaustion to homeostasis")
 
     bench = " ".join(read(BENCHMARK_FRONTIER).split())
     for pin, name in (
@@ -1478,14 +1507,23 @@ def u17_admission_wiring_violations() -> list[str]:
     artifacts = " ".join(read(BENCHMARK_ARTIFACTS).split())
     if "changes only through the frontier-vector admission" not in artifacts:
         v.append("FRONTIER role missing the pareto_dimensions parity rule")
+    example = " ".join(read(BENCHMARK_EXAMPLE).split())
+    for pin, name in (
+        ("one evidence-anchored pressure-discovery expansion", "example bounded expansion"),
+        ("vector adequacy resolves adequate", "example earned halt route"),
+    ):
+        if pin not in example:
+            v.append(f"benchmark example missing {name} (`{pin}`)")
 
     halt_cause = " ".join(
         read(ROOT / "loopgen/primitives/halt-cause-classifier.md").split()
     )
     if "record the frontier-vector adequacy result" not in halt_cause:
         v.append("halt precondition missing the adequacy-result requirement")
-    if "dimension-candidate probe still pending" not in halt_cause:
-        v.append("halt validity missing the pending-probe invalidation")
+    if "candidate awaiting its probe or next-pass confirmation" not in halt_cause:
+        v.append("halt validity missing probe/confirmation invalidation")
+    if "newly admitted dimension requiring continuation" not in halt_cause:
+        v.append("halt validity missing admitted-dimension continuation")
     return v
 
 
@@ -1572,7 +1610,8 @@ def run_checks() -> int:
         require(
             "Green search traces, zero OPEN generic findings" in benchmark_flat
             and "are not a checkpoint" in benchmark_flat
-            and "must expand one of: candidate, case, control" in benchmark_flat,
+            and "one evidence-anchored pressure-discovery expansion" in benchmark_flat
+            and "expansion is a probe, not a mandate" in benchmark_flat,
             "weave_green_traces_shape_rejected",
         )
     )
@@ -1829,7 +1868,7 @@ def run_checks() -> int:
         )
     )
 
-    # ── U15: frontier-vector adequacy — dormant earned-dimension lifecycle ──
+    # ── U15: frontier-vector adequacy — earned-dimension lifecycle ──
     vector_adequacy = u15_vector_adequacy_violations()
     checks.append(
         require(
@@ -2035,13 +2074,19 @@ def run_checks() -> int:
     full_closure = dict(
         work_source_domain="enumerated: no inbound CI/review/schedule/dep-alert",
         declared_surfaces="duplication scan + findings ledger + oracle gaps",
-        exhaustion_criterion="full homeostasis scan quiescent under declared surfaces",
+        exhaustion_criterion=(
+            "full frontier scan (homeostasis + pressure discovery + vector adequacy) "
+            "quiescent under declared surfaces"
+        ),
         initial_frontier_vector=FRONTIER_VECTOR_FIXTURE,
     )
     legacy_closure = dict(
         work_source_domain="enumerated: no inbound CI/review/schedule/dep-alert",
         declared_surfaces="duplication scan + findings ledger + oracle gaps",
-        exhaustion_criterion="full homeostasis scan quiescent under declared surfaces",
+        exhaustion_criterion=(
+            "full frontier scan (homeostasis + pressure discovery + vector adequacy) "
+            "quiescent under declared surfaces"
+        ),
     )
     guard_cases: list[tuple[str, dict, object]] = [
         (

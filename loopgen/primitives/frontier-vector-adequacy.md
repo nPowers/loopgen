@@ -17,19 +17,17 @@ values); the one coordinate system allowed to evolve is the repo-specific
 | Four `disturbed_axis` values | permanently closed |
 | Frontier-vector dimensions | repo-specific; bounded; evidence-expandable via this lifecycle |
 
-The frontier body already commands vector growth ("expansion ramp", cash-out
-option "update the frontier vector") without a contract for it; this primitive
-is that contract. It replaces the open-ended expansion-ramp prose with a
-falsifiable scan and closes every direct-mutation bypass.
+Before this primitive, the frontier body commanded vector growth ("expansion
+ramp", cash-out option "update the frontier vector") without a contract for
+it. This primitive replaces that open-ended prose with a falsifiable scan and
+closes every direct-mutation bypass.
 
 ## Include when
 
 Every prompt whose nearest archetype is `frontier`, wired into the body's
-quiescence path (the vector-adequacy scan replaces the expansion-ramp scan
-line). **Currently dormant:** authored and derivation-read (Tier-3 frontier
-read, `SKILL.md`), not yet composed into rendered prompts — the body include
-and scan rewiring land with the runtime-admission unit. Until then no rendered
-prompt changes.
+provisional-balance path (the vector-adequacy scan replaces the expansion-ramp
+scan line). The primitive is derivation-read and composed after Homeostasis;
+non-frontier bodies never receive it.
 
 ## Authoring guidance (not emitted)
 
@@ -92,9 +90,10 @@ and is recorded through the same transaction.
 
 ### The adequacy scan (replaces the expansion-ramp scan)
 
-At quiescence — after pressure discovery, before any checkpoint — answer one
-question with evidence: **is the current vector adequate to distinguish
-meaningful progress?** Route the residual:
+At **provisional balance** — known homeostasis axes are balanced and pressure
+discovery found no ordinary pressure, but before quiescence or any checkpoint
+is declared — answer one question with evidence: **is the current vector
+adequate to distinguish meaningful progress?** Route the residual:
 
 - fits an existing dimension → ordinary frontier work; no candidate.
 - indicates a shared hidden cause → the Consolidation round, not a new
@@ -105,12 +104,15 @@ meaningful progress?** Route the residual:
   value-laden reprioritization ("polish now matters more than speed") is
   never mined autonomously.
 - a genuinely new dimension is hypothesized → open **one** candidate (the
-  strongest; one candidate per quiescence event).
-- no candidate survives → the scan is recorded as adequate and the existing
-  halt logic proceeds.
+  strongest; one candidate per provisional-balance event).
+- no candidate survives → the scan is recorded as adequate, provisional
+  balance becomes checkpointable quiescence, and the existing halt logic
+  proceeds.
 
-A checkpoint with the vector unscanned, or with a candidate probe still
-`pending`, is invalid.
+A `homeostatic-checkpoint` with the vector unscanned, a candidate probe or
+next-pass confirmation pending, or a newly admitted dimension requiring
+continuation is invalid. The admission transaction's `checkpoint` journal
+record is a commit marker, not this halt condition.
 
 ### Candidate contract
 

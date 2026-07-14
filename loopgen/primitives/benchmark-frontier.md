@@ -190,10 +190,13 @@ never a candidate status and never silent.
 ### Green-trace rule
 
 Green search traces, zero OPEN generic findings, and no changed files are not a
-checkpoint. The loop must expand one of: candidate, case, control,
-project category, or artifact audit — or, for a new metric / evaluator
-dimension, open a dimension candidate through the vector-adequacy lifecycle
-(never a direct edit). Admission of a new Pareto dimension is an **atomic
+checkpoint by themselves. Perform one evidence-anchored pressure-discovery
+expansion across candidate, case, control, project category, or artifact audit
+— or, for a genuinely new metric / evaluator dimension, open a dimension
+candidate through the vector-adequacy lifecycle (never a direct edit). If that
+move finds no admissible pressure and vector adequacy resolves adequate, the
+existing halt logic may proceed; expansion is a probe, not a mandate to grow
+the horizon indefinitely. Admission of a new Pareto dimension is an **atomic
 projection change**: `FRONTIER.json` `pareto_dimensions` gains the id, every
 current member scores the new metric in its `metric_vector`, and the
 cost/receipt evidence is durable **before** the live vector switches —

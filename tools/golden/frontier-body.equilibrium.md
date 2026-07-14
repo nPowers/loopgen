@@ -322,7 +322,10 @@ frontier checkpoint.
 
 A generic frontier loop may checkpoint only after it has applied active
 pressure or recorded why active pressure is blocked. A quiet ledger, green
-cheap channel, or balanced homeostasis scan is not enough by itself.
+cheap channel, or balanced homeostasis scan is not enough by itself. The full
+frontier scan must also resolve vector adequacy: an unscanned vector, pending
+probe or confirmation, or newly admitted dimension requiring continuation is
+not checkpointable quiescence.
 
 Valid checkpoint states:
 
@@ -499,8 +502,12 @@ admissibility) groups by this key, so renaming a family cannot dodge it.
    stale ledgers or unresolved dirty tracked diffs except for an explicit
    runner-ceiling crash-recovery checkpoint that names the diff and next command
    in state.
-9. If all axes are in balance and no intervention is available, the loop
-   is quiescent. Emit `stop-and-summarize` with
+9. If all known axes are in balance and no ordinary intervention is available,
+   the loop is at **provisional balance**, not yet quiescent. Run the full
+   frontier scan below — pressure discovery, then vector adequacy — before
+   deciding whether to continue. A discovered pressure or admitted dimension
+   continues the loop; only a resolved scan with no continuation reaches
+   checkpointable quiescence. Then emit `stop-and-summarize` with
    `homeostatic-checkpoint` and halt without marking the frontier complete;
    the reopen policy (Halt conditions) names the episode's disposition.
 
@@ -548,21 +555,23 @@ ability to expose the next weakness. If discovery
 finds pressure, set the frontier active and continue. If discovery is blocked by
 budget or external authority, halt as `PAUSED_EXTERNAL`, not checkpoint.
 
-Homeostasis is not the end of the frontier loop. When known axes are balanced,
-run the vector-adequacy scan (Frontier-vector adequacy below): decide with
-evidence whether the live vector can still distinguish meaningful progress,
-and route the residual — ordinary work on an existing dimension,
+Homeostasis alone is not enough to halt the frontier loop. When known axes are
+balanced, that is provisional balance: run the vector-adequacy scan
+(Frontier-vector adequacy below), decide with evidence whether the live vector
+can still distinguish meaningful progress, and route the residual — ordinary
+work on an existing dimension,
 consolidation, evaluator work on an unmeasurable channel, or at most one
 dimension candidate. Widening the frontier is earned through that lifecycle —
 a stronger outer check or adversarial control still needs its anchor — never
-by inventing a new axis to escape quiescence.
+by inventing a new axis to escape provisional balance.
 
 The halt is valid only when every remaining useful intervention is either
 blocked by the same external authority, outside scope, or low-yield same-family
 polish with no fresh evidence, the active pressure-discovery move found no new
 admissible pressure, and the vector-adequacy scan is recorded — the vector
-adequate, or its single candidate resolved (falsified, admitted, or handed
-off).
+adequate, its single candidate independently falsified or next-pass confirmed,
+the candidate handed off, or the scan explicitly blocked. An admitted
+dimension is fresh pressure and always continues the loop.
 Record the pressure fields and include the scan in the final response, saved as
 `halt_scan` in `.loop/<loop-id>/STATE.md` (overwrite-latest) and appended as a
 `halt` record to `.loop/<loop-id>/JOURNAL.jsonl`
@@ -576,7 +585,7 @@ halt scan:
 - specification coherence: <balanced/drifting/blocked> - <why no safe move>
 - intervention diversity: <balanced/drifting/blocked> - <why no safe move>
 pressure discovery: <what was searched/evaluated> - <pressure found or why none>
-vector adequacy: <adequate | candidate-opened | candidate-falsified | candidate-admitted | candidate-handoff> - <evidence, or why no scan was possible>
+vector adequacy: <adequate | candidate-falsified-confirmed | candidate-handoff | blocked> - <evidence, or why no scan was possible>
 pressure_status: <open/paid/blocked/exhausted>
 pressure_debt: <none/low/medium/high/explicitly_deferred>
 checkpoint_reason: <plateau_after_active_pressure/budget_exhausted/evaluator_invalid/risk_limit_hit/target_gap_unresolved/negative_result_saved; required for every checkpoint; pressure_status=open checkpoint is invalid>
@@ -623,9 +632,10 @@ and is recorded through the same transaction.
 
 ### The adequacy scan (replaces the expansion-ramp scan)
 
-At quiescence — after pressure discovery, before any checkpoint — answer one
-question with evidence: **is the current vector adequate to distinguish
-meaningful progress?** Route the residual:
+At **provisional balance** — known homeostasis axes are balanced and pressure
+discovery found no ordinary pressure, but before quiescence or any checkpoint
+is declared — answer one question with evidence: **is the current vector
+adequate to distinguish meaningful progress?** Route the residual:
 
 - fits an existing dimension → ordinary frontier work; no candidate.
 - indicates a shared hidden cause → the Consolidation round, not a new
@@ -636,12 +646,15 @@ meaningful progress?** Route the residual:
   value-laden reprioritization ("polish now matters more than speed") is
   never mined autonomously.
 - a genuinely new dimension is hypothesized → open **one** candidate (the
-  strongest; one candidate per quiescence event).
-- no candidate survives → the scan is recorded as adequate and the existing
-  halt logic proceeds.
+  strongest; one candidate per provisional-balance event).
+- no candidate survives → the scan is recorded as adequate, provisional
+  balance becomes checkpointable quiescence, and the existing halt logic
+  proceeds.
 
-A checkpoint with the vector unscanned, or with a candidate probe still
-`pending`, is invalid.
+A `homeostatic-checkpoint` with the vector unscanned, a candidate probe or
+next-pass confirmation pending, or a newly admitted dimension requiring
+continuation is invalid. The admission transaction's `checkpoint` journal
+record is a commit marker, not this halt condition.
 
 ### Candidate contract
 
@@ -936,9 +949,12 @@ episode termination.
 
 - No OPEN findings for 2 consecutive review rounds.
 
-- All five homeostasis axes in balance and no intervention is available
-  (the `homeostatic-checkpoint` cause; its disposition follows the reopen
-  policy below).
+- The full frontier scan records all five homeostasis axes in balance, no new
+  admissible pressure, and resolved vector adequacy with no candidate awaiting
+  a probe or confirmation and no newly admitted dimension requiring
+  continuation; no other intervention is
+  available (the `homeostatic-checkpoint` cause; its disposition follows the
+  reopen policy below).
 
 ### Halt-cause classifier
 
@@ -951,10 +967,11 @@ cause so the user (and the next derivation) can route it back:
 - `genuine-escalate` — irreversible / external / authority-needed (paid
   API budget, public-publish, secrets, product direction with unclear
   rollback, source conflict between authoritative-current sources).
-- `homeostatic-checkpoint` — quiescence: all five homeostasis axes in
-  balance, no high-yield admissible intervention available. Never objective
-  completion; the reopen policy below decides checkpoint vs episode
-  termination.
+- `homeostatic-checkpoint` — checkpointable quiescence: the full frontier scan
+  found all five homeostasis axes balanced, no admissible pressure, and no
+  vector candidate awaiting a probe or confirmation and no newly admitted
+  dimension requiring continuation. Never objective completion; the reopen
+  policy below decides checkpoint vs episode termination.
 - `signal-starvation` — quiet-signal checkpoint fired; outer channel
   ran or stop-and-summarize.
 - `wrong-loop` — the work belongs in a different loop type (a
@@ -973,7 +990,8 @@ iteration halted; frontier checkpointed
 ```
 
 Then list either the next pressure / unresolved OPEN findings / anchors, or the
-full homeostasis scan proving no high-yield admissible intervention remains.
+full frontier scan — homeostasis, pressure discovery, and vector adequacy —
+proving no high-yield admissible intervention remains.
 The episode reopens automatically on strong new signal delivered through the
 reopen contract named at frontload. Do not mark a generic runner goal as
 complete for any frontier halt; at most, mark the invocation complete and leave
@@ -994,7 +1012,8 @@ audit.
 After N consecutive iterations with the cheap channel green, no new
 failing trace, and no new finding added to the findings / ledger
 surface, run the expensive outer channel to introduce fresh signal —
-or emit `stop-and-summarize`. Signal starvation (quiet oracle, quiet
+or enter the full frontier halt scan, including vector adequacy. Do not halt
+directly from a quiet outer channel. Signal starvation (quiet oracle, quiet
 review surface) is the state in which the loop most readily mines
 locally-admissible polish; the checkpoint prevents indefinite
 polishing by forcing either new evidence or honest halt.

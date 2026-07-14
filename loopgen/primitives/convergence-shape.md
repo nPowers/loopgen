@@ -15,8 +15,9 @@ stop. A composed prompt names both.
   without claiming the frontier is complete. For frontier, quiescence includes
   a recorded vector-adequacy result
   (`primitives/frontier-vector-adequacy.md`): balanced axes with the frontier
-  vector unscanned, or with a dimension-candidate probe still pending, is not
-  checkpointable quiescence.
+  vector unscanned, a dimension-candidate probe or confirmation pending, or a
+  newly admitted dimension requiring continuation is not checkpointable
+  quiescence.
 - `capstone-plus-closer` — the run completes a capstone deliverable, then a
   closer pass that reconciles / seals the queue (a chapter ends with a closer).
 - `stone-reframe` — the artifact lands on the user's *reframed* target and
@@ -33,7 +34,7 @@ halt under any convergence-shape.
 | Task phrasing | Value |
 |---|---|
 | finite verifier matrix | `criteria-completion` |
-| homeostasis balance, "nothing left to restore" | `homeostatic-checkpoint` |
+| known homeostasis axes balanced, vector adequacy resolved | `homeostatic-checkpoint` |
 | chapters / episodes with closers | `capstone-plus-closer` |
 | reframable creative target | `stone-reframe` |
 | explicit budget / iteration cap | `iteration-cap` |

@@ -75,7 +75,8 @@ surfaces differently — not all are constant, and not all are emitted):
 - **Archetype-scoped:** `evidence-tier` — every archetype except `goal`, which
   relies on oracle principles + the acceptance inventory as its evidence
   surface instead (`templates/composed-prompt.md` §8, Signal hierarchy).
-  `evaluator-maturity` (T0–T6) — `frontier` only, named in its `## Extras`.
+  `evaluator-maturity` (T0–T6) and `frontier-vector-adequacy` (the earned
+  outcome-dimension lifecycle) — `frontier` only, named in its `## Extras`.
 - **Wired, artifact-shape-scoped:** `queue-as-second-artifact` — the queue-growth
   block INCLUDEd by every body's Artifacts section whenever `artifact-shape` is
   not `prompt-only` (i.e. almost every composed prompt); it carries the
@@ -298,10 +299,14 @@ The emitted prompt MUST also distinguish invocation halt from archetype
 completion. Shared halt causes (`genuine-escalate`, `derivation-gap`,
 `signal-starvation`, `wrong-loop`) are not completion claims by themselves.
 Frontier's `homeostatic-checkpoint` also does not mean completion: a frontier
-objective never completes by being good enough; the episode either checkpoints
-and reopens on fresh signal (effective `equilibrium`) or terminates on
-declared-workset exhaustion (effective `terminal`) — ending the execution, not
-the objective. Only non-frontier archetype
+objective never completes by being good enough. It fires only after the full
+frontier scan reaches checkpointable quiescence — known homeostasis axes are
+balanced, pressure discovery found no admissible pressure, and vector adequacy
+has no candidate awaiting a probe or confirmation and no newly admitted
+dimension requiring continuation. The episode
+then either checkpoints and reopens on fresh signal (effective `equilibrium`)
+or terminates on declared-workset exhaustion (effective `terminal`) — ending
+the execution, not the objective. Only non-frontier archetype
 success causes may say the loop is complete. If a prompt can halt on a shared
 cause, it must tell the runner to report the frontier/queue/story as open or
 checkpointed and list the unresolved artifact rows or halt scan.
@@ -578,7 +583,7 @@ write a ⚠️ block to `.loop/<loop-id>/STATE.md`.
   + shared blocks (`runner-contract`, `judgment-default`, `evidence-tier`,
   `frontload-audit`, `halt-cause-classifier`, `diagnostic-pattern`,
   `evaluator-maturity`, `queue-as-second-artifact`, `context-stack`, `pressure`,
-  `pressure-accounting`) and
+  `pressure-accounting`, `frontier-vector-adequacy`) and
   the conditional `benchmark-frontier` / `eval-ladder` overlay.
 - `archetypes/` — `frontier`, `goal`, `story`, `greenfield`: irreducible loop
   shape + default primitive values + forbidden divergences + failure modes.

@@ -10,7 +10,10 @@ then iterates. The loop alternates between improving the product and improving
 the mechanism that judges it: if measurement is weak, improve measurement
 first; if measurement is trustworthy, improve the product. The work-type label
 (`product` / `evaluator` / `observability` / `specification`) describes the
-intervention; it is never picked from a menu.
+intervention; it is never picked from a menu. When those known control axes
+reach provisional balance, the vector-adequacy scan asks whether the current
+outcome coordinates still distinguish meaningful progress. A new coordinate
+opens further work only when independent evidence earns it.
 
 ## Default primitive values
 
@@ -48,11 +51,12 @@ intervention; it is never picked from a menu.
   ledger-only changes do **not** break concentration) + homeostasis diagnosis.
 - **Ramp modes** — over-ramping, ramp scope creep, ramp bypass, ramp theater.
   Mitigation: ramp stages carry explicit checkable exit conditions.
-- **Endless axis invention** — quiescence is escaped by hypothesizing a fresh
-  frontier dimension each time balance is reached, so the loop never
+- **Endless axis invention** — provisional balance is escaped by hypothesizing
+  a fresh frontier dimension each time known axes balance, so the loop never
   checkpoints. Mitigation: the earned dimension lifecycle
-  (`primitives/frontier-vector-adequacy.md`) — one candidate per quiescence
-  event, a pre-registered discriminative probe, a hard eight-dimension cap,
+  (`primitives/frontier-vector-adequacy.md`) — one candidate per
+  provisional-balance event, a pre-registered discriminative probe, a hard
+  eight-dimension cap,
   and terminal episodes never mutating the live vector (surviving candidates
   become handoff for the next declared-workset version).
 - **Closed-corpus equilibrium trap** — `halt-shape: equilibrium` waits for a
@@ -75,8 +79,8 @@ intervention; it is never picked from a menu.
 - Carries `primitives/frontier-vector-adequacy.md` — the earned
   frontier-dimension lifecycle (the vector-adequacy scan that replaces
   open-ended expansion prose; frontier dimensions are the one coordinate
-  vocabulary allowed to evolve, and only by evidence). Currently
-  derivation-read; the body wiring lands with the runtime-admission unit.
+  vocabulary allowed to evolve, and only by evidence). It is derivation-read
+  and composed into every frontier body.
 - Applies `primitives/benchmark-frontier.md` only when frontload binds a
   benchmark/eval/harness object. This is an overlay, not a fifth archetype.
 - Applies `references/review-closure-overlay.md` when the branch is in closure

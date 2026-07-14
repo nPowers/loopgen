@@ -51,9 +51,12 @@ frontier or goal is complete. A prompt MUST make this distinction explicit:
   lifecycle reason — declared-workset exhaustion under effective
   `halt-shape: terminal` — and termination ends the execution, not the
   objective. `homeostatic-checkpoint` means no high-yield admissible
-  intervention remains after a full scan; what follows — reopen on fresh
-  signal, or episode termination with no auto-resume — is the composed reopen
-  policy (`primitives/halt-shape.md`), stated in the body's
+  intervention remains after a full frontier scan: homeostasis is balanced,
+  pressure discovery found no admissible pressure, vector adequacy has no
+  candidate awaiting a probe or confirmation, and no newly admitted dimension
+  requires continuation. What follows —
+  reopen on fresh signal, or episode termination with no auto-resume — is the
+  composed reopen policy (`primitives/halt-shape.md`), stated in the body's
   checkpoint-semantics block.
 - Only non-frontier archetype-terminal success causes may claim archetype
   completion (`criteria-met`, `storyboard-converged`, or `stone-converged`).
@@ -102,7 +105,8 @@ For frontier loops, the halt scan must also emit the pressure accounting fields:
 `pressure_status`, `pressure_debt`, `checkpoint_reason`, and `next_pressure` —
 plus the vector-adequacy line. Checkpointing with no pressure scan, open
 pressure, no checkpoint reason, an unscanned frontier vector, or a
-dimension-candidate probe still pending is
+dimension candidate awaiting its probe or next-pass confirmation, or a newly
+admitted dimension requiring continuation is
 invalid; the runner reports the frontier as active or externally paused instead.
 
 ### The halt-scan record (formalized once, shared by every archetype)

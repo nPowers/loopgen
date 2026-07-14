@@ -70,7 +70,7 @@ mid-run, creates canonical state/prompt/artifact files, then hands you the fixed
 | Seed | Archetype | Halts on |
 |---|---|---|
 | A task with a definition of done | `goal` | `criteria-met`: one final-verify proves the frozen acceptance inventory |
-| A quality edge to push | `frontier` | `homeostatic-checkpoint`: the loop has no useful in-scope intervention left |
+| A quality edge to push | `frontier` | `homeostatic-checkpoint`: known axes are balanced, pressure discovery and vector adequacy are resolved, and no high-yield in-scope intervention remains |
 | A product surface to walk through | `story` | `storyboard-converged`: the visible product matches the storyboard |
 | An idea to build out from zero | `greenfield` | `stone-converged`: the artifact landed on the user's reframed target |
 
@@ -123,6 +123,7 @@ which contract shaped it.
 | **Frontload audit** | Resolves commands, paths, evaluator, scope, and irreversible decisions before the loop fires. |
 | **Deterministic artifacts** | Emits the same canonical files for the same loop shape every run. |
 | **Benchmark frontier overlay** | Adds domain spec, benchmark, candidate lineage, frontier state, and trace roles when a concrete eval is bound. |
+| **Earned dimension discovery** | Lets a frontier loop test whether its current outcome coordinates hide meaningful progress, admitting a new dimension only through independent evidence. |
 | **Provenance preamble** | Names the primitive, archetype, body, reference, and overlay files that shaped the prompt. |
 | **Runner-stable kickoff** | Always emits one `/goal read .loop/<loop-id>/PROMPT.md...` pointer with no first-iteration instructions baked in. |
 

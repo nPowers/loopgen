@@ -16,7 +16,9 @@ prompt names both.
   operator action mints one — a surviving frontier-dimension candidate is
   handed off to that path, never admitted in-episode,
   `primitives/frontier-vector-adequacy.md`).
-- `equilibrium` — checkpoints at homeostatic balance; reopens
+- `equilibrium` — checkpoints at checkpointable quiescence (for frontier:
+  balanced homeostasis plus pressure discovery and resolved vector adequacy);
+  reopens
   **automatically** on strong new signal (externally reviewed finding, typed
   failing trace, oracle verdict, metric movement). Requires a live **reopen
   contract**: a named external signal plus the observable channel through which

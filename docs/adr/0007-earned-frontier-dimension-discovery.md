@@ -1,14 +1,15 @@
 # ADR 0007: frontier dimensions are earned through a vector-adequacy lifecycle, never invented
 
-- **Status:** Accepted (amends ADR 0006)
+- **Status:** Accepted (amended 2026-07-13; amends ADR 0006)
 - **Date:** 2026-07-13
 - **Deciders:** provi, Claude (Fable 5)
 
 ## Context
 
 The frontier body already *commanded* vector growth without a contract for
-it: the expansion-ramp prose told a quiescent loop to "add a new … evaluator
-dimension", and cash-out option 2 said "update the frontier vector" — both
+it: the expansion-ramp prose told a loop at what the old contract called
+quiescence to "add a new … evaluator dimension", and cash-out option 2 said
+"update the frontier vector" — both
 direct-mutation instructions with no evidence bar, no cap, no authority rule,
 and no answer to who wins between the prompt's baked `{{FRONTIER_VECTOR}}`
 and the `STATE.md` `frontier_vector` live key (both existed; neither was
@@ -27,8 +28,9 @@ frontier vector — the *outcome* space, not a control axis.
 **Lifecycle, not prose.** A frontier-only primitive
 (`primitives/frontier-vector-adequacy.md`, inlined into the body after
 Homeostasis) replaces the expansion-ramp scan with a falsifiable question at
-quiescence: can the live vector still distinguish meaningful progress? A
-genuinely new dimension is one candidate per quiescence event (evidence bar:
+**provisional balance**, before quiescence is declared: can the live vector
+still distinguish meaningful progress? A genuinely new dimension is one
+candidate per provisional-balance event (evidence bar:
 two independent residuals, or one strong impossible/external observation; not
 a synonym; within motive and scope), carried as an ordinary OPEN finding with
 a pre-registered discriminative probe executed as an ordinary `attempt`
@@ -89,8 +91,14 @@ so the body stays mode-neutral.
 - Equilibrium episodes can still discover new coordinates — but a candidate
   now changes decisions or dies: it needs independent residuals going in and
   a pre-registered discriminative probe coming out, and a rejected candidate
-  *permits* the checkpoint instead of blocking it. Terminal means "finish the
-  declared epistemic frame", not "enlarge it whenever it reveals its limits".
+  *permits* the checkpoint only after independent or next-pass confirmation,
+  instead of blocking it forever. Terminal means "finish the declared epistemic
+  frame", not "enlarge it whenever it reveals its limits".
+- Homeostasis balance is now explicitly **provisional**. Quiescence is reserved
+  for the post-scan state in which pressure discovery found no admissible work
+  and vector adequacy has no candidate awaiting a probe or confirmation and no
+  newly admitted dimension requiring continuation; this prevents the iteration
+  protocol from halting before the new lifecycle runs.
 - `tools/verify_loopgen_contracts.py` enforces the contract as prose pins and
   executable fixtures: the closed outcome enum and status mapping, the
   probe→`disturbed_axis` mapping (candidate ids never enter the closed four),

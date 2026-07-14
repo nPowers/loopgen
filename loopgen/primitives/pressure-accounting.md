@@ -2,9 +2,10 @@
 
 ## Purpose
 
-Frontier loops do not finish; they account for pressure. This primitive gives
-generic frontier prompts a small checkpoint contract without requiring a
-benchmark artifact system.
+Frontier objectives do not finish by reaching a quality pass-line; their
+episodes account for pressure, then checkpoint or terminate according to the
+reopen policy. This primitive gives generic frontier prompts a small
+checkpoint contract without requiring a benchmark artifact system.
 
 It is the **`frontier` projection of the universal `pressure` primitive**
 (`primitives/pressure.md`): the pressure field rendered as a checkpoint
@@ -48,7 +49,10 @@ frontier checkpoint.
 
 A generic frontier loop may checkpoint only after it has applied active
 pressure or recorded why active pressure is blocked. A quiet ledger, green
-cheap channel, or balanced homeostasis scan is not enough by itself.
+cheap channel, or balanced homeostasis scan is not enough by itself. The full
+frontier scan must also resolve vector adequacy: an unscanned vector, pending
+probe or confirmation, or newly admitted dimension requiring continuation is
+not checkpointable quiescence.
 
 Valid checkpoint states:
 

@@ -33,7 +33,8 @@ iteration halted; frontier checkpointed
 ```
 
 Then list either the next pressure / unresolved OPEN findings / anchors, or the
-full homeostasis scan proving no high-yield admissible intervention remains.
+full frontier scan — homeostasis, pressure discovery, and vector adequacy —
+proving no high-yield admissible intervention remains.
 The episode reopens automatically on strong new signal delivered through the
 reopen contract named at frontload. Do not mark a generic runner goal as
 complete for any frontier halt; at most, mark the invocation complete and leave
@@ -55,16 +56,17 @@ This episode runs under a **terminal reopen policy**; the provenance
 divergence line records its basis (a guarded closed-corpus resolution, or an
 explicit request). `homeostatic-checkpoint`,
 `genuine-escalate`, `derivation-gap`, `signal-starvation`, and `wrong-loop`
-are valid invocation halts, but none is completion. When the full homeostasis
-scan proves no high-yield admissible intervention remains under the declared
-search surfaces, the episode **terminates** — declared workset exhausted —
+are valid invocation halts, but none is completion. When the full frontier
+scan — homeostasis, pressure discovery, and vector adequacy — proves no
+high-yield admissible intervention remains under the declared search surfaces,
+the episode **terminates** — declared workset exhausted —
 instead of waiting in a reopenable checkpoint. Write:
 
 ```text
 iteration halted; frontier episode terminated (declared workset exhausted)
 ```
 
-Then list the full homeostasis scan as the termination's proof, plus any OPEN
+Then list the full frontier scan as the termination's proof, plus any OPEN
 findings handed off for external routing. The episode does not auto-resume; a
 new episode may start only on an allowed exceptional event — an explicit
 per-row `reopen_condition`, a regression, or a new declared-workset version
