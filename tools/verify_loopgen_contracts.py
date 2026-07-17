@@ -1780,6 +1780,41 @@ def subagent_pattern_filter_violations() -> list[str]:
     return v
 
 
+# ── U1-c4: derivation provenance is owned by write-once DERIVATION.md ──────
+
+
+def derivation_ownership_violations() -> list[str]:
+    """U1-c4 (F6/R3): ADR 0004 moved the derivation record
+    (derivation_read_set, classification, frontload) out of STATE.md into
+    write-once DERIVATION.md. No prose may assign `derivation_read_set` back
+    to STATE.md: around every mention, DERIVATION.md must be the named home
+    (a window naming STATE.md without DERIVATION.md is the stale pattern
+    this pin exists to reject)."""
+    v: list[str] = []
+    scanned = (
+        ("SKILL.md", SKILL),
+        ("composed-prompt.md", COMPOSED_PROMPT),
+        ("README.md", ROOT / "README.md"),
+        ("context-stack.md", CONTEXT_STACK),
+    )
+    needle = "derivation_read_set"
+    for label, path in scanned:
+        flat = one_line(read(path))
+        start = 0
+        while True:
+            i = flat.find(needle, start)
+            if i == -1:
+                break
+            window = flat[max(0, i - 140): i + 140]
+            if "STATE.md" in window and "DERIVATION.md" not in window:
+                v.append(f"{label}: derivation_read_set assigned to STATE.md near `…{window[100:180]}…`")
+            start = i + len(needle)
+    readme_flat = one_line(read(ROOT / "README.md"))
+    if "DERIVATION.md` records classification and frontload" not in readme_flat:
+        v.append("README.md durable-state bullet no longer names DERIVATION.md as the classification/frontload record")
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -2019,6 +2054,16 @@ def run_checks() -> int:
             not read_set_missing,
             "derivation_read_set_paths_exist",
             ", ".join(read_set_missing),
+        )
+    )
+
+    # ── U1-c4: derivation provenance owned by DERIVATION.md, never STATE.md ─
+    ownership = derivation_ownership_violations()
+    checks.append(
+        require(
+            not ownership,
+            "derivation_ownership_pinned",
+            "; ".join(ownership),
         )
     )
 

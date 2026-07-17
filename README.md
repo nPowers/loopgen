@@ -107,7 +107,7 @@ stalls or invents a stop condition.
 loopgen creates a middle layer:
 
 - **Prompt contract** — `.loop/<loop-id>/PROMPT.md` carries the full re-entrant loop playbook
-- **Durable state** — `.loop/<loop-id>/STATE.md` records classification, frontload, artifacts, and halt scan
+- **Durable state** — `.loop/<loop-id>/STATE.md` holds live status only (iteration, artifacts, pressure, halt scan); the write-once `.loop/<loop-id>/DERIVATION.md` records classification and frontload
 - **Queue artifacts** — acceptance inventories, storyboards, ledgers, rubrics, traces, and metrics give the loop somewhere concrete to work
 - **Fixed runner pointer** — `/goal read .loop/<loop-id>/PROMPT.md...` stays the only operator-facing kickoff
 
@@ -144,7 +144,7 @@ The bundled `loopgen` skill teaches the model to:
 - Never compose from memory; read the required primitives, archetype, body, and overlay references first
 - Never silently default on contradictory primitive values
 - Always emit canonical artifact files for the active contracts
-- Always record `derivation_read_set`, frontload, divergences, overlays, and artifacts in `.loop/<loop-id>/STATE.md`
+- Always record `derivation_read_set`, frontload, divergences, and overlays in the write-once `.loop/<loop-id>/DERIVATION.md`; `.loop/<loop-id>/STATE.md` stays live status (artifacts, iteration, pressure)
 - Always make hybrids additive: nearest archetype first, then divergent primitive and overlay contracts
 - Always emit the bare `/goal read .loop/<loop-id>/PROMPT.md and execute as <identity>.` kickoff
 - Never put first-iteration setup instructions in the kickoff; bootstrap belongs inside the re-entrant prompt
