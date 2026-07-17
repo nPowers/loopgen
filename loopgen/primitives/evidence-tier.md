@@ -8,7 +8,12 @@ the classifier never overrides this ranking.
 
 ## Include when
 
-Every composed prompt, as its "Signal hierarchy" section.
+Every archetype except `goal` — the `frontier` body inlines it as its
+"Signal hierarchy" section; `story` and `greenfield` pull it via
+`{{INCLUDE primitives/evidence-tier.md}}`. `goal` deliberately carries no
+standalone Signal hierarchy: its evidence surface is oracle principles + the
+acceptance inventory (`templates/composed-prompt.md` §8) — do not add this
+block to a `goal` prompt.
 
 ## Composition notes
 

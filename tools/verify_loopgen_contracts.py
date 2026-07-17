@@ -1780,6 +1780,33 @@ def subagent_pattern_filter_violations() -> list[str]:
     return v
 
 
+# ── U1-c5: evidence-tier names the goal exclusion it always practiced ──────
+
+
+def evidence_tier_goal_violations() -> list[str]:
+    """U1-c5 (adjudicated residual): evidence-tier.md's Include-when claimed
+    'every composed prompt' while the recipe (§8) and SKILL.md deliberately
+    exclude `goal` — goal's evidence surface is oracle principles + the
+    acceptance inventory. The primitive must name the exclusion, goal must
+    stay Signal-hierarchy-free, and the three carrying bodies must keep it."""
+    v: list[str] = []
+    et = read(ROOT / "loopgen/primitives/evidence-tier.md")
+    include_when = _section_body(et, "## Include when") or ""
+    if "except `goal`" not in include_when:
+        v.append("evidence-tier.md Include-when does not name the goal exclusion")
+    goal_template = raw_body_template(GOAL_BODY)
+    if "Signal hierarchy" in goal_template or "evidence-tier.md}}" in goal_template:
+        v.append("goal template carries a Signal hierarchy / evidence-tier INCLUDE")
+    if "## Signal hierarchy" in render_body("goal"):
+        v.append("goal render emits a standalone Signal hierarchy section")
+    if "## Signal hierarchy" not in read(FRONTIER_BODY):
+        v.append("frontier body lost its inline Signal hierarchy")
+    for path in (STORY_BODY, GREENFIELD_BODY):
+        if "{{INCLUDE primitives/evidence-tier.md}}" not in read(path):
+            v.append(f"{path.stem} lost its evidence-tier INCLUDE")
+    return v
+
+
 # ── U1-c4: derivation provenance is owned by write-once DERIVATION.md ──────
 
 
@@ -2064,6 +2091,16 @@ def run_checks() -> int:
             not ownership,
             "derivation_ownership_pinned",
             "; ".join(ownership),
+        )
+    )
+
+    # ── U1-c5: evidence-tier goal exclusion is named and practiced ──────────
+    evidence_tier_goal = evidence_tier_goal_violations()
+    checks.append(
+        require(
+            not evidence_tier_goal,
+            "evidence_tier_goal_exclusion_consistent",
+            "; ".join(evidence_tier_goal),
         )
     )
 
