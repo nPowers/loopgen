@@ -405,7 +405,7 @@ directories, performance reports, benchmark outputs, or generated artifacts.
 rewrite-in-place — no history (see the context-stack primitive).
 
 - `archetype`, `identity`
-- `consult_tier`, `evaluator_tier`
+- `consult_tier`, `consult_tier_effective`, `evaluator_tier`
 - `artifacts: {canonical, repo_aliases}`
 - `iteration`, `phase`, `current_artifact`, `last_action`, `next_action`
 - `halt_cause`, `halt_scan`

@@ -32,6 +32,7 @@ GREENFIELD_BODY = ROOT / "loopgen/templates/bodies/greenfield-body.md"
 BENCHMARK_FRONTIER = ROOT / "loopgen/primitives/benchmark-frontier.md"
 PRESSURE_ACCOUNTING = ROOT / "loopgen/primitives/pressure-accounting.md"
 SUBAGENT_PATTERNS = ROOT / "loopgen/primitives/subagent-patterns.md"
+CONSULT_CAPABILITY = ROOT / "loopgen/primitives/consult-capability.md"
 BENCHMARK_ARTIFACTS = ROOT / "loopgen/references/benchmark-frontier-artifacts.md"
 BENCHMARK_EXAMPLE = ROOT / "loopgen/references/benchmark-frontier-example.md"
 FRONTLOAD_AUDIT = ROOT / "loopgen/primitives/frontload-audit.md"
@@ -280,6 +281,9 @@ def render_frontier(
     prompt = re.sub(r"\{\{INCLUDE ([^}]+)\}\}", include_text, prompt)
     # Pressure surface is always-on (ADR 0004): substitute the pressure.md block.
     prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))
+    # render_frontier renders the tier-0 pure case: the run-host channel check
+    # strips byte-identical (composed-prompt step 8), eating its blank line.
+    prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}\n\n", "")
     placeholders = dict(PLACEHOLDERS)
     if placeholder_overrides:
         placeholders.update(placeholder_overrides)
@@ -554,8 +558,14 @@ def render_body(
         )
         block = block.replace("{{CONSULT_TIER}}", f"tier-{consult_tier}")
         prompt = prompt.replace("{{SUBAGENT_PATTERNS}}", block)
+        run_host = resolve_gated_block(CONSULT_CAPABILITY).replace(
+            "{{CONSULT_TIER}}", f"tier-{consult_tier}"
+        )
+        prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}", run_host.rstrip("\n"))
     else:
         prompt = prompt.replace("{{SUBAGENT_PATTERNS}}", "")
+        # tier-0: strip byte-identical, eating the slot's blank line (step 8).
+        prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}\n\n", "")
 
     values = dict(COMMON_BODY_PLACEHOLDERS)
     values.update(ARCHETYPE_BODY_PLACEHOLDERS[archetype])
@@ -1628,18 +1638,31 @@ def operational_core_violations() -> list[str]:
     return v
 
 
+# The fixture PROVENANCE is one line; a real provenance preamble is the
+# 8-line format in composed-prompt.md, so a render passing at N lines lands at
+# N+7 in a real composition. The sentinel bound is therefore 80 - 7 = 73:
+# every checked render must keep the core inside the first 73 lines so a real
+# compose stays inside the promised first 80.
+OPERATIONAL_CORE_SENTINEL_BOUND = 73
+
+
 def operational_core_render_violations() -> list[str]:
     """U1-c1 (F1): in every render path — render_frontier (both variants) and
-    render_body (all four archetypes) — the Operational core appears exactly
-    once, starts near the top, and ENDS within the first 80 lines, so the
-    promised `sed -n '1,80p'` rehydration read actually captures it."""
+    render_body (all four archetypes, tier-0 and tier-1 with the run-host
+    block filled) — the Operational core appears exactly once, starts near
+    the top, and ENDS within the sentinel bound, so the promised
+    `sed -n '1,80p'` rehydration read captures it under a real 8-line
+    provenance preamble too."""
     v: list[str] = []
     renders: dict[str, str] = {
         "frontier-pure": render_frontier(benchmark_overlay=False),
         "frontier-benchmark": render_frontier(benchmark_overlay=True),
     }
     for archetype in BODY_PATHS:
-        renders[f"render_body-{archetype}"] = render_body(archetype)
+        renders[f"render_body-{archetype}-tier0"] = render_body(archetype)
+        renders[f"render_body-{archetype}-tier1"] = render_body(
+            archetype, consult_tier=1
+        )
     for name, text in renders.items():
         lines = text.splitlines()
         starts = [i + 1 for i, line in enumerate(lines) if line.strip() == OPERATIONAL_CORE_HEADING]
@@ -1653,11 +1676,50 @@ def operational_core_render_violations() -> list[str]:
             (i + 1 for i, line in enumerate(lines) if i + 1 > start and line.startswith("## ")),
             len(lines),
         )
-        if end > 80:
+        if end > OPERATIONAL_CORE_SENTINEL_BOUND:
             v.append(
                 f"{name}: Operational core runs to line {end} "
-                "(> 80; the first-80 rehydration bound is broken)"
+                f"(> {OPERATIONAL_CORE_SENTINEL_BOUND}; the first-80 "
+                "rehydration bound breaks under a real provenance preamble)"
             )
+    return v
+
+
+def run_host_verification_violations() -> list[str]:
+    """U1-c3 (F3 + the never-emitted residual): the Run-host channel check is
+    a real emittable block — filled inside the Operational core at consult
+    tier ≥ 1, stripped byte-identical at tier-0 — and consult_tier_effective
+    is canonical STATE with a revalidation line in every body's health
+    check."""
+    v: list[str] = []
+    marker = "**Run-host channel check**"
+    for archetype in BODY_PATHS:
+        tier0 = render_body(archetype)
+        tier1 = render_body(archetype, consult_tier=1)
+        if marker in tier0:
+            v.append(f"{archetype}: run-host check leaked into a tier-0 render")
+        if "{{RUN_HOST" in tier0 or "{{RUN_HOST" in tier1:
+            v.append(f"{archetype}: dead RUN_HOST_VERIFICATION placeholder survives")
+        if tier1.count(marker) != 1:
+            v.append(
+                f"{archetype}: expected exactly one run-host check at tier-1, "
+                f"found {tier1.count(marker)}"
+            )
+        flat1 = one_line(tier1)
+        if "consult_tier_effective" not in flat1:
+            v.append(f"{archetype}: tier-1 render never names consult_tier_effective")
+    for name in ("pure", "benchmark"):
+        text = render_frontier(benchmark_overlay=(name == "benchmark"))
+        if marker in text or "{{RUN_HOST" in text:
+            v.append(f"render_frontier-{name}: run-host check must strip at tier-0")
+    skill = read(SKILL)
+    cs = read(CONTEXT_STACK)
+    if "`consult_tier_effective`" not in skill:
+        v.append("SKILL.md required STATE keys omit consult_tier_effective")
+    if "`consult_tier_effective`" not in cs:
+        v.append("context-stack.md STATE schema omits consult_tier_effective")
+    if "\n---\n" not in read(CONSULT_CAPABILITY):
+        v.append("consult-capability.md has no emittable block below a '---'")
     return v
 
 
@@ -2030,6 +2092,19 @@ def run_checks() -> int:
             not core_render,
             "operational_core_first_80_all_renders",
             "; ".join(core_render),
+        )
+    )
+
+    # ── U1-c3: run-host channel check emitted + consult_tier_effective ──────
+    try:
+        run_host = run_host_verification_violations()
+    except (ContractError, AssertionError) as exc:
+        run_host = [str(exc)]
+    checks.append(
+        require(
+            not run_host,
+            "run_host_verification_emitted_and_gated",
+            "; ".join(run_host),
         )
     )
 

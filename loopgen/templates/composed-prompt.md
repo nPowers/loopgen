@@ -33,8 +33,10 @@ composed prompt.
    context-stack budget (`primitives/context-stack.md`); the shared lines are
    verifier-pinned byte-identical across bodies, and
    `tools/verify_loopgen_contracts.py` asserts exact-once presence and the
-   first-80 bound in every render. The composer fills its placeholders and
-   never gates, drops, or re-synthesizes it.
+   first-80 bound in every render. The composer fills its placeholders —
+   including the one gated slot, `{{RUN_HOST_VERIFICATION}}` (consult
+   tier ≥ 1, `primitives/consult-capability.md`; stripped byte-identical at
+   `tier-0`) — and never gates, drops, or re-synthesizes the section itself.
 4. **Runner contract** — ALWAYS (`primitives/runner-contract.md`).
 5. **Judgment default** — ALWAYS (`primitives/judgment-default.md`); in
    `greenfield` it is carried by invariant 7 instead, so it is not emitted twice.
@@ -176,11 +178,14 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    - `tier-1` → replace programmatic consults with an async human-bridge handoff.
    - `tier-2`/`tier-3` → keep the consult sections (tier-3 enables blind
      adversarial multi-tool consults).
-   - `tier ≥ 1` (any of the three cases above) → also compose the Run-host
-     verification block from `primitives/consult-capability.md` into the
-     prompt, so a run started on a different runner than the one `/loopgen`
-     composed on still gates its consult channels at iteration 0 instead of
-     scheduling consults against tools that don't exist there.
+   - `tier ≥ 1` (any of the three cases above) → also substitute
+     `{{RUN_HOST_VERIFICATION}}` (the block below the `---` in
+     `primitives/consult-capability.md`) inside the Operational core, so a
+     run started on a different runner than the one `/loopgen` composed on
+     still gates its consult channels at iteration 0 — and re-verifies on any
+     later runner change — instead of scheduling consults against tools that
+     don't exist there. At `tier-0` the placeholder strips byte-identical
+     (step 8).
 7. **Apply benchmark-frontier overlay** (`primitives/benchmark-frontier.md`):
    - Only for nearest archetype `frontier`.
    - Only when frontload resolved a concrete benchmark/eval/harness object,
@@ -237,7 +242,8 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    prompt must contain no dead sections. When a stripped placeholder sat on its
    own line between blank lines, **collapse the surrounding blanks to a single
    newline**, so a gated placeholder (`{{SUBAGENT_PATTERNS}}`,
-   `{{BENCHMARK_FRONTIER_MODE}}`) leaves byte-identical output whether on or off
+   `{{RUN_HOST_VERIFICATION}}`, `{{BENCHMARK_FRONTIER_MODE}}`) leaves
+   byte-identical output whether on or off
    (no double blank line when it is stripped). `{{PRESSURE_SURFACE}}` is now
    always substituted (step 7a) and never stripped, so it no longer participates
    in this collapse.
@@ -273,7 +279,8 @@ is no compose-time gate (ADR 0004 reversed the former ≥1-object gate, whose
 measured failure was a dead `PRESSURE.md`). A zero-pressure compose still carries
 the pinned HUD and its mandatory promotion triggers, so the surface is live the
 moment the loop mints its first row; seeded rows only pre-populate the in-force
-set. Of the three formerly-stacked gated placeholders, only
-`{{SUBAGENT_PATTERNS}}` and `{{BENCHMARK_FRONTIER_MODE}}` remain gated —
-`{{SUBAGENT_PATTERNS}}` stays the reference example of a compose-gated block
-(stripped byte-identical at `tier-0`, step 8).
+set. The gated placeholders are `{{SUBAGENT_PATTERNS}}` and
+`{{RUN_HOST_VERIFICATION}}` (both consult-tier ≥ 1) plus
+`{{BENCHMARK_FRONTIER_MODE}}` — `{{SUBAGENT_PATTERNS}}` stays the reference
+example of a compose-gated block (stripped byte-identical at `tier-0`,
+step 8).

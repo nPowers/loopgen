@@ -81,3 +81,34 @@ and never spends this check on an interactive prompt
 check is the **safety net**, not the primary mechanism — the primary fix for
 a runner change is re-deriving with `/loopgen` on the actual run host; a
 `tier-0` prompt carries no consult sections, so the check never fires there.
+
+`consult_tier_effective` is a **canonical common STATE key**
+(`primitives/context-stack.md`), value + per-channel basis, `n/a` at tier-0.
+The self-gate is on the key being **fresh for this host**, not merely present:
+the Operational core's health line re-tests it every pass, and the loop
+**re-verifies (overwrite-in-place, never trusting the cached value)** whenever
+a resume lands on a different runner or a promised channel fails at use time —
+a cached effective tier must not outlive its host.
+
+## Placeholders
+
+`{{RUN_HOST_VERIFICATION}}` — substituted with the block below the `---` when
+`consult-tier ≥ 1`, **inside the Operational core** (right after the
+context-health check, before the halt-cause quick list); stripped
+byte-identical at `tier-0`, where the prompt carries no consult sections to
+gate (same strip rule as `{{SUBAGENT_PATTERNS}}`, composed-prompt step 8).
+
+`{{CONSULT_TIER}}` — a nested fill inside the emitted block (the detected tier
+label, e.g. `tier-2`), present only when the block emits — exactly as in
+`subagent-patterns.md`.
+
+---
+
+**Run-host channel check** (`{{CONSULT_TIER}}` was detected on the *composing*
+host; this runner may differ): at iteration 0 — self-gated on
+`consult_tier_effective` in `.loop/<loop-id>/STATE.md` — verify each promised
+consult channel exists here, non-interactively, before scheduling any consult.
+A missing channel degrades that channel only, to the next-lower substitute
+(tier ≥ 2 programmatic → tier-1 async human-bridge → tier-0 human-look gate).
+Record `consult_tier_effective` + per-channel basis in `STATE.md` and surface
+the resolution in that iteration's summary; health line 6 keeps it fresh.

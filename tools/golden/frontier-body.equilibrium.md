@@ -11,11 +11,10 @@ Improve the repository's quality frontier without a fixed finish line.
 
 ## Operational core
 
-The context window is a rolling lossy cache; the files under
-`.loop/<loop-id>/` are the durable memory. After any detected compaction,
-rehydrate with `sed -n '1,80p' .loop/<loop-id>/PROMPT.md` — this core is that
-bounded re-read. Read keys, not files; the full memory contract is in
-Artifacts to maintain.
+The context window is a rolling lossy cache; files under `.loop/<loop-id>/`
+are the durable memory. After any detected compaction, rehydrate with
+`sed -n '1,80p' .loop/<loop-id>/PROMPT.md` — this core is that bounded
+re-read. Read keys, not files; the full contract is in Artifacts to maintain.
 
 **Context budget** (tier → bound → access):
 
@@ -36,14 +35,15 @@ one cheap command; a failed line is a routing (repair before task work),
 never a warning:
 
 1. `STATE.md` ≤ ~50 lines; in-force pressure rows ≤ `pressure-cap`.
-2. The journal tail parses as JSONL; evidence pointers in the last ~5
-   records resolve to files that exist.
-3. The queue artifact's index row for the current item agrees with its
-   section (where the artifact carries an index).
+2. The journal tail parses as JSONL; evidence pointers in recent records resolve.
+3. The queue index row for the current item agrees with its section (where
+   the artifact carries an index).
 4. No whole-file read of an append-only artifact since the last check
    without a named diagnostic exception.
 5. The latest `consolidation` record is within cadence (~10 iterations) and
    no forced trigger has fired since it.
+6. `consult_tier_effective` in `STATE.md` still matches this host (`n/a` at
+   tier-0); stale after any runner change — re-verify before consulting.
 
 **Halt causes (quick list):** `genuine-escalate` · `derivation-gap` ·
 `signal-starvation` · `wrong-loop` · `homeostatic-checkpoint`
@@ -1154,6 +1154,10 @@ Common keys, every archetype:
 
 - `archetype`, `identity`
 - `consult_tier`, `evaluator_tier`
+- `consult_tier_effective` — the run-host resolution of the consult tier
+  (value + per-channel basis), written by the iteration-0 Run-host channel
+  check and overwritten on re-verification
+  (`primitives/consult-capability.md`); `n/a` at tier-0
 - `artifacts` (`{canonical, repo_aliases}`)
 - `iteration`, `phase`, `current_artifact`, `last_action`, `next_action`
 - `halt_cause`, `halt_scan` (overwrite-latest: the most recent full-surface scan

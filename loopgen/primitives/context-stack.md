@@ -137,6 +137,10 @@ Common keys, every archetype:
 
 - `archetype`, `identity`
 - `consult_tier`, `evaluator_tier`
+- `consult_tier_effective` — the run-host resolution of the consult tier
+  (value + per-channel basis), written by the iteration-0 Run-host channel
+  check and overwritten on re-verification
+  (`primitives/consult-capability.md`); `n/a` at tier-0
 - `artifacts` (`{canonical, repo_aliases}`)
 - `iteration`, `phase`, `current_artifact`, `last_action`, `next_action`
 - `halt_cause`, `halt_scan` (overwrite-latest: the most recent full-surface scan
