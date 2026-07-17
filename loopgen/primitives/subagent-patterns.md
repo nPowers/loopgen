@@ -2,10 +2,10 @@
 
 ## Purpose
 
-Let a composed prompt reach for **parallel / independent subagents** when the
+Let a composed prompt reach for **parallel / separate subagents** when the
 host actually has a consult channel — a *capability*, not a leash. The honest
 failures it covers: a loop that can't fan an investigation out in parallel,
-can't poll a long-running job without blocking, and has no cheap *independent*
+can't poll a long-running job without blocking, and has no cheap *separate*
 second look at its own result. These are advantages to take when they help,
 never accountability machinery the loop must satisfy to proceed.
 
@@ -31,8 +31,8 @@ capability** — a deliberate simplification, not a precise capability probe.
 | Pattern | What it is | Gate |
 |---|---|---|
 | **A** single-agent iteration | the existing per-iteration protocol every body emits | always — **not** part of this block |
-| **D** cheap independent re-check | a quick *second look* at a result through an independent channel | tier ≥ 1 (tier-1 = async human-bridge handoff; tier ≥ 2 = programmatic) |
-| **B** parallel fan-out | split an investigation across independent agents (investigate / refute / cross-domain) and reconcile | tier 3 (blind-adversarial + multi-modal fabric) |
+| **D** cheap separate second look | a quick *second look* at a result through a separate channel | tier ≥ 1 (tier-1 = async human-bridge handoff; tier ≥ 2 = programmatic) |
+| **B** parallel fan-out | split an investigation across separate agents (investigate / refute / cross-domain) and reconcile | tier 3 (blind-adversarial + multi-modal fabric) |
 | **C** long-experiment polling | submit a long job, poll it, auto-diagnose and resubmit on failure instead of blocking — under a durable job id + capped retry/backoff | tier 3, or tier ≥ 1 with a pollable job channel |
 
 **D is a second look, not a tribunal.** It exists to catch the loop's own
@@ -50,14 +50,14 @@ Consult → Architect → Build bridge a `frontier` body already carries
 `{{SUBAGENT_PATTERNS}}` — substituted with the block below the `---`, **filtered
 bullet-by-bullet** to the B/C/D patterns the detected consult-tier meets (D at
 tier ≥ 1; B at tier 3; C at tier 3 or tier ≥ 1 with a pollable channel) — the
-composer emits only the applicable bullets as it fills the placeholder (step 7c),
+composer emits only the applicable bullets as it fills the placeholder (step 7b),
 so a tier-1/2 host never sees a tier-3 pattern inlined; the whole block is
 stripped at `tier-0`. It sits immediately after `{{PRESSURE_SURFACE}}` in every
-body (section 6c — same gated placement + strip rule as the pressure surface).
+body (section 6b — same gated placement + strip rule as the pressure surface).
 
 `{{CONSULT_TIER}}` — a **nested** fill inside the emitted block (the loop's
 detected tier label, e.g. `tier-2`), present only when the block emits; filled by
-step 7c, never left dangling (at `tier-0` the whole block is gone).
+step 7b, never left dangling (at `tier-0` the whole block is gone).
 
 ## Authoring guidance (not emitted)
 
@@ -68,6 +68,11 @@ step 7c, never left dangling (at `tier-0` the whole block is gone).
   it has drifted from capability into a leash — cut it back.
 - **No new detection vocabulary.** Map onto `consult-capability` tier-0..3; do
   not invent capability flags.
+- **Separation is not independence.** The emitted text says *separate*, never
+  *independent*: sibling channels share the host and the conversation cone, and
+  role separation alone is not attested isolation. An *independent* claim is
+  earned only by runner-attested isolation, which no current host provides —
+  until one does, the strongest honest claim is a separate second look.
 
 ---
 
@@ -75,17 +80,18 @@ step 7c, never left dangling (at `tier-0` the whole block is gone).
 
 Pattern **A — single-agent iteration** is the protocol you already run; it is
 not listed here and is always sufficient on its own. The patterns below are
-*optional* parallel / independent moves this host's consult channel
+*optional* parallel / separate moves this host's consult channel
 (`{{CONSULT_TIER}}`) makes available — capabilities to reach for **when they
 help**, never gates you must pass to accept an iteration.
 
-- **D — cheap independent re-check** *(consult tier ≥ 1)*: take a quick second
-  look at a result through an independent channel before trusting it. At tier-1
+- **D — cheap separate second look** *(consult tier ≥ 1)*: take a quick second
+  look at a result through a separate channel before trusting it. At tier-1
   this is an async human-bridge handoff; at tier ≥ 2 it is programmatic. A *second
   look* to catch your own honest mistakes (drift, a missed case) — **not** an
-  accountability tribunal, and never a required gate.
+  accountability tribunal, and never a required gate. A separate channel is not
+  attested isolation; its verdict is advisory, never acceptance authority.
 - **B — parallel fan-out** *(consult tier 3)*: split an investigation across
-  independent agents — investigate / refute / cross-domain — and reconcile their
+  separate agents — investigate / refute / cross-domain — and reconcile their
   findings. Blind-adversarial + multi-modal; use when one search angle won't
   surface everything.
 - **C — long-experiment polling** *(consult tier 3, or tier ≥ 1 when frontload

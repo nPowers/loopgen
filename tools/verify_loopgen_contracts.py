@@ -506,7 +506,38 @@ def resolve_gated_block(path: Path) -> str:
     return raw[idx + len(sep):].lstrip("\n")
 
 
-def render_body(archetype: str, *, consult_tier: int = 0) -> str:
+def _filter_subagent_patterns(
+    block: str, consult_tier: int, pollable_channel: bool
+) -> str:
+    """composed-prompt.md step 7b: emit only the B/C/D bullets the detected
+    tier meets — D at tier ≥ 1; B at tier 3; C at tier 3, or tier ≥ 1 when
+    frontload bound a pollable job channel. Bullets are dropped at
+    substitution time (a content filter), never stripped afterwards, so a
+    tier-1/2 host never sees a tier-3 pattern inlined."""
+    closing_marker = "Only the patterns at or below"
+    idx = block.find(closing_marker)
+    if idx == -1:
+        raise ContractError(
+            "subagent-patterns block: closing paragraph marker missing"
+        )
+    head, closing = block[:idx], block[idx:]
+    keep = {
+        "D": consult_tier >= 1,
+        "B": consult_tier >= 3,
+        "C": consult_tier >= 3 or (consult_tier >= 1 and pollable_channel),
+    }
+    kept: list[str] = []
+    for part in re.split(r"(?m)^(?=- \*\*[A-Z] — )", head):
+        m = re.match(r"- \*\*([A-Z]) — ", part)
+        if m and not keep.get(m.group(1), False):
+            continue
+        kept.append(part)
+    return "".join(kept).rstrip("\n") + "\n\n" + closing
+
+
+def render_body(
+    archetype: str, *, consult_tier: int = 0, pollable_channel: bool = False
+) -> str:
     prompt = raw_body_template(BODY_PATHS[archetype])
     if archetype == "frontier":
         prompt = prompt.replace("{{BENCHMARK_FRONTIER_MODE}}", "")
@@ -518,7 +549,9 @@ def render_body(archetype: str, *, consult_tier: int = 0) -> str:
     prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))
 
     if consult_tier >= 1:
-        block = resolve_gated_block(SUBAGENT_PATTERNS)
+        block = _filter_subagent_patterns(
+            resolve_gated_block(SUBAGENT_PATTERNS), consult_tier, pollable_channel
+        )
         block = block.replace("{{CONSULT_TIER}}", f"tier-{consult_tier}")
         prompt = prompt.replace("{{SUBAGENT_PATTERNS}}", block)
     else:
@@ -1628,6 +1661,63 @@ def operational_core_render_violations() -> list[str]:
     return v
 
 
+# ── U1-c2: exact D/B/C tier filtering + advisory-authority language ────────
+
+
+def subagent_pattern_filter_violations() -> list[str]:
+    """U1-c2 (F2): render_body emits exactly the bullets each (tier,
+    pollable-channel) case meets — with negative assertions, so a tier-3
+    pattern can never be inlined at tier ≤ 2 again. Also pins the advisory
+    language (a separate look is never acceptance authority) and bans
+    unearned independence claims in the emitted block."""
+    markers = {"D": "- **D — ", "B": "- **B — ", "C": "- **C — "}
+    cases = (
+        # (tier, pollable, want_d, want_b, want_c)
+        (0, False, False, False, False),
+        (0, True, False, False, False),
+        (1, False, True, False, False),
+        (1, True, True, False, True),
+        (2, False, True, False, False),
+        (2, True, True, False, True),
+        (3, False, True, True, True),
+        (3, True, True, True, True),
+    )
+    v: list[str] = []
+    for tier, pollable, want_d, want_b, want_c in cases:
+        text = render_body("story", consult_tier=tier, pollable_channel=pollable)
+        wanted = {"D": want_d, "B": want_b, "C": want_c}
+        for pattern, marker in markers.items():
+            have = marker in text
+            if have != wanted[pattern]:
+                v.append(
+                    f"tier-{tier} pollable={pollable}: pattern {pattern} "
+                    f"{'present' if have else 'absent'}, expected "
+                    f"{'present' if wanted[pattern] else 'absent'}"
+                )
+        block_present = "## Subagent patterns" in text
+        if (tier == 0) == block_present:
+            v.append(
+                f"tier-{tier}: subagent block "
+                f"{'present' if block_present else 'absent'} (gate broken)"
+            )
+        if tier >= 1:
+            flat = one_line(text)
+            for pin in (
+                "never a required gate",
+                "None is required to accept an iteration",
+                "advisory, never acceptance authority",
+            ):
+                if pin not in flat:
+                    v.append(f"tier-{tier}: advisory pin missing: `{pin}`")
+    emitted_block = resolve_gated_block(SUBAGENT_PATTERNS)
+    if re.search(r"independen", emitted_block, re.IGNORECASE):
+        v.append(
+            "emitted subagent block claims independence — separation is not "
+            "attested isolation; say `separate`"
+        )
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1847,6 +1937,19 @@ def run_checks() -> int:
         checks.append(require(True, "render_body_subagent_patterns_tier1"))
     except (ContractError, AssertionError) as exc:
         checks.append(require(False, "render_body_subagent_patterns_tier1", str(exc)))
+
+    # ── U1-c2: exact D/B/C tier filter + advisory-authority pins ────────────
+    try:
+        filter_violations = subagent_pattern_filter_violations()
+    except (ContractError, AssertionError) as exc:
+        filter_violations = [str(exc)]
+    checks.append(
+        require(
+            not filter_violations,
+            "subagent_patterns_exact_tier_filter",
+            "; ".join(filter_violations),
+        )
+    )
 
     read_set_missing = derivation_read_set_violations()
     checks.append(
