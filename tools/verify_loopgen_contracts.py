@@ -1527,6 +1527,107 @@ def u17_admission_wiring_violations() -> list[str]:
     return v
 
 
+# ── U1-c1: the Operational core is body-carried, parity-pinned, first-80 ───
+
+OPERATIONAL_CORE_HEADING = "## Operational core"
+
+OPERATIONAL_CORE_SHARED_TOKENS = (
+    "rolling lossy cache",
+    "sed -n '1,80p' .loop/<loop-id>/PROMPT.md",
+    "**Context budget**",
+    "| `.loop/<loop-id>/PRESSURE.md` | PINNED | in-force rows ≤ `pressure-cap` (default 12); re-read every pass |",
+    "| `.loop/<loop-id>/STATE.md` | PINNED | ≤ ~50 lines, live status only; re-read every pass |",
+    "| `JOURNAL.jsonl` tail-20 | WORKING | `tail -n 20 .loop/<loop-id>/JOURNAL.jsonl`; once per iteration |",
+    "| journal by key · `archive/*` · `DERIVATION.md` | ON-DEMAND | keyed reads only (`jq` / section), never whole-file |",
+    "| `VERIFY.md` (terminal only) · journal `checkpoint` records | WRITE-ONLY | written in-loop, never re-read |",
+    "**Context-health check**",
+    "a failed line is a routing",
+    "**Halt causes (quick list):**",
+    "No shared cause claims the artifact complete",
+    "**Iteration skeleton**",
+)
+
+
+def _operational_core_section(raw_prompt: str) -> str | None:
+    """The Operational core section text, heading to the next `## ` heading."""
+    i = raw_prompt.find("\n" + OPERATIONAL_CORE_HEADING + "\n")
+    if i == -1:
+        return None
+    rest = raw_prompt[i + 1:]
+    j = rest.find("\n## ", 1)
+    return rest[:j] if j != -1 else rest
+
+
+def operational_core_violations() -> list[str]:
+    """U1-c1 (F1): every archetype body carries exactly one Operational core,
+    positioned between Motive and the runner-contract INCLUDE; the shared
+    segments (intro paragraph, shared budget rows, context-health check,
+    closing completion law) are pinned so the four copies cannot drift —
+    only the WORKING queue row, the halt quick list, and the iteration
+    skeleton legitimately vary by archetype."""
+    v: list[str] = []
+    intro_segments: dict[str, str] = {}
+    health_segments: dict[str, str] = {}
+    for archetype, path in BODY_PATHS.items():
+        raw = raw_body_template(path)
+        count = raw.count(OPERATIONAL_CORE_HEADING)
+        if count != 1:
+            v.append(f"{archetype}: expected exactly one Operational core, found {count}")
+            continue
+        motive = raw.find("## Motive")
+        runner = raw.find("{{INCLUDE primitives/runner-contract.md}}")
+        pos = raw.find(OPERATIONAL_CORE_HEADING)
+        if not (motive != -1 and runner != -1 and motive < pos < runner):
+            v.append(f"{archetype}: Operational core is not between Motive and the runner contract")
+        section = _operational_core_section(raw) or ""
+        flat = _flat(section)
+        for token in OPERATIONAL_CORE_SHARED_TOKENS:
+            if token not in flat:
+                v.append(f"{archetype}: Operational core missing shared token `{token[:44]}`")
+        intro_segments[archetype] = flat.split("**Context budget**", 1)[0]
+        health_segments[archetype] = (
+            flat.split("**Context-health check**", 1)[-1].split("**Halt causes", 1)[0]
+        )
+    if len(set(intro_segments.values())) > 1:
+        v.append("Operational core intro paragraph drifted between bodies")
+    if len(set(health_segments.values())) > 1:
+        v.append("Operational core context-health check drifted between bodies")
+    return v
+
+
+def operational_core_render_violations() -> list[str]:
+    """U1-c1 (F1): in every render path — render_frontier (both variants) and
+    render_body (all four archetypes) — the Operational core appears exactly
+    once, starts near the top, and ENDS within the first 80 lines, so the
+    promised `sed -n '1,80p'` rehydration read actually captures it."""
+    v: list[str] = []
+    renders: dict[str, str] = {
+        "frontier-pure": render_frontier(benchmark_overlay=False),
+        "frontier-benchmark": render_frontier(benchmark_overlay=True),
+    }
+    for archetype in BODY_PATHS:
+        renders[f"render_body-{archetype}"] = render_body(archetype)
+    for name, text in renders.items():
+        lines = text.splitlines()
+        starts = [i + 1 for i, line in enumerate(lines) if line.strip() == OPERATIONAL_CORE_HEADING]
+        if len(starts) != 1:
+            v.append(f"{name}: expected exactly one Operational core, found {len(starts)}")
+            continue
+        start = starts[0]
+        if start > 20:
+            v.append(f"{name}: Operational core starts at line {start} (> 20)")
+        end = next(
+            (i + 1 for i, line in enumerate(lines) if i + 1 > start and line.startswith("## ")),
+            len(lines),
+        )
+        if end > 80:
+            v.append(
+                f"{name}: Operational core runs to line {end} "
+                "(> 80; the first-80 rehydration bound is broken)"
+            )
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -1808,6 +1909,24 @@ def run_checks() -> int:
             not journal_enum,
             "journal_record_types_consistent",
             "; ".join(journal_enum),
+        )
+    )
+
+    # ── U1-c1: Operational core body-carried + first-80 in every render ─────
+    core_body = operational_core_violations()
+    checks.append(
+        require(
+            not core_body,
+            "operational_core_body_carried_parity",
+            "; ".join(core_body),
+        )
+    )
+    core_render = operational_core_render_violations()
+    checks.append(
+        require(
+            not core_render,
+            "operational_core_first_80_all_renders",
+            "; ".join(core_render),
         )
     )
 

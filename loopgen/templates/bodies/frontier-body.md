@@ -18,6 +18,58 @@ Your job is to improve the repository's evidence-backed frontier.
 
 {{MOTIVE}}
 
+## Operational core
+
+The context window is a rolling lossy cache; the files under
+`.loop/<loop-id>/` are the durable memory. After any detected compaction,
+rehydrate with `sed -n '1,80p' .loop/<loop-id>/PROMPT.md` — this core is that
+bounded re-read. Read keys, not files; the full memory contract is in
+Artifacts to maintain.
+
+**Context budget** (tier → bound → access):
+
+| Surface | Tier | Bound + access |
+|---|---|---|
+| `.loop/<loop-id>/PRESSURE.md` | PINNED | in-force rows ≤ `pressure-cap` (default 12); re-read every pass |
+| `.loop/<loop-id>/STATE.md` | PINNED | ≤ ~50 lines, live status only; re-read every pass |
+| findings ledger index + OPEN rows | WORKING | index + live rows only, never the whole file; once per iteration |
+| `JOURNAL.jsonl` tail-20 | WORKING | `tail -n 20 .loop/<loop-id>/JOURNAL.jsonl`; once per iteration |
+| journal by key · `archive/*` · `DERIVATION.md` | ON-DEMAND | keyed reads only (`jq` / section), never whole-file |
+| `VERIFY.md` (terminal only) · journal `checkpoint` records | WRITE-ONLY | written in-loop, never re-read |
+
+Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`
+
+**Context-health check** — every pass before task work, right after the
+pressure render+read, and again after any detected compaction. Each line is
+one cheap command; a failed line is a routing (repair before task work),
+never a warning:
+
+1. `STATE.md` ≤ ~50 lines; in-force pressure rows ≤ `pressure-cap`.
+2. The journal tail parses as JSONL; evidence pointers in the last ~5
+   records resolve to files that exist.
+3. The queue artifact's index row for the current item agrees with its
+   section (where the artifact carries an index).
+4. No whole-file read of an append-only artifact since the last check
+   without a named diagnostic exception.
+5. The latest `consolidation` record is within cadence (~10 iterations) and
+   no forced trigger has fired since it.
+
+**Halt causes (quick list):** `genuine-escalate` · `derivation-gap` ·
+`signal-starvation` · `wrong-loop` · `homeostatic-checkpoint`
+(checkpointable quiescence — never objective completion; the reopen
+policy decides the episode's disposition). No shared cause claims the
+artifact complete; any non-success halt requires the full search-surface
+scan first. The Halt section below carries the full classifier.
+
+**Iteration skeleton** (the numbered protocol below is authoritative):
+0 name the evidence source → 1 tiered read (pressure render+read,
+`STATE.md`; ledger index + OPEN rows, journal tail) → 2 assess the
+axes → 3 pick the balance-restoring intervention → 4 write its shape
+line → 5 one small reversible change → 6 cheap validator, then the
+stronger oracle → 7 accept or revert with evidence → 8 end-of-iteration
+transaction + one focused commit → 9 provisional balance → full
+frontier scan → `homeostatic-checkpoint`.
+
 {{INCLUDE primitives/runner-contract.md}}
 
 {{INCLUDE primitives/judgment-default.md}}

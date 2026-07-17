@@ -17,8 +17,8 @@ composed prompt.
 1. **Header line** — archetype-specific ("You are running …").
 2. **Provenance preamble** — ALWAYS via `{{PROVENANCE}}` (format below).
 3. **Motive** — ALWAYS.
-3a. **Operational core** — ALWAYS. A compact rehydration block emitted right after
-   Motive (~40 lines): a one-line runtime reminder (the context window is a
+3a. **Operational core** — ALWAYS. A compact rehydration block right after
+   Motive (~50 lines): a one-line runtime reminder (the context window is a
    rolling lossy cache; the files are memory), the **Context budget** table
    (file → tier → cap → access command → human watch command), the
    **context-health check** (the bounded step-0 audit from
@@ -28,9 +28,13 @@ composed prompt.
    post-compaction rehydration read is a bounded `sed -n '1,80p'
    .loop/<loop-id>/PROMPT.md`, not a two-chunk whole-file read — and that the
    pass most likely to violate the read discipline (the half-rehydrated one)
-   meets the audit that catches it inside its first 80 lines. The composer
-   synthesizes it from the body's iteration protocol + the context-stack budget
-   (`primitives/context-stack.md`); it is never gated.
+   meets the audit that catches it inside its first 80 lines. Every body
+   carries the section inline, authored from its own iteration protocol + the
+   context-stack budget (`primitives/context-stack.md`); the shared lines are
+   verifier-pinned byte-identical across bodies, and
+   `tools/verify_loopgen_contracts.py` asserts exact-once presence and the
+   first-80 bound in every render. The composer fills its placeholders and
+   never gates, drops, or re-synthesizes it.
 4. **Runner contract** — ALWAYS (`primitives/runner-contract.md`).
 5. **Judgment default** — ALWAYS (`primitives/judgment-default.md`); in
    `greenfield` it is carried by invariant 7 instead, so it is not emitted twice.
@@ -137,13 +141,13 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    variant when the guard resolved (or the user requested) terminal. Both
    variants are extracted by heading from
    `templates/bodies/frontier-reopen-policy.md`, never re-authored inline.
-4. **Emit the Operational core (ALWAYS), then no other synthesized sections.**
-   Right after Motive, emit the compact Operational core (union order 3a):
-   synthesize it from the body's iteration protocol + the context-stack budget
-   (`primitives/context-stack.md`) — a one-line runtime reminder, the Context
-   budget table, the context-health check, the halt-cause quick list, and the
-   iteration-protocol skeleton —
-   so post-compaction rehydration is a bounded `sed -n '1,80p'
+4. **Verify the Operational core (ALWAYS); synthesize nothing.** Every body
+   carries `## Operational core` right after Motive (union order 3a) — the
+   runtime reminder, the Context budget table, the context-health check, the
+   halt-cause quick list, and the iteration-protocol skeleton. The composer
+   does not author it: verify the section survived composition exactly once
+   and sits entirely within the first 80 lines of the emitted prompt, so
+   post-compaction rehydration is a bounded `sed -n '1,80p'
    .loop/<loop-id>/PROMPT.md`. Beyond this one ALWAYS section, do not prepend
    extra sections: provenance and frontload live only at their explicit body
    placeholders, so every archetype keeps one stable section order.

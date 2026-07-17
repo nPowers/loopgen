@@ -21,6 +21,56 @@ make it real — without grading your own homework.
 
 {{MOTIVE}}
 
+## Operational core
+
+The context window is a rolling lossy cache; the files under
+`.loop/<loop-id>/` are the durable memory. After any detected compaction,
+rehydrate with `sed -n '1,80p' .loop/<loop-id>/PROMPT.md` — this core is that
+bounded re-read. Read keys, not files; the full memory contract is in
+Artifacts to maintain.
+
+**Context budget** (tier → bound → access):
+
+| Surface | Tier | Bound + access |
+|---|---|---|
+| `.loop/<loop-id>/PRESSURE.md` | PINNED | in-force rows ≤ `pressure-cap` (default 12); re-read every pass |
+| `.loop/<loop-id>/STATE.md` | PINNED | ≤ ~50 lines, live status only; re-read every pass |
+| `RUBRIC.md` + `INTENT.md` (whole, bounded-small) | WORKING | read in full once per iteration; exempt from index/splitting |
+| `JOURNAL.jsonl` tail-20 | WORKING | `tail -n 20 .loop/<loop-id>/JOURNAL.jsonl`; once per iteration |
+| journal by key · `archive/*` · `DERIVATION.md` | ON-DEMAND | keyed reads only (`jq` / section), never whole-file |
+| `VERIFY.md` (terminal only) · journal `checkpoint` records | WRITE-ONLY | written in-loop, never re-read |
+
+Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`
+
+**Context-health check** — every pass before task work, right after the
+pressure render+read, and again after any detected compaction. Each line is
+one cheap command; a failed line is a routing (repair before task work),
+never a warning:
+
+1. `STATE.md` ≤ ~50 lines; in-force pressure rows ≤ `pressure-cap`.
+2. The journal tail parses as JSONL; evidence pointers in the last ~5
+   records resolve to files that exist.
+3. The queue artifact's index row for the current item agrees with its
+   section (where the artifact carries an index).
+4. No whole-file read of an append-only artifact since the last check
+   without a named diagnostic exception.
+5. The latest `consolidation` record is within cadence (~10 iterations) and
+   no forced trigger has fired since it.
+
+**Halt causes (quick list):** `stone-converged` (owner: user — the
+loop proposes, the user disposes) · `derivation-gap` ·
+`genuine-escalate` · `wrong-loop`. No shared cause claims the
+artifact complete; any non-success halt requires the full search-surface
+scan first. The Halt section below carries the full classifier.
+
+**Iteration skeleton** (the numbered protocol below is authoritative):
+1 tiered read (pressure render+read, `STATE.md`; `RUBRIC.md` +
+`INTENT.md`, journal tail) → 2 Bootstrap mode if it still applies → 3
+diagnose the most imbalanced stone axis → 4 pick ONE intervention →
+5 change + rubric score (evidence-capped) → 6 persist only what
+changed → 7 close per the runner contract (one focused commit) → 8
+manual-gated continue.
+
 {{INCLUDE primitives/runner-contract.md}}
 
 ## Frontload
