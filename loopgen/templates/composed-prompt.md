@@ -53,6 +53,12 @@ composed prompt.
    available *capability* read before the body — but **only when
    `consult-tier ≥ 1`**, filtered to the patterns that tier meets; at `tier-0` it
    is stripped, leaving the prompt byte-identical. Carried by all four bodies.
+6c. **Human-look gate** — CONDITIONAL via `{{HUMAN_LOOK_GATE}}`
+   (`primitives/human-look-gate.md`), the opposite polarity: emitted **only at
+   `tier-0`** — the real consult substitute the capability authority promises —
+   and stripped byte-identical at `consult-tier ≥ 1`, where the consult
+   sections themselves emit. Carried by all four bodies, immediately after the
+   subagent slot.
 7. **Archetype body** — the nearest archetype's body, placeholders filled.
    Conditional sub-sections by archetype:
    - `frontier`: Frontier vector · Core law · Homeostasis (5 axes) ·
@@ -232,9 +238,13 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
      are omitted, never inlined); tier-3 emits D + B + C. Fill `{{CONSULT_TIER}}`
      with the full tier label (e.g. `tier-2`).
    - Otherwise (`tier-0`) strip `{{SUBAGENT_PATTERNS}}` entirely (step 8 removes
-     it). The loop runs single-agent via pattern A — byte-identical, gated
-     exactly like `{{BENCHMARK_FRONTIER_MODE}}` (the pressure surface, by
-     contrast, is now always-on — step 7a).
+     it) and fill `{{HUMAN_LOOK_GATE}}` with the block below the `---` in
+     `primitives/human-look-gate.md` — the loop runs single-agent via pattern A
+     with the review-packet substitute standing in for consult sections. At
+     `consult-tier ≥ 1` the polarity flips: fill `{{SUBAGENT_PATTERNS}}`, strip
+     `{{HUMAN_LOOK_GATE}}` (step 8). Gated exactly like
+     `{{BENCHMARK_FRONTIER_MODE}}` (the pressure surface, by contrast, is
+     always-on — step 7a).
    - Pattern A (single-agent iteration) is the existing protocol; it is never
      part of this block, and nothing here is a required gate to accept an
      iteration.
@@ -243,7 +253,8 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
    prompt must contain no dead sections. When a stripped placeholder sat on its
    own line between blank lines, **collapse the surrounding blanks to a single
    newline**, so a gated placeholder (`{{SUBAGENT_PATTERNS}}`,
-   `{{RUN_HOST_VERIFICATION}}`, `{{BENCHMARK_FRONTIER_MODE}}`) leaves
+   `{{RUN_HOST_VERIFICATION}}`, `{{HUMAN_LOOK_GATE}}`,
+   `{{BENCHMARK_FRONTIER_MODE}}`) leaves
    byte-identical output whether on or off
    (no double blank line when it is stripped). `{{PRESSURE_SURFACE}}` is now
    always substituted (step 7a) and never stripped, so it no longer participates
@@ -281,7 +292,8 @@ measured failure was a dead `PRESSURE.md`). A zero-pressure compose still carrie
 the pinned HUD and its mandatory promotion triggers, so the surface is live the
 moment the loop mints its first row; seeded rows only pre-populate the in-force
 set. The gated placeholders are `{{SUBAGENT_PATTERNS}}` and
-`{{RUN_HOST_VERIFICATION}}` (both consult-tier ≥ 1) plus
+`{{RUN_HOST_VERIFICATION}}` (both consult-tier ≥ 1), `{{HUMAN_LOOK_GATE}}`
+(the reverse gate: emitted at `tier-0` only), plus
 `{{BENCHMARK_FRONTIER_MODE}}` — `{{SUBAGENT_PATTERNS}}` stays the reference
 example of a compose-gated block (stripped byte-identical at `tier-0`,
 step 8).

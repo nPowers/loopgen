@@ -54,8 +54,9 @@ a consult channel exists.
 ## Composition rules
 
 - `tier-0` **forces** removal of consult-dependent sections (blind comprehension
-  reads, scheduled creative consults, adversarial refute panels) and inserts a
-  periodic human-look gate; record the degradation in provenance.
+  reads, scheduled creative consults, adversarial refute panels) and inserts the
+  emittable periodic human-look gate (`{{HUMAN_LOOK_GATE}}` —
+  `primitives/human-look-gate.md`); record the degradation in provenance.
 - `tier-1` replaces programmatic consults with an async human-bridge handoff.
 - `tier ≥ 2` enables the greenfield invariant-8 blind adversarial consult and
   the story Surface-Taste blind read; consult cadence aligns with

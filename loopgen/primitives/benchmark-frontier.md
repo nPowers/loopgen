@@ -74,7 +74,9 @@ and undecided candidates keep the loop on the same case instead of
 checkpointing.
 
 For repeated structural negatives, the candidate lineage must include the bridge
-explicitly: a `consult` row for the trace-backed diagnosis, an `architect` row
+explicitly: a `consult` row for the trace-backed diagnosis — backed by the
+consult channel at tier ≥ 1, or at tier-0 by the Human-look gate's review
+packet (the row cites that packet's journal record) — an `architect` row
 for the saved structural plan, and a `build` row for the implemented probe/slice.
 The build row cannot become a frontier member until a same-class rerun trace
 demonstrates the structural change improved or falsified the candidate.

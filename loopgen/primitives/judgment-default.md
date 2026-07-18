@@ -9,9 +9,10 @@ structural fix. It also enumerates the *only* conditions that justify
 
 **Include when.** Every composed prompt, every archetype, unconditionally.
 The escalate triggers compose with `consult-capability` (a tier-0
-environment may have to emit a human-bridge handoff where a richer
-environment would consult programmatically) and with `halt-cause-classifier`
-(`genuine-escalate`).
+environment routes consult-shaped needs to the Human-look gate's review
+packet — `primitives/human-look-gate.md`; tier-1 emits an async human-bridge
+handoff; richer environments consult programmatically) and with
+`halt-cause-classifier` (`genuine-escalate`).
 
 **Placeholders.** None — substituted verbatim.
 

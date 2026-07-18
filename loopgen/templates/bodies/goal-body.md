@@ -95,6 +95,8 @@ and never satisfy or retire a pressure row.
 
 {{SUBAGENT_PATTERNS}}
 
+{{HUMAN_LOOK_GATE}}
+
 ## Oracle principles
 
 This loop is honest by construction (full text in

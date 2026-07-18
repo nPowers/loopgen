@@ -112,7 +112,8 @@ requested and effective values are recorded in provenance.
 **`consult-capability` tiers** (detected at frontload time — probe for
 `mcp__agentify-desktop__*`, other `mcp__*` tools, `/second-opinion`,
 `/agentify`, PAL): `tier-0` none → drop scheduled-consult sections + substitute
-a human-look gate; `tier-1` human-bridge handoff; `tier-2` single programmatic
+the emittable human-look gate (`primitives/human-look-gate.md`); `tier-1`
+human-bridge handoff; `tier-2` single programmatic
 consult; `tier-3` rich fabric (blind adversarial + multi-modal). All archetypes
 default `tier-0` if undetected — never assume a channel exists.
 
@@ -599,7 +600,7 @@ write a ⚠️ block to `.loop/<loop-id>/STATE.md`.
   + shared blocks (`runner-contract`, `judgment-default`, `evidence-tier`,
   `frontload-audit`, `halt-cause-classifier`, `diagnostic-pattern`,
   `evaluator-maturity`, `queue-as-second-artifact`, `context-stack`, `pressure`,
-  `pressure-accounting`, `frontier-vector-adequacy`) and
+  `pressure-accounting`, `frontier-vector-adequacy`, `human-look-gate`) and
   the conditional `benchmark-frontier` / `eval-ladder` overlay.
 - `archetypes/` — `frontier`, `goal`, `story`, `greenfield`: irreducible loop
   shape + default primitive values + forbidden divergences + failure modes.

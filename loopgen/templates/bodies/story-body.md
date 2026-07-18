@@ -89,6 +89,8 @@ evidence → 6 promote or handoff → 7 reconcile.
 
 {{SUBAGENT_PATTERNS}}
 
+{{HUMAN_LOOK_GATE}}
+
 ## Core objects
 
 ### Guidance Source

@@ -32,6 +32,7 @@ GREENFIELD_BODY = ROOT / "loopgen/templates/bodies/greenfield-body.md"
 BENCHMARK_FRONTIER = ROOT / "loopgen/primitives/benchmark-frontier.md"
 PRESSURE_ACCOUNTING = ROOT / "loopgen/primitives/pressure-accounting.md"
 SUBAGENT_PATTERNS = ROOT / "loopgen/primitives/subagent-patterns.md"
+HUMAN_LOOK_GATE = ROOT / "loopgen/primitives/human-look-gate.md"
 CONSULT_CAPABILITY = ROOT / "loopgen/primitives/consult-capability.md"
 BENCHMARK_ARTIFACTS = ROOT / "loopgen/references/benchmark-frontier-artifacts.md"
 BENCHMARK_EXAMPLE = ROOT / "loopgen/references/benchmark-frontier-example.md"
@@ -282,8 +283,12 @@ def render_frontier(
     # Pressure surface is always-on (ADR 0004): substitute the pressure.md block.
     prompt = prompt.replace("{{PRESSURE_SURFACE}}", resolve_gated_block(PRESSURE))
     # render_frontier renders the tier-0 pure case: the run-host channel check
-    # strips byte-identical (composed-prompt step 8), eating its blank line.
+    # strips byte-identical (composed-prompt step 8), eating its blank line,
+    # and the tier-0 human-look gate fills (composed-prompt step 7b).
     prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}\n\n", "")
+    prompt = prompt.replace(
+        "{{HUMAN_LOOK_GATE}}", resolve_gated_block(HUMAN_LOOK_GATE).rstrip("\n")
+    )
     placeholders = dict(PLACEHOLDERS)
     if placeholder_overrides:
         placeholders.update(placeholder_overrides)
@@ -566,10 +571,16 @@ def render_body(
             "{{CONSULT_TIER}}", f"tier-{consult_tier}"
         )
         prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}", run_host.rstrip("\n"))
+        # tier >= 1: the tier-0 substitute strips byte-identical (step 8).
+        prompt = prompt.replace("{{HUMAN_LOOK_GATE}}\n\n", "")
     else:
         prompt = prompt.replace("{{SUBAGENT_PATTERNS}}", "")
-        # tier-0: strip byte-identical, eating the slot's blank line (step 8).
+        # tier-0: strip byte-identical, eating the slot's blank line (step 8),
+        # and fill the promised human-look substitute (step 7b).
         prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}\n\n", "")
+        prompt = prompt.replace(
+            "{{HUMAN_LOOK_GATE}}", resolve_gated_block(HUMAN_LOOK_GATE).rstrip("\n")
+        )
 
     values = dict(COMMON_BODY_PLACEHOLDERS)
     values.update(ARCHETYPE_BODY_PLACEHOLDERS[archetype])
@@ -1990,6 +2001,48 @@ def context_mode_violations() -> list[str]:
     return v
 
 
+def tier0_human_look_violations() -> list[str]:
+    """Tier-0 closeout: the periodic human-look substitute the capability
+    authority promises is a real emitted block — present exactly once in
+    every tier-0 render, stripped byte-identical at tier >= 1 — and no
+    tier-0 render carries an executable phantom-consult instruction. The
+    three consult-shaped action sites (consolidation fork, frontier
+    structural bridge, benchmark consult row) route to it."""
+    marker = "## Human-look gate (tier-0 consult substitute)"
+    phantom = "ask the available consult channel"
+    v: list[str] = []
+    renders0 = {
+        "frontier-pure": render_frontier(benchmark_overlay=False),
+        "frontier-benchmark": render_frontier(benchmark_overlay=True),
+    }
+    for archetype in BODY_PATHS:
+        renders0[f"{archetype}-tier0"] = render_body(archetype)
+    for name, text in renders0.items():
+        if text.count(marker) != 1:
+            v.append(f"{name}: expected exactly one human-look gate, found {text.count(marker)}")
+        if "review packet" not in text:
+            v.append(f"{name}: tier-0 render lacks the review-packet substitute")
+        if phantom in text:
+            v.append(f"{name}: tier-0 render still instructs `{phantom}`")
+        if "else the tier-0 Human-look gate's review packet" not in one_line(text):
+            v.append(f"{name}: consolidation fork lost its tier-0 routing")
+    for name in ("frontier-pure", "frontier-benchmark"):
+        if "route the trace bundle to the consult resolution" not in one_line(renders0[name]):
+            v.append(f"{name}: structural bridge lost its consult-resolution routing")
+    if "by the Human-look gate's review packet" not in one_line(
+        renders0["frontier-benchmark"]
+    ):
+        v.append("frontier-benchmark: consult lineage row lacks its tier-0 backing action")
+    for archetype in BODY_PATHS:
+        for tier in (1, 3):
+            text = render_body(archetype, consult_tier=tier)
+            if marker in text:
+                v.append(f"{archetype}-tier{tier}: human-look gate leaked into a consulted render")
+            if "{{HUMAN_LOOK" in text:
+                v.append(f"{archetype}-tier{tier}: dead HUMAN_LOOK_GATE placeholder survives")
+    return v
+
+
 def render_input_violations() -> list[str]:
     """U1 closeout: render_body rejects consult tiers outside the closed 0..3
     vocabulary instead of silently misfiltering them (tier -1 rendered as
@@ -2273,6 +2326,19 @@ def run_checks() -> int:
             not bad_inputs,
             "render_rejects_invalid_consult_tier",
             "; ".join(bad_inputs),
+        )
+    )
+
+    # ── Tier-0: the human-look gate is emitted and every consult site routes ─
+    try:
+        human_look = tier0_human_look_violations()
+    except (ContractError, AssertionError) as exc:
+        human_look = [str(exc)]
+    checks.append(
+        require(
+            not human_look,
+            "tier0_human_look_gate_emitted_and_routed",
+            "; ".join(human_look),
         )
     )
 

@@ -271,7 +271,9 @@ The round is one bounded read-and-write, not an open investigation:
    record's `lesson`.
 4. **Decide, and record the decision** in the `consolidation` record's
    `decision`: **continue** the loop as modeled; **fork** — route the named
-   contradiction to the consult channel as a fresh root-cause attack (attack
+   contradiction to the consult resolution — the consult channel
+   `consult_tier_effective` proves live, else the tier-0 Human-look gate's
+   review packet — as a fresh root-cause attack (attack
    the contradiction directly, not the current criterion — a fresh look
    unanchored from the queue is what breaks the frame); or **cleanup** — after
    a substrate cause is confirmed, mint a row to audit symptom-era defensive

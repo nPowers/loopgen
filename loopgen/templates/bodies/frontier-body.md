@@ -84,6 +84,8 @@ frontier scan → `homeostatic-checkpoint`.
 
 {{SUBAGENT_PATTERNS}}
 
+{{HUMAN_LOOK_GATE}}
+
 ## Frontier vector
 
 This repository's evidence-backed frontier moves along these dimensions
@@ -298,10 +300,11 @@ appears twice, or one trace shows the current boundary cannot represent the
 authoritative source at all, the next accepted move must bridge into
 consultation, architecture, and build:
 
-1. **Consult** — ask the available consult channel to review the trace bundle
-   and classify the failure as prompt wording, evaluator weakness, or missing
-   product/runtime structure. The prompt must cite concrete trace paths and
-   observed deltas.
+1. **Consult** — route the trace bundle to the consult resolution — the
+   consult channel `consult_tier_effective` proves live, or at tier-0 the
+   Human-look gate's review packet — and have it classify the failure as
+   prompt wording, evaluator weakness, or missing product/runtime structure,
+   citing concrete trace paths and observed deltas.
 2. **Architect** — invoke `/architect` deeply on the smallest structural change
    that would make the failure class measurable. Save the plan to a durable
    artifact when the next step will use `/build`.

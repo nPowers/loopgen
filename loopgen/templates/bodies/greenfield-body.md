@@ -83,6 +83,8 @@ manual-gated continue.
 
 {{SUBAGENT_PATTERNS}}
 
+{{HUMAN_LOOK_GATE}}
+
 ## Green-field invariants
 
 These eleven invariants are load-bearing; each corresponds to a failure mode a
