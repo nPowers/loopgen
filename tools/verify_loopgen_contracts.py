@@ -1734,28 +1734,29 @@ def production_provenance() -> str:
         raise ContractError("composed-prompt.md: provenance ```md fence is unclosed")
     block = text[start: start + close.start()].rstrip("\n")
     lines = block.splitlines()
-    if not lines or not all(line.startswith(">") for line in lines):
-        raise ContractError(
-            f"composed-prompt.md: provenance block has {len(lines)} line(s), not all `>`"
-        )
-    # Exact required-field schema: each canonical field exactly once. Deleting
-    # `Primitive sources`, or replacing all eight fields with arbitrary
-    # blockquote lines, must fail here — not slip through a bare line count.
-    required = (
-        "Loop provenance — composed by",
-        "Archetype:",
-        "Overlays:",
-        "Consult-capability:",
-        "Evaluator tier:",
-        "Frontload — resolved:",
-        "Primitive sources:",
-        "Re-derive (do not hand-edit)",
+    # Exactly eight ordered rows, each matching its anchored pattern. This
+    # rejects duplicate labels on one line, several fields collapsed onto one
+    # line, reordered rows, and a decoy label ("> Not Archetype:") — none of
+    # which a substring counter caught.
+    ordered = (
+        r"> \*\*Loop provenance — composed by `/loopgen`\.\*\*",
+        r"> Archetype: ",
+        r"> Overlays: ",
+        r"> Consult-capability: ",
+        r"> Evaluator tier: ",
+        r"> Frontload — resolved: ",
+        r"> Primitive sources: ",
+        r"> Re-derive \(do not hand-edit\)",
     )
-    for field in required:
-        n = sum(field in line for line in lines)
-        if n != 1:
+    if len(lines) != len(ordered):
+        raise ContractError(
+            f"composed-prompt.md: provenance block has {len(lines)} rows, want exactly {len(ordered)}"
+        )
+    for line, pat in zip(lines, ordered):
+        if not re.match("^" + pat, line):
             raise ContractError(
-                f"composed-prompt.md: provenance field `{field}` appears {n}× (want exactly 1)"
+                f"composed-prompt.md: provenance row out of order / malformed: `{line[:60]}` "
+                f"(expected /^{pat}/)"
             )
     return block
 
@@ -2025,45 +2026,28 @@ def evidence_tier_goal_violations() -> list[str]:
 # ── U1-c4: derivation provenance is owned by write-once DERIVATION.md ──────
 
 
-# Closed relation grammar for derivation-ownership drift. "Ownership" is the
-# relation *the read set is stored in <FILE>*, expressed by two closed relation
-# templates and one closed exclusion marker set — never an open verb list:
-#   locative   : in/into `<FILE>`                       (case-insensitive)
-#   possessive : `<FILE>` <STORE_VERB> … derivation_read_set   (FILE is subject)
-#   exclusion  : {not|never|unlike|rather than|instead of} [in] `<FILE>`
-# STORE_VERB is a fixed, closed set (not extended reactively). A neutral mention
-# that assigns the FILE a *different* object ("`STATE.md` holds live status")
-# matches neither template, so it is not an assignment.
-_STORE_VERB = r"(?:stores?|holds?|keeps?|owns?|records?|is\s+the\s+(?:home|record)\b)"
-_NEG_BEFORE = re.compile(r"(?:\bnot|\bnever|n't|\bunlike|rather\s+than|instead\s+of)\s+$", re.I)
+# Fail-CLOSED derivation-ownership check, bounded to the CLAUSE containing each
+# mention (not a ±140 char window, so unrelated prose two sentences away cannot
+# false-red). Within its clause a `derivation_read_set` mention must (a) name
+# DERIVATION.md as the home and (b) contain no competing artifact filename
+# except in the one sanctioned form — a contrastive exclusion ("not `STATE.md`",
+# "unlike `STATE.md`"). Any competitor in any other relation ("in `STATE.md`",
+# "`STATE.md` stores …", "→ `STATE.md`", or a bare unrecognized mention) fails.
+# Clause boundaries are sentence/`;` terminators followed by whitespace;
+# filename periods (".md", ".loop/") are never boundaries (no trailing space).
+_CLAUSE_BOUND = re.compile(r"[.;]\s")
+_OWN_EXCLUDE = re.compile(r"(?:\bnot|\bnever|\bunlike|rather\s+than|instead\s+of)\s+(?:in\s+)?`?$", re.I)
 
 
-def _file_holds_read_set(window: str, file: str) -> bool:
-    """True iff `file` is bound as the storage location of derivation_read_set
-    by the locative or possessive relation template, and is not contrast-
-    excluded. Case-insensitive so a fronted 'In `STATE.md`, store …' is caught;
-    'in `DERIVATION.md`, not `STATE.md`' does not bind STATE.md (no preposition
-    reaches it); 'never changes in `DERIVATION.md`' binds DERIVATION.md (the
-    negation modifies the verb, not the locative)."""
-    esc = re.escape(file)
-    for m in re.finditer(r"\bin(?:to)?\s+`?(?:\.loop/[^`]*?)?" + esc, window, re.I):
-        if not _NEG_BEFORE.search(window[max(0, m.start() - 12): m.start()]):
-            return True
-    for m in re.finditer(esc + r"`?\s+" + _STORE_VERB + r"[^.]{0,40}?derivation_read_set", window, re.I):
-        if not _NEG_BEFORE.search(window[max(0, m.start() - 12): m.start()]):
-            return True
-    return False
-
-
-def _derivation_home_negated(window: str) -> bool:
-    """True iff the window negates DERIVATION.md AS THE HOME — "not … its home
-    … DERIVATION.md" or "DERIVATION.md is not …". Only consulted when
-    DERIVATION.md is not itself a storage target, so "never changes in
-    DERIVATION.md" (where DERIVATION.md IS the store) never reaches here."""
-    return bool(
-        re.search(r"\b(?:not|never)\b\s+(?:its?\s+)?home[^.]{0,30}?DERIVATION\.md", window, re.I)
-        or re.search(r"DERIVATION\.md`?[^.]{0,20}?\bis\s+not\b", window, re.I)
-    )
+def _clause_around(flat: str, start: int, end: int) -> str:
+    lo = 0
+    for m in _CLAUSE_BOUND.finditer(flat, 0, start):
+        lo = m.end()
+    hi = len(flat)
+    m = _CLAUSE_BOUND.search(flat, end)
+    if m:
+        hi = m.start() + 1
+    return flat[lo:hi]
 
 
 def derivation_ownership_violations() -> list[str]:
@@ -2092,32 +2076,23 @@ def derivation_ownership_violations() -> list[str]:
             i = flat.find(needle, start)
             if i == -1:
                 break
-            window = flat[max(0, i - 140): i + 140]
-            # Structural ownership, not proximity: DERIVATION.md must be the
-            # named home, must not be negated, and no competing file may be
-            # the assignment target. This is a drift heuristic (an author
-            # determined to write ownership-lying prose can still evade it),
-            # but it passes the legit contrastive shape
-            # ("…in `DERIVATION.md`, not `STATE.md`…") that a nearest-owner
-            # proximity rule wrongly reds, and catches the reassignment shapes
-            # ("…in `STATE.md`…", "…DERIVATION.md is not its home…in STATE.md…")
-            # that a mere-presence rule wrongly greens.
-            if "DERIVATION.md" not in window:
-                v.append(f"{label}: derivation_read_set names no DERIVATION.md home near `…{window[100:180]}…`")
-            else:
-                competitors = [
-                    c for c in ("STATE.md", "JOURNAL.jsonl")
-                    if _file_holds_read_set(window, c)
-                ]
-                if competitors:
-                    v.append(
-                        f"{label}: derivation_read_set stored in "
-                        f"{', '.join(competitors)} near `…{window[100:180]}…`"
-                    )
-                elif not _file_holds_read_set(window, "DERIVATION.md") and \
-                        _derivation_home_negated(window):
-                    v.append(f"{label}: derivation_read_set's DERIVATION.md home is negated near `…{window[100:180]}…`")
             start = i + len(needle)
+            clause = _clause_around(flat, i, start)
+            if "DERIVATION.md" not in clause:
+                v.append(f"{label}: derivation_read_set clause names no DERIVATION.md home: `…{clause[:120]}…`")
+                continue
+            flagged = False
+            for comp in ("STATE.md", "JOURNAL.jsonl"):
+                for cm in re.finditer(re.escape(comp), clause):
+                    if not _OWN_EXCLUDE.search(clause[max(0, cm.start() - 16): cm.start()]):
+                        v.append(
+                            f"{label}: derivation_read_set clause names {comp} not as an "
+                            f"exclusion: `…{clause[:120]}…`"
+                        )
+                        flagged = True
+                        break
+                if flagged:
+                    break
     readme_flat = one_line(read(ROOT / "README.md"))
     if "DERIVATION.md` records classification and frontload" not in readme_flat:
         v.append("README.md durable-state bullet no longer names DERIVATION.md as the classification/frontload record")
@@ -2201,42 +2176,34 @@ def context_mode_violations() -> list[str]:
         r"`context_mode_resolution_basis` from the closed set (.+?)— never observation",
         emitted,
     )
-    # Case-inclusive capture ([A-Za-z-]+, not [a-z-]+): an extra member added
-    # in any case (e.g. `Model-Observed`) is caught by the exact-list compare
-    # instead of being skipped by a lowercase-only pattern.
+    # Full-match the ENTIRE slash-delimited grammar, not a token extraction:
+    # the captured span must equal the canonical expression exactly, so any
+    # residue — an unquoted `model.observed /` prefix, a reordering, an extra
+    # member in any quoting — fails, not just backticked odd members.
+    BASIS_GRAMMAR = "`operator-declared` / `runner-attested` / `unknown`"
+    MODE_GRAMMAR = "`fresh-episode` / `rolling-lossy` / `unknown`"
     if not basis:
         v.append("context-stack: resolution-basis closed-set sentence not parseable")
-    elif re.findall(r"`([^`]+)`", basis.group(1)) != [
-        "operator-declared", "runner-attested", "unknown",
-    ]:
-        v.append(
-            "context-stack: resolution-basis set drifted: "
-            f"{re.findall(r'`([^`]+)`', basis.group(1))}"
-        )
+    elif basis.group(1).strip() != BASIS_GRAMMAR:
+        v.append(f"context-stack: resolution-basis grammar drifted: `{basis.group(1).strip()}`")
     for label, pattern in (
         ("effective-mode", r"`context_mode_effective` — [^(]*\(([^)]+)\)"),
         ("requested-mode", r"`context_mode_requested` \(([^)]+)\)"),
     ):
         m = re.search(pattern, emitted)
-        found = re.findall(r"`([^`]+)`", m.group(1)) if m else []
-        if found != ["fresh-episode", "rolling-lossy", "unknown"]:
-            v.append(f"context-stack: {label} enum drifted: {found}")
+        if not m:
+            v.append(f"context-stack: {label} enum not parseable")
+        elif m.group(1).strip() != MODE_GRAMMAR:
+            v.append(f"context-stack: {label} enum grammar drifted: `{m.group(1).strip()}`")
     skill_basis = re.search(
         r"`context_mode_resolution_basis`\s*\(([^)]+)\)", skill_flat
     )
     if not skill_basis:
         v.append("SKILL.md: resolution-basis parenthetical not parseable")
     else:
-        names = [
-            s.strip()
-            for s in skill_basis.group(1).split("—")[0].split("/")
-            if s.strip()
-        ]
-        if names != ["operator-declared", "runner-attested", "unknown"]:
-            v.append(f"SKILL.md: resolution-basis set drifted: {names}")
-        # The SKILL parenthetical continues past the first em dash with the
-        # reservation clause; capture it separately so the split above stays
-        # exact on the three-member set.
+        prefix = skill_basis.group(1).split("—")[0].strip()
+        if prefix != "operator-declared / runner-attested / unknown":
+            v.append(f"SKILL.md: resolution-basis grammar drifted: `{prefix}`")
         if "runner-attested is reserved, no current producer" not in skill_flat:
             v.append("SKILL.md: resolution-basis parenthetical lost the reservation clause")
     # U3 truth table: the core's cadence clause pairs each mode with exactly
@@ -2325,6 +2292,16 @@ def human_look_gate_violations() -> list[str]:
     tier2 = skill.split("**Tier 2 — read for composition", 1)[-1].split("**After classification", 1)[0]
     if "primitives/human-look-gate.md" not in tier2:
         v.append("SKILL.md Tier-2 composition reads omit human-look-gate.md")
+    # Exactly ONE live-condition paragraph with exactly ONE live predicate, and
+    # that predicate is tier-0 — so retaining the tier-0 sentence while adding a
+    # second "…effectively tier-1…" live declaration fails (presence-pinning the
+    # tier-0 sentence alone would stay green).
+    gate_src = resolve_gated_block(HUMAN_LOOK_GATE)
+    if gate_src.count("**Live condition.**") != 1:
+        v.append(f"human-look gate: {gate_src.count('**Live condition.**')} Live-condition paragraphs (want 1)")
+    live = re.findall(r"live wherever consult capability is\s+\*effectively\* tier-(\d)", one_line(gate_src))
+    if live != ["0"]:
+        v.append(f"human-look gate: live predicate(s) {live} (want exactly one, tier-0)")
     return v
 
 
@@ -2342,7 +2319,11 @@ def stale_watch_command_violations() -> list[str]:
     the named packet consumer; a repo-wide scan stops any stale copy — new or
     surviving — from shipping."""
     v: list[str] = []
-    watch_line = re.compile(r"jq -r '\[\.iter[^']*'")
+    # Match the projection BRACKET EXPRESSION itself, quote-agnostic (single or
+    # double quotes) and whitespace-agnostic — any `[.iter … @tsv` anywhere —
+    # then require it to equal the canonical projection exactly. A stale command
+    # in either quoting, or with drifted internal whitespace, fails.
+    watch_expr = re.compile(r"\[\.iter\b[^\n]*?@tsv")
     # Scan git-tracked markdown only — precisely the callsites that ship.
     # gitignored scratch (`.research/`, `dev/`, the scratchpad) is not a
     # callsite and must not gate the check.
@@ -2356,20 +2337,20 @@ def stale_watch_command_violations() -> list[str]:
         paths = [p for p in sorted(ROOT.rglob("*.md"))
                  if not any(part in {".git", ".research", "scratchpad", "dev"} for part in p.parts)]
     for path in paths:
-        for m in watch_line.finditer(read(path)):
-            if CANONICAL_WATCH_PROJECTION not in m.group(0):
-                v.append(f"{path.relative_to(ROOT)}: stale/object-unsafe watch command `…{m.group(0)[10:70]}…`")
+        for m in watch_expr.finditer(read(path)):
+            if m.group(0) != CANONICAL_WATCH_PROJECTION:
+                v.append(f"{path.relative_to(ROOT)}: non-canonical watch command `…{m.group(0)[:60]}…`")
     return v
 
 
 def watch_command_executable_violations() -> list[str]:
     """Executable jq fixture: extract the projection from a real emitted render
-    and RUN it (when jq is present) over canonical mixed records — including a
-    `checkpoint` whose `.changed` is an object and a record with an array
-    field — asserting exit 0 and the expected rows. Proves the emitted command
-    actually works, not merely that a string matches."""
-    if not shutil.which("jq"):
-        return []  # jq absent (e.g. minimal CI) — the string scan still guards
+    and RUN it over canonical mixed records — a `checkpoint` whose `.changed`
+    is an object, a record whose `.to` is an ARRAY and one whose `.changed` is
+    an array (both fields the projection actually reads), plus packet and
+    attempt — asserting exit 0 and the COMPLETE output. Proves the emitted
+    command works on every structured type it can encounter, not merely that a
+    string matches. Called only when jq is installed (else a visible SKIP)."""
     render = render_body("goal", consult_tier=0)
     m = re.search(r"jq -r '(\[\.iter[^']*)'", render)
     if not m:
@@ -2379,21 +2360,24 @@ def watch_command_executable_violations() -> list[str]:
         '{"iter":5,"t":"checkpoint","changed":{"phase":"verify"}}',
         '{"iter":6,"t":"attempt","ac":"AC-1","verdict":"PASS"}',
         '{"iter":7,"t":"alignment_review","packet":"hlp-7-1","question":"ok?"}',
-        '{"iter":8,"t":"halt","scan":["a","b"]}',
+        '{"iter":9,"t":"pressure","id":"p1","to":["x","y"]}',
+        '{"iter":10,"t":"checkpoint","changed":["k"]}',
     ))
     proc = subprocess.run(
         ["jq", "-r", projection], input=records, capture_output=True, text=True
     )
     if proc.returncode != 0:
         return [f"emitted watch command errored on canonical records: {proc.stderr.strip()}"]
-    rows = proc.stdout.strip().splitlines()
     expected = [
         '5\tcheckpoint\t\t{"phase":"verify"}',
         "6\tattempt\tAC-1\tPASS",
         "7\talignment_review\thlp-7-1\tok?",
+        '9\tpressure\tp1\t["x","y"]',
+        '10\tcheckpoint\t\t["k"]',
     ]
-    if rows[:3] != expected:
-        return [f"emitted watch command produced unexpected rows: {rows[:3]}"]
+    rows = proc.stdout.splitlines()
+    if rows != expected:
+        return [f"emitted watch command produced unexpected complete output: {rows}"]
     return []
 
 
@@ -2712,17 +2696,22 @@ def run_checks() -> int:
             "; ".join(stale_watch),
         )
     )
-    try:
-        watch_exec = watch_command_executable_violations()
-    except (ContractError, AssertionError) as exc:
-        watch_exec = [str(exc)]
-    checks.append(
-        require(
-            not watch_exec,
-            "watch_command_executable_jq_fixture",
-            "; ".join(watch_exec),
+    if shutil.which("jq") is None:
+        # Visible SKIP, never a silent green — the string scan still guards the
+        # command shape; only the runtime execution is unavailable here.
+        checks.append(require(True, "watch_command_executable_jq_fixture [SKIPPED: jq not installed]"))
+    else:
+        try:
+            watch_exec = watch_command_executable_violations()
+        except (ContractError, AssertionError) as exc:
+            watch_exec = [str(exc)]
+        checks.append(
+            require(
+                not watch_exec,
+                "watch_command_executable_jq_fixture",
+                "; ".join(watch_exec),
+            )
         )
-    )
 
     # ── U2: context-mode split under the strict resolution-basis rule ───────
     context_mode = context_mode_violations()
