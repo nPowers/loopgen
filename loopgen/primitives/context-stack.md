@@ -243,7 +243,7 @@ Access:
   whole file — a full-history read is a named diagnostic exception (halt
   analysis / Diagnostic mode), never a normal move.
 - **Human watch (WRITE-ONLY, external):**
-  `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,(.verdict//.to//.question//.changed)|if type=="object" then tojson else . end]|@tsv'`.
+  `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,(.verdict//.to//.question//.changed)|if (type=="object" or type=="array") then tojson else . end]|@tsv'`.
 
 ### Consolidation round — reading the field, auditing the substrate
 

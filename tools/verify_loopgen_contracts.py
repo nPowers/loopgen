@@ -16,6 +16,8 @@ Run via `make check` from the repo root, or directly as
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -1628,7 +1630,7 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     # coordinated four-body edit can silently change or remove them.
     "Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r "
     "'[.iter,.t,.ac//.id//.packet,(.verdict//.to//.question//.changed)"
-    "|if type==\"object\" then tojson else . end]|@tsv'`",
+    "|if (type==\"object\" or type==\"array\") then tojson else . end]|@tsv'`",
     "6. `consult_tier_effective` in `STATE.md` still matches this host "
     "(`n/a` at tier-0); stale after any runner change — re-verify before "
     "consulting.",
@@ -1721,27 +1723,40 @@ def production_provenance() -> str:
     i = text.find(anchor)
     if i == -1:
         raise ContractError("composed-prompt.md: production provenance preamble not found")
-    fence = text.find("```md", i)
-    if fence == -1:
-        raise ContractError("composed-prompt.md: provenance preamble has no ```md fence")
-    start = text.index("\n", fence) + 1
-    end = text.find("```", start)
-    if end == -1:
+    # Line-anchored fences (whole ```md / ``` lines), not substring finds, so a
+    # stray inline ``` cannot mis-bound the block.
+    fence = re.search(r"(?m)^```md$", text[i:])
+    if not fence:
+        raise ContractError("composed-prompt.md: provenance preamble has no whole-line ```md fence")
+    start = i + fence.end() + 1
+    close = re.search(r"(?m)^```$", text[start:])
+    if not close:
         raise ContractError("composed-prompt.md: provenance ```md fence is unclosed")
-    block = text[start:end].rstrip("\n")
+    block = text[start: start + close.start()].rstrip("\n")
     lines = block.splitlines()
-    # An empty block would make the canonical budget check green while the
-    # emitted prompt has no provenance at all — all([]) is True, so guard the
-    # emptiness explicitly. The production preamble is 8 `>` lines; require a
-    # plausible floor so deleting fields can never silently shrink the budget.
-    if len(lines) < 5:
+    if not lines or not all(line.startswith(">") for line in lines):
         raise ContractError(
-            f"composed-prompt.md: provenance block has {len(lines)} lines (< 5 — "
-            "the production preamble is 8; an empty/gutted block would falsely "
-            "pass the first-80 budget)"
+            f"composed-prompt.md: provenance block has {len(lines)} line(s), not all `>`"
         )
-    if not all(line.startswith(">") for line in lines):
-        raise ContractError("composed-prompt.md: provenance block has a non-`>` line")
+    # Exact required-field schema: each canonical field exactly once. Deleting
+    # `Primitive sources`, or replacing all eight fields with arbitrary
+    # blockquote lines, must fail here — not slip through a bare line count.
+    required = (
+        "Loop provenance — composed by",
+        "Archetype:",
+        "Overlays:",
+        "Consult-capability:",
+        "Evaluator tier:",
+        "Frontload — resolved:",
+        "Primitive sources:",
+        "Re-derive (do not hand-edit)",
+    )
+    for field in required:
+        n = sum(field in line for line in lines)
+        if n != 1:
+            raise ContractError(
+                f"composed-prompt.md: provenance field `{field}` appears {n}× (want exactly 1)"
+            )
     return block
 
 
@@ -2010,28 +2025,32 @@ def evidence_tier_goal_violations() -> list[str]:
 # ── U1-c4: derivation provenance is owned by write-once DERIVATION.md ──────
 
 
-_CONTRAST = re.compile(r"\b(?:not|unlike|never|rather than|instead of)\b", re.I)
-# Negation of the LOCATIVE itself, immediately before the preposition
-# ("not in `STATE.md`"), as opposed to a negation earlier in the clause that
-# modifies a different verb ("never changes in `DERIVATION.md`").
-_NEG_PREP = re.compile(r"(?:\bnot|\bnever|n't)\s+$", re.I)
-_OWNER_VERB = r"`?\s+(?:holds|stores|keeps|owns|records|is the (?:home|record)|is its home)\b"
+# Closed relation grammar for derivation-ownership drift. "Ownership" is the
+# relation *the read set is stored in <FILE>*, expressed by two closed relation
+# templates and one closed exclusion marker set — never an open verb list:
+#   locative   : in/into `<FILE>`                       (case-insensitive)
+#   possessive : `<FILE>` <STORE_VERB> … derivation_read_set   (FILE is subject)
+#   exclusion  : {not|never|unlike|rather than|instead of} [in] `<FILE>`
+# STORE_VERB is a fixed, closed set (not extended reactively). A neutral mention
+# that assigns the FILE a *different* object ("`STATE.md` holds live status")
+# matches neither template, so it is not an assignment.
+_STORE_VERB = r"(?:stores?|holds?|keeps?|owns?|records?|is\s+the\s+(?:home|record)\b)"
+_NEG_BEFORE = re.compile(r"(?:\bnot|\bnever|n't|\bunlike|rather\s+than|instead\s+of)\s+$", re.I)
 
 
-def _owner_is_assignment_target(window: str, owner: str) -> bool:
-    """True iff `owner` is the assignment target of derivation ownership:
-    a locative `in/into <owner>` whose preposition is not directly negated
-    ("not in `STATE.md`"), or a possessive `<owner> holds/stores/owns/…` that
-    is not contrasted. The legit exclusion form "in `DERIVATION.md`, not
-    `STATE.md`" is NOT an assignment to STATE.md (no preposition binds it),
-    and "never changes in `DERIVATION.md`" IS an assignment to DERIVATION.md
-    (the negation modifies 'changes', not the locative)."""
-    esc = re.escape(owner)
-    for m in re.finditer(r"\bin(?:to)?\s+`?(?:\.loop/[^`]*?)?" + esc, window):
-        if not _NEG_PREP.search(window[max(0, m.start() - 7): m.start()]):
+def _file_holds_read_set(window: str, file: str) -> bool:
+    """True iff `file` is bound as the storage location of derivation_read_set
+    by the locative or possessive relation template, and is not contrast-
+    excluded. Case-insensitive so a fronted 'In `STATE.md`, store …' is caught;
+    'in `DERIVATION.md`, not `STATE.md`' does not bind STATE.md (no preposition
+    reaches it); 'never changes in `DERIVATION.md`' binds DERIVATION.md (the
+    negation modifies the verb, not the locative)."""
+    esc = re.escape(file)
+    for m in re.finditer(r"\bin(?:to)?\s+`?(?:\.loop/[^`]*?)?" + esc, window, re.I):
+        if not _NEG_BEFORE.search(window[max(0, m.start() - 12): m.start()]):
             return True
-    for m in re.finditer(esc + _OWNER_VERB, window):
-        if not _CONTRAST.search(window[max(0, m.start() - 14): m.start()]):
+    for m in re.finditer(esc + r"`?\s+" + _STORE_VERB + r"[^.]{0,40}?derivation_read_set", window, re.I):
+        if not _NEG_BEFORE.search(window[max(0, m.start() - 12): m.start()]):
             return True
     return False
 
@@ -2039,8 +2058,8 @@ def _owner_is_assignment_target(window: str, owner: str) -> bool:
 def _derivation_home_negated(window: str) -> bool:
     """True iff the window negates DERIVATION.md AS THE HOME — "not … its home
     … DERIVATION.md" or "DERIVATION.md is not …". Only consulted when
-    DERIVATION.md is not itself an assignment target, so "never changes in
-    DERIVATION.md" (where DERIVATION.md IS assigned) never reaches here."""
+    DERIVATION.md is not itself a storage target, so "never changes in
+    DERIVATION.md" (where DERIVATION.md IS the store) never reaches here."""
     return bool(
         re.search(r"\b(?:not|never)\b\s+(?:its?\s+)?home[^.]{0,30}?DERIVATION\.md", window, re.I)
         or re.search(r"DERIVATION\.md`?[^.]{0,20}?\bis\s+not\b", window, re.I)
@@ -2088,14 +2107,14 @@ def derivation_ownership_violations() -> list[str]:
             else:
                 competitors = [
                     c for c in ("STATE.md", "JOURNAL.jsonl")
-                    if _owner_is_assignment_target(window, c)
+                    if _file_holds_read_set(window, c)
                 ]
                 if competitors:
                     v.append(
-                        f"{label}: derivation_read_set assigned to "
+                        f"{label}: derivation_read_set stored in "
                         f"{', '.join(competitors)} near `…{window[100:180]}…`"
                     )
-                elif not _owner_is_assignment_target(window, "DERIVATION.md") and \
+                elif not _file_holds_read_set(window, "DERIVATION.md") and \
                         _derivation_home_negated(window):
                     v.append(f"{label}: derivation_read_set's DERIVATION.md home is negated near `…{window[100:180]}…`")
             start = i + len(needle)
@@ -2187,19 +2206,19 @@ def context_mode_violations() -> list[str]:
     # instead of being skipped by a lowercase-only pattern.
     if not basis:
         v.append("context-stack: resolution-basis closed-set sentence not parseable")
-    elif re.findall(r"`([A-Za-z_-]+)`", basis.group(1)) != [
+    elif re.findall(r"`([^`]+)`", basis.group(1)) != [
         "operator-declared", "runner-attested", "unknown",
     ]:
         v.append(
             "context-stack: resolution-basis set drifted: "
-            f"{re.findall(r'`([A-Za-z_-]+)`', basis.group(1))}"
+            f"{re.findall(r'`([^`]+)`', basis.group(1))}"
         )
     for label, pattern in (
         ("effective-mode", r"`context_mode_effective` — [^(]*\(([^)]+)\)"),
         ("requested-mode", r"`context_mode_requested` \(([^)]+)\)"),
     ):
         m = re.search(pattern, emitted)
-        found = re.findall(r"`([A-Za-z_-]+)`", m.group(1)) if m else []
+        found = re.findall(r"`([^`]+)`", m.group(1)) if m else []
         if found != ["fresh-episode", "rolling-lossy", "unknown"]:
             v.append(f"context-stack: {label} enum drifted: {found}")
     skill_basis = re.search(
@@ -2267,6 +2286,9 @@ def human_look_gate_violations() -> list[str]:
         flat = one_line(text)
         for pin in (
             "**Live condition.**",
+            # The live PREDICATE itself, not just the later dormancy sentence:
+            # flipping "effectively tier-0" to "tier-1" here must red.
+            "This gate is live wherever consult capability is *effectively* tier-0",
             # Dormancy is the whole point of always-carrying the gate: a
             # mutation that makes it fire under a live consult channel must
             # break this pin, not stay green.
@@ -2275,8 +2297,7 @@ def human_look_gate_violations() -> list[str]:
             "reversible probes only",
             "`packet` (stable id, `hlp-<iter>-<n>`)",
             "else the tier-0 Human-look gate's review packet",
-            ".ac//.id//.packet",
-            "if type==\"object\" then tojson else . end",
+            CANONICAL_WATCH_PROJECTION,
         ):
             if pin not in flat:
                 v.append(f"{name}: human-look gate pin missing: `{pin}`")
@@ -2305,6 +2326,75 @@ def human_look_gate_violations() -> list[str]:
     if "primitives/human-look-gate.md" not in tier2:
         v.append("SKILL.md Tier-2 composition reads omit human-look-gate.md")
     return v
+
+
+CANONICAL_WATCH_PROJECTION = (
+    "[.iter,.t,.ac//.id//.packet,(.verdict//.to//.question//.changed)"
+    '|if (type=="object" or type=="array") then tojson else . end]|@tsv'
+)
+
+
+def stale_watch_command_violations() -> list[str]:
+    """All-callsite scan: EVERY journal-watch jq one-liner in the tree (bodies,
+    primitives, README, and the ADRs — the ADR:79 copy is what this catches)
+    must be the object/array-safe canonical projection. A bare
+    `.verdict//.to//.changed` feeds an object straight into @tsv and crashes
+    the named packet consumer; a repo-wide scan stops any stale copy — new or
+    surviving — from shipping."""
+    v: list[str] = []
+    watch_line = re.compile(r"jq -r '\[\.iter[^']*'")
+    # Scan git-tracked markdown only — precisely the callsites that ship.
+    # gitignored scratch (`.research/`, `dev/`, the scratchpad) is not a
+    # callsite and must not gate the check.
+    try:
+        tracked = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "-z", "*.md"],
+            capture_output=True, text=True, check=True,
+        ).stdout.split("\0")
+        paths = [ROOT / rel for rel in tracked if rel]
+    except (OSError, subprocess.CalledProcessError):
+        paths = [p for p in sorted(ROOT.rglob("*.md"))
+                 if not any(part in {".git", ".research", "scratchpad", "dev"} for part in p.parts)]
+    for path in paths:
+        for m in watch_line.finditer(read(path)):
+            if CANONICAL_WATCH_PROJECTION not in m.group(0):
+                v.append(f"{path.relative_to(ROOT)}: stale/object-unsafe watch command `…{m.group(0)[10:70]}…`")
+    return v
+
+
+def watch_command_executable_violations() -> list[str]:
+    """Executable jq fixture: extract the projection from a real emitted render
+    and RUN it (when jq is present) over canonical mixed records — including a
+    `checkpoint` whose `.changed` is an object and a record with an array
+    field — asserting exit 0 and the expected rows. Proves the emitted command
+    actually works, not merely that a string matches."""
+    if not shutil.which("jq"):
+        return []  # jq absent (e.g. minimal CI) — the string scan still guards
+    render = render_body("goal", consult_tier=0)
+    m = re.search(r"jq -r '(\[\.iter[^']*)'", render)
+    if not m:
+        return ["goal render carries no extractable watch projection"]
+    projection = m.group(1)
+    records = "\n".join((
+        '{"iter":5,"t":"checkpoint","changed":{"phase":"verify"}}',
+        '{"iter":6,"t":"attempt","ac":"AC-1","verdict":"PASS"}',
+        '{"iter":7,"t":"alignment_review","packet":"hlp-7-1","question":"ok?"}',
+        '{"iter":8,"t":"halt","scan":["a","b"]}',
+    ))
+    proc = subprocess.run(
+        ["jq", "-r", projection], input=records, capture_output=True, text=True
+    )
+    if proc.returncode != 0:
+        return [f"emitted watch command errored on canonical records: {proc.stderr.strip()}"]
+    rows = proc.stdout.strip().splitlines()
+    expected = [
+        '5\tcheckpoint\t\t{"phase":"verify"}',
+        "6\tattempt\tAC-1\tPASS",
+        "7\talignment_review\thlp-7-1\tok?",
+    ]
+    if rows[:3] != expected:
+        return [f"emitted watch command produced unexpected rows: {rows[:3]}"]
+    return []
 
 
 def render_input_violations() -> list[str]:
@@ -2610,6 +2700,27 @@ def run_checks() -> int:
             not human_look,
             "human_look_gate_always_carried_and_provisional",
             "; ".join(human_look),
+        )
+    )
+
+    # ── The human-watch command is object/array-safe everywhere + executable ─
+    stale_watch = stale_watch_command_violations()
+    checks.append(
+        require(
+            not stale_watch,
+            "watch_command_object_safe_all_callsites",
+            "; ".join(stale_watch),
+        )
+    )
+    try:
+        watch_exec = watch_command_executable_violations()
+    except (ContractError, AssertionError) as exc:
+        watch_exec = [str(exc)]
+    checks.append(
+        require(
+            not watch_exec,
+            "watch_command_executable_jq_fixture",
+            "; ".join(watch_exec),
         )
     )
 

@@ -76,7 +76,7 @@ on demand (diagnostic / resume), never per pass.
 CHECKPOINTS-style human-watch file is named an anti-pattern: it is a second
 history surface that drifts from the first. Humans watch the loop with a
 documented one-liner over the journal
-(`tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`),
+(`tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,(.verdict//.to//.question//.changed)|if (type=="object" or type=="array") then tojson else . end]|@tsv'`),
 and the loop records delta-only `checkpoint` records for status changes worth a
 timestamp. No separate monitor artifact exists in the contract.
 
