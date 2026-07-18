@@ -2046,11 +2046,14 @@ _OWN_EXCLUDE = re.compile(r"(?:\bnot|\bnever|\bunlike|rather\s+than|instead\s+of
 # storage word (closed set) that leads to DERIVATION.md ("is not stored in
 # DERIVATION.md"), or "DERIVATION.md is not …". "never changes in DERIVATION.md"
 # does NOT match: "changes" is not a storage word, so DERIVATION.md stays home.
+# The gap uses `[^;]` (not `[^.;]`) so it crosses the periods in the repo's
+# canonical path `.loop/<loop-id>/DERIVATION.md`; the clause is already
+# sentence-bounded, so widening the gap cannot reach a neighbouring statement.
 _STORAGE = r"(?:stored|kept|held|recorded|lives?|located|belongs?|placed|written|home)"
 _HOME_NEG = re.compile(
-    r"\b(?:not|never|n't)\s+(?:\w+\s+){0,2}?" + _STORAGE + r"\b[^.;]{0,40}?DERIVATION\.md", re.I
+    r"\b(?:not|never|n't)\s+(?:\w+\s+){0,2}?" + _STORAGE + r"\b[^;]{0,60}?DERIVATION\.md", re.I
 )
-_HOME_NEG2 = re.compile(r"DERIVATION\.md`?[^.;]{0,25}?\bis\s+not\b", re.I)
+_HOME_NEG2 = re.compile(r"DERIVATION\.md`?[^;]{0,25}?\bis\s+not\b", re.I)
 
 
 def _clause_around(flat: str, start: int, end: int) -> str:
@@ -2345,8 +2348,14 @@ def stale_watch_command_violations() -> list[str]:
     # in either quote style), never by a `[.iter` prefix — so a reordered
     # projection, a space after the bracket, or trailing jq residue is still
     # discovered — then require the whole quoted argument to equal the canonical
-    # projection exactly. All @tsv sites in the tree are this one command.
-    watch_expr = re.compile(r"""jq -r (?:'([^']*@tsv[^']*)'|"([^"]*@tsv[^"]*)")""")
+    # projection exactly. The double-quoted arm consumes backslash escapes
+    # (`(?:[^"\\]|\\.)*`) so a shell-valid `jq -r "…\"object\"…@tsv"` is parsed,
+    # not truncated at its first internal quote; such a command carries `\"`
+    # escapes the single-quoted canonical lacks, so it is (correctly) flagged
+    # non-canonical — the repo's watch command is single-quoted throughout.
+    watch_expr = re.compile(
+        r"""jq -r (?:'([^']*@tsv[^']*)'|"((?:[^"\\]|\\.)*@tsv(?:[^"\\]|\\.)*)")"""
+    )
     # Scan git-tracked markdown only — precisely the callsites that ship.
     # gitignored scratch (`.research/`, `dev/`, the scratchpad) is not a
     # callsite and must not gate the check.
