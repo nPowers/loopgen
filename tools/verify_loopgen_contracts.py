@@ -542,6 +542,10 @@ def _filter_subagent_patterns(
 def render_body(
     archetype: str, *, consult_tier: int = 0, pollable_channel: bool = False
 ) -> str:
+    if consult_tier not in (0, 1, 2, 3):
+        raise ContractError(
+            f"render_body: consult_tier must be one of 0..3, got {consult_tier!r}"
+        )
     prompt = raw_body_template(BODY_PATHS[archetype])
     if archetype == "frontier":
         prompt = prompt.replace("{{BENCHMARK_FRONTIER_MODE}}", "")
@@ -1588,6 +1592,14 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     "**Halt causes (quick list):**",
     "No shared cause claims the artifact complete",
     "**Iteration skeleton**",
+    # U1 closeout: the human-watch one-liner and the health revalidation line
+    # are shared content — pinned verbatim so neither single-body drift nor a
+    # coordinated four-body edit can silently change or remove them.
+    "Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r "
+    "'[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`",
+    "6. `consult_tier_effective` in `STATE.md` still matches this host "
+    "(`n/a` at tier-0); stale after any runner change — re-verify before "
+    "consulting.",
 )
 
 
@@ -1622,7 +1634,26 @@ def operational_core_violations() -> list[str]:
         pos = raw.find(OPERATIONAL_CORE_HEADING)
         if not (motive != -1 and runner != -1 and motive < pos < runner):
             v.append(f"{archetype}: Operational core is not between Motive and the runner contract")
+        # U1 closeout: adjacency, not mere ordering — nothing may sit between
+        # the Motive slot and the core (the incidental end-bound headroom is
+        # 0-1 lines at tier-1 today, and would silently reopen if the core
+        # ever shrank).
+        if "{{MOTIVE}}\n\n" + OPERATIONAL_CORE_HEADING + "\n" not in raw:
+            v.append(f"{archetype}: Operational core is not immediately after the Motive slot")
         section = _operational_core_section(raw) or ""
+        # U1 closeout: the run-host slot lives inside the core, between health
+        # line 6 and the halt quick list — a coordinated relocation across all
+        # four bodies preserved parity, so position is pinned per body.
+        slot = section.find("{{RUN_HOST_VERIFICATION}}")
+        item6 = section.find("6. `consult_tier_effective`")
+        halt = section.find("**Halt causes")
+        if slot == -1:
+            v.append(f"{archetype}: RUN_HOST_VERIFICATION slot left the Operational core")
+        elif not (item6 != -1 and halt != -1 and item6 < slot < halt):
+            v.append(
+                f"{archetype}: RUN_HOST_VERIFICATION slot is not between health "
+                "line 6 and the halt quick list"
+            )
         flat = _flat(section)
         for token in OPERATIONAL_CORE_SHARED_TOKENS:
             if token not in flat:
@@ -1705,6 +1736,12 @@ def run_host_verification_violations() -> list[str]:
                 f"{archetype}: expected exactly one run-host check at tier-1, "
                 f"found {tier1.count(marker)}"
             )
+        # U1 closeout: emitted inside the Operational core, not merely present.
+        if marker not in (_operational_core_section(tier1) or ""):
+            v.append(
+                f"{archetype}: run-host check emitted outside the Operational "
+                "core at tier-1"
+            )
         flat1 = one_line(tier1)
         if "consult_tier_effective" not in flat1:
             v.append(f"{archetype}: tier-1 render never names consult_tier_effective")
@@ -1720,6 +1757,20 @@ def run_host_verification_violations() -> list[str]:
         v.append("context-stack.md STATE schema omits consult_tier_effective")
     if "\n---\n" not in read(CONSULT_CAPABILITY):
         v.append("consult-capability.md has no emittable block below a '---'")
+    # U1 closeout: continuous revalidation is a contract, not a courtesy —
+    # the emitted block and the spec both carry it (neither is golden-pinned,
+    # so removing the language stayed green before these pins).
+    if "health line 6 keeps it fresh" not in one_line(
+        resolve_gated_block(CONSULT_CAPABILITY)
+    ):
+        v.append("consult-capability emitted block lost `health line 6 keeps it fresh`")
+    consult_flat = one_line(read(CONSULT_CAPABILITY))
+    for pin in (
+        "re-verifies (overwrite-in-place, never trusting the cached value)",
+        "a cached effective tier must not outlive its host",
+    ):
+        if pin not in consult_flat:
+            v.append(f"consult-capability.md lost its revalidation law: `{pin}`")
     return v
 
 
@@ -1749,12 +1800,14 @@ def subagent_pattern_filter_violations() -> list[str]:
         text = render_body("story", consult_tier=tier, pollable_channel=pollable)
         wanted = {"D": want_d, "B": want_b, "C": want_c}
         for pattern, marker in markers.items():
-            have = marker in text
-            if have != wanted[pattern]:
+            # U1 closeout: exact count, not presence — a duplicated bullet in
+            # the source block satisfied the old presence check.
+            n = text.count(marker)
+            want = 1 if wanted[pattern] else 0
+            if n != want:
                 v.append(
                     f"tier-{tier} pollable={pollable}: pattern {pattern} "
-                    f"{'present' if have else 'absent'}, expected "
-                    f"{'present' if wanted[pattern] else 'absent'}"
+                    f"appears {n}x, expected {want}"
                 )
         block_present = "## Subagent patterns" in text
         if (tier == 0) == block_present:
@@ -1773,6 +1826,10 @@ def subagent_pattern_filter_violations() -> list[str]:
                 if pin not in flat:
                     v.append(f"tier-{tier}: advisory pin missing: `{pin}`")
     emitted_block = resolve_gated_block(SUBAGENT_PATTERNS)
+    for pattern, marker in markers.items():
+        n = emitted_block.count(marker)
+        if n != 1:
+            v.append(f"source block carries {n}x pattern {pattern}, expected exactly 1")
     if re.search(r"independen", emitted_block, re.IGNORECASE):
         v.append(
             "emitted subagent block claims independence — separation is not "
@@ -1848,11 +1905,12 @@ def derivation_ownership_violations() -> list[str]:
     (a window naming STATE.md without DERIVATION.md is the stale pattern
     this pin exists to reject)."""
     v: list[str] = []
-    scanned = (
-        ("SKILL.md", SKILL),
-        ("composed-prompt.md", COMPOSED_PROMPT),
-        ("README.md", ROOT / "README.md"),
-        ("context-stack.md", CONTEXT_STACK),
+    # U1 closeout: scan every skill source file plus the README — the former
+    # four-file list left the body templates free to reassign ownership.
+    # docs/adr/ stays out deliberately: ADRs may describe the pre-move world.
+    scanned = tuple(
+        (str(path.relative_to(ROOT)), path)
+        for path in sorted((ROOT / "loopgen").rglob("*.md")) + [ROOT / "README.md"]
     )
     needle = "derivation_read_set"
     for label, path in scanned:
@@ -1891,6 +1949,20 @@ def derivation_scope_violations() -> list[str]:
             v.append(f"SKILL.md derivation read contract lost its scope pin: `{pin}`")
     if "Every authoring run reads a bounded, provenance- relevant set of files and records" in skill_flat:
         v.append("SKILL.md re-acquired the unscoped every-run-records instruction")
+    return v
+
+
+def render_input_violations() -> list[str]:
+    """U1 closeout: render_body rejects consult tiers outside the closed 0..3
+    vocabulary instead of silently misfiltering them (tier -1 rendered as
+    tier-0, tier 4/99 as tier-3 with a nonsense label)."""
+    v: list[str] = []
+    for tier in (-1, 4, 99):
+        try:
+            render_body("story", consult_tier=tier)
+            v.append(f"render_body accepted invalid consult_tier={tier}")
+        except ContractError:
+            pass
     return v
 
 
@@ -2153,6 +2225,16 @@ def run_checks() -> int:
             not scope,
             "derivation_record_scoped_to_successful_composition",
             "; ".join(scope),
+        )
+    )
+
+    # ── U1 closeout: renderer rejects out-of-vocabulary consult tiers ───────
+    bad_inputs = render_input_violations()
+    checks.append(
+        require(
+            not bad_inputs,
+            "render_rejects_invalid_consult_tier",
+            "; ".join(bad_inputs),
         )
     )
 
