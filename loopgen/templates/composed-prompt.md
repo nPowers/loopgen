@@ -19,7 +19,8 @@ composed prompt.
 3. **Motive** — ALWAYS.
 3a. **Operational core** — ALWAYS. A compact rehydration block right after
    Motive (~50 lines): a one-line runtime reminder (the context window is a
-   rolling lossy cache; the files are memory), the **Context budget** table
+   lossy cache; the files are memory; the rehydration cadence follows
+   `context_mode_effective`), the **Context budget** table
    (file → tier → cap → access command → human watch command), the
    **context-health check** (the bounded step-0 audit from
    `primitives/context-stack.md` — caps, tail parse, evidence pointers resolve,

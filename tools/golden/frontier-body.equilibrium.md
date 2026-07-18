@@ -11,10 +11,13 @@ Improve the repository's quality frontier without a fixed finish line.
 
 ## Operational core
 
-The context window is a rolling lossy cache; files under `.loop/<loop-id>/`
-are the durable memory. After any detected compaction, rehydrate with
-`sed -n '1,80p' .loop/<loop-id>/PROMPT.md` — this core is that bounded
-re-read. Read keys, not files; the full contract is in Artifacts to maintain.
+The context window is a lossy cache; files under `.loop/<loop-id>/` are the
+durable memory. This core is the bounded re-read —
+`sed -n '1,80p' .loop/<loop-id>/PROMPT.md` — on the cadence
+`context_mode_effective` (`STATE.md`) sets: `rolling-lossy` → after any
+detected compaction; `fresh-episode` → at every episode start; `unknown` →
+whenever continuity is not evident, claiming neither mode. Read keys, not
+files; the full contract is in Artifacts to maintain.
 
 **Context budget** (tier → bound → access):
 
@@ -30,18 +33,14 @@ re-read. Read keys, not files; the full contract is in Artifacts to maintain.
 Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`
 
 **Context-health check** — every pass before task work, right after the
-pressure render+read, and again after any detected compaction. Each line is
-one cheap command; a failed line is a routing (repair before task work),
-never a warning:
+pressure render+read, and again after any rehydration. Each line is one cheap
+command; a failed line is a routing (repair before task work), never a warning:
 
 1. `STATE.md` ≤ ~50 lines; in-force pressure rows ≤ `pressure-cap`.
 2. The journal tail parses as JSONL; evidence pointers in recent records resolve.
-3. The queue index row for the current item agrees with its section (where
-   the artifact carries an index).
-4. No whole-file read of an append-only artifact since the last check
-   without a named diagnostic exception.
-5. The latest `consolidation` record is within cadence (~10 iterations) and
-   no forced trigger has fired since it.
+3. The current item's queue index row agrees with its section (where indexed).
+4. No append-only artifact read whole without a named diagnostic exception.
+5. Latest `consolidation` within cadence (~10 iters); no forced trigger since.
 6. `consult_tier_effective` in `STATE.md` still matches this host (`n/a` at
    tier-0); stale after any runner change — re-verify before consulting.
 
@@ -53,13 +52,12 @@ artifact complete; any non-success halt requires the full search-surface
 scan first. The Halt section below carries the full classifier.
 
 **Iteration skeleton** (the numbered protocol below is authoritative):
-0 name the evidence source → 1 tiered read (pressure render+read,
-`STATE.md`; ledger index + OPEN rows, journal tail) → 2 assess the
-axes → 3 pick the balance-restoring intervention → 4 write its shape
-line → 5 one small reversible change → 6 cheap validator, then the
-stronger oracle → 7 accept or revert with evidence → 8 end-of-iteration
-transaction + one focused commit → 9 provisional balance → full
-frontier scan → `homeostatic-checkpoint`.
+0 name the evidence source → 1 tiered read (pressure render+read, `STATE.md`;
+ledger index + OPEN rows, journal tail) → 2 assess the axes → 3 pick the
+balance-restoring intervention → 4 write its shape line → 5 one small
+reversible change → 6 cheap validator, then the stronger oracle → 7 accept
+or revert with evidence → 8 end-of-iteration transaction + one focused
+commit → 9 provisional balance → full frontier scan → `homeostatic-checkpoint`.
 
 ## Runner contract
 
@@ -1148,10 +1146,13 @@ not files.
 
 ## Context stack — the memory model
 
-Your runner runs **one continuous conversation** and re-sends this prompt every
-iteration; the context window is a **rolling lossy cache** (user-role text
-survives compaction, assistant/tool output is summarized away near the ceiling)
-and **the files under `.loop/<loop-id>/` are the durable memory**. Read keys, not
+Your runner re-sends this prompt each iteration. What the window does between
+iterations is `context_mode_effective` in `STATE.md` — `rolling-lossy` (one
+continuous conversation; user-role text survives compaction, assistant/tool
+output is summarized away near the ceiling), `fresh-episode` (a cold window
+every episode), or `unknown` — resolved only from an operator declaration or
+runner attestation, never from what the window seems to show. Under every
+mode **the files under `.loop/<loop-id>/` are the durable memory**. Read keys, not
 files. Every access path below has exactly one tier and a hard bound (one file
 may expose two paths at different tiers — the journal's tail is WORKING, its
 keyed history ON-DEMAND); honor each path's access command and never promote an

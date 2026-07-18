@@ -2,11 +2,14 @@
 
 ## Purpose
 
-The memory model every loop runs inside. A loop's runner (`/goal`) executes
-**one continuous conversation** and re-sends the *same* bare-pointer kick-off
-each iteration; the context window is a **rolling lossy cache** — user-role text
+The memory model every loop runs inside. A loop's runner (`/goal`) re-sends
+the *same* bare-pointer kick-off each iteration; in the modeled default
+lifecycle (`context_mode_effective: rolling-lossy`) the window is **one
+continuous conversation** — a **rolling lossy cache**: user-role text
 survives compaction verbatim, assistant turns and tool outputs are
-lossy-summarized near the ceiling — and **files are the durable memory**. A fact
+lossy-summarized near the ceiling — while `fresh-episode` restarts it cold
+each episode and `unknown` declares neither; under every mode **files are
+the durable memory**. A fact
 held only in context can vanish at any compaction boundary; a fact held in a file
 costs tokens every time it is re-read. This primitive gives every **access
 path** exactly one **tier**, a hard **bound**, and a keyed **access
@@ -36,6 +39,11 @@ composition read in `SKILL.md`).
 - `/goal` re-sends the same kick-off pointer into one conversation every
   iteration. The kick-off carries no instruction content; every rule lives in
   `.loop/<loop-id>/PROMPT.md`, which the runner re-reads.
+- That continuous conversation is the `rolling-lossy` default lifecycle.
+  `fresh-episode` and `unknown` (`context_mode_effective`, STATE schema
+  below) share every file rule and differ only in the Operational core's
+  rehydration cadence — behavior branches on the effective mode alone,
+  never on requested mode or observed visibility.
 - The window runs pinned near its ceiling (measured mean ~148k of 258k,
   compacting at ~240k). Context-held facts can be summarized away at any
   boundary; file-held facts persist but are re-paid per read.
@@ -108,10 +116,13 @@ tier and bound:
 
 ## Context stack — the memory model
 
-Your runner runs **one continuous conversation** and re-sends this prompt every
-iteration; the context window is a **rolling lossy cache** (user-role text
-survives compaction, assistant/tool output is summarized away near the ceiling)
-and **the files under `.loop/<loop-id>/` are the durable memory**. Read keys, not
+Your runner re-sends this prompt each iteration. What the window does between
+iterations is `context_mode_effective` in `STATE.md` — `rolling-lossy` (one
+continuous conversation; user-role text survives compaction, assistant/tool
+output is summarized away near the ceiling), `fresh-episode` (a cold window
+every episode), or `unknown` — resolved only from an operator declaration or
+runner attestation, never from what the window seems to show. Under every
+mode **the files under `.loop/<loop-id>/` are the durable memory**. Read keys, not
 files. Every access path below has exactly one tier and a hard bound (one file
 may expose two paths at different tiers — the journal's tail is WORKING, its
 keyed history ON-DEMAND); honor each path's access command and never promote an

@@ -106,10 +106,9 @@ label, e.g. `tier-2`), present only when the block emits — exactly as in
 ---
 
 **Run-host channel check** (`{{CONSULT_TIER}}` was detected on the *composing*
-host; this runner may differ): at iteration 0 — self-gated on
-`consult_tier_effective` in `.loop/<loop-id>/STATE.md` — verify each promised
-consult channel exists here, non-interactively, before scheduling any consult.
-A missing channel degrades that channel only, to the next-lower substitute
-(tier ≥ 2 programmatic → tier-1 async human-bridge → tier-0 human-look gate).
-Record `consult_tier_effective` + per-channel basis in `STATE.md` and surface
-the resolution in that iteration's summary; health line 6 keeps it fresh.
+host; this runner may differ): at iteration 0, self-gated on
+`consult_tier_effective` (`STATE.md`), verify non-interactively that each
+promised channel exists here. A missing channel degrades — that channel
+only — to the next-lower substitute (tier ≥ 2 → tier-1 human-bridge →
+tier-0 human-look gate); record value + per-channel basis in `STATE.md` and
+surface it in that iteration's summary; health line 6 keeps it fresh.

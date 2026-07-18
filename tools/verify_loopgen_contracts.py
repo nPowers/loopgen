@@ -545,7 +545,11 @@ def _filter_subagent_patterns(
 
 
 def render_body(
-    archetype: str, *, consult_tier: int = 0, pollable_channel: bool = False
+    archetype: str,
+    *,
+    consult_tier: int = 0,
+    pollable_channel: bool = False,
+    placeholder_overrides: dict[str, str] | None = None,
 ) -> str:
     if type(consult_tier) is not int or consult_tier not in (0, 1, 2, 3):
         raise ContractError(
@@ -588,6 +592,8 @@ def render_body(
 
     values = dict(COMMON_BODY_PLACEHOLDERS)
     values.update(ARCHETYPE_BODY_PLACEHOLDERS[archetype])
+    if placeholder_overrides:
+        values.update(placeholder_overrides)
     for key, value in values.items():
         prompt = prompt.replace("{{" + key + "}}", value)
 
@@ -1594,8 +1600,13 @@ def u17_admission_wiring_violations() -> list[str]:
 OPERATIONAL_CORE_HEADING = "## Operational core"
 
 OPERATIONAL_CORE_SHARED_TOKENS = (
-    "rolling lossy cache",
+    "The context window is a lossy cache",
     "sed -n '1,80p' .loop/<loop-id>/PROMPT.md",
+    # U3: the mode-aware cadence law, pinned verbatim (the truth-table check
+    # additionally parses the clause whole for enum exactness).
+    "`rolling-lossy` → after any detected compaction",
+    "`fresh-episode` → at every episode start",
+    "`unknown` → whenever continuity is not evident, claiming neither mode.",
     "**Context budget**",
     "| `.loop/<loop-id>/PRESSURE.md` | PINNED | in-force rows ≤ `pressure-cap` (default 12); re-read every pass |",
     "| `.loop/<loop-id>/STATE.md` | PINNED | ≤ ~50 lines, live status only; re-read every pass |",
@@ -1688,12 +1699,30 @@ def operational_core_violations() -> list[str]:
     return v
 
 
-# The fixture PROVENANCE is one line; a real provenance preamble is the
-# 8-line format in composed-prompt.md, so a render passing at N lines lands at
-# N+7 in a real composition. The sentinel bound is therefore 80 - 7 = 73:
-# every checked render must keep the core inside the first 73 lines so a real
-# compose stays inside the promised first 80.
-OPERATIONAL_CORE_SENTINEL_BOUND = 73
+# The fixture PROVENANCE is one line (real: the 8-line composed-prompt format,
+# +7) and the fixture MOTIVE is one line (a real one-sentence motive may wrap
+# to two physical lines, +1), so a fixture render ending at N lands at N+8 in
+# a real composition. The bound additionally banks two lines of real headroom:
+# 80 - 7 - 1 - 2 = 70. The canonical-fixture check below measures the <= 78
+# promise directly instead of by arithmetic.
+OPERATIONAL_CORE_SENTINEL_BOUND = 70
+
+CANONICAL_PROVENANCE = (
+    "> **Loop provenance — composed by `/loopgen`.**\n"
+    "> Archetype: `story`  ·  Divergences: `none`.\n"
+    "> Overlays: `none`.\n"
+    "> Consult-capability: `tier-1` (`human-bridge`).\n"
+    "> Evaluator tier: `n/a`.\n"
+    "> Frontload — resolved: [`paths`, `commands`]; defaulted: [`thresholds`];"
+    " open gaps: [`none`].\n"
+    "> Primitive sources: `archetype defaults only`.\n"
+    "> Re-derive (do not hand-edit) when intent, sources, or environment change."
+)
+
+CANONICAL_MOTIVE = (
+    "Keep the visible product surface honest against its storyboard overnight,\n"
+    "promoting only fixture-clean stories — a two-line motive exercising wrap."
+)
 
 
 def operational_core_render_violations() -> list[str]:
@@ -1731,6 +1760,45 @@ def operational_core_render_violations() -> list[str]:
                 f"{name}: Operational core runs to line {end} "
                 f"(> {OPERATIONAL_CORE_SENTINEL_BOUND}; the first-80 "
                 "rehydration bound breaks under a real provenance preamble)"
+            )
+    return v
+
+
+def operational_core_canonical_violations() -> list[str]:
+    """U3: the first-80 promise measured DIRECTLY under canonical fixtures —
+    the real 8-line provenance preamble and a two-physical-line motive — for
+    every archetype at tier-0 and tier-1 plus render_frontier. The core must
+    end by line 78, keeping >= 2 lines of real headroom inside the promised
+    `sed -n '1,80p'` rehydration read."""
+    v: list[str] = []
+    overrides = {"PROVENANCE": CANONICAL_PROVENANCE, "MOTIVE": CANONICAL_MOTIVE}
+    renders: dict[str, str] = {
+        "frontier-pure-canonical": render_frontier(
+            benchmark_overlay=False, placeholder_overrides=overrides
+        ),
+    }
+    for archetype in BODY_PATHS:
+        for tier in (0, 1):
+            renders[f"{archetype}-tier{tier}-canonical"] = render_body(
+                archetype, consult_tier=tier, placeholder_overrides=overrides
+            )
+    for name, text in renders.items():
+        lines = text.splitlines()
+        starts = [
+            i + 1 for i, line in enumerate(lines)
+            if line.strip() == OPERATIONAL_CORE_HEADING
+        ]
+        if len(starts) != 1:
+            v.append(f"{name}: expected exactly one Operational core, found {len(starts)}")
+            continue
+        end = next(
+            (i + 1 for i, line in enumerate(lines) if i + 1 > starts[0] and line.startswith("## ")),
+            len(lines),
+        )
+        if end > 78:
+            v.append(
+                f"{name}: core ends at line {end} under canonical provenance "
+                "(> 78; the first-80 promise keeps < 2 lines of real headroom)"
             )
     return v
 
@@ -2051,6 +2119,21 @@ def context_mode_violations() -> list[str]:
         ]
         if names != ["operator-declared", "runner-attested", "unknown"]:
             v.append(f"SKILL.md: resolution-basis set drifted: {names}")
+    # U3 truth table: the core's cadence clause pairs each mode with exactly
+    # its cadence — parsed and compared whole, so an added mode or a swapped
+    # cadence fails even while every individual token is still present.
+    expected_cadence = (
+        "`rolling-lossy` → after any detected compaction; "
+        "`fresh-episode` → at every episode start; "
+        "`unknown` → whenever continuity is not evident, claiming neither mode"
+    )
+    for archetype in BODY_PATHS:
+        flat = one_line(render_body(archetype))
+        m = re.search(r"\(`STATE\.md`\) sets: (.+?)\. Read keys,", flat)
+        if not m:
+            v.append(f"{archetype}: core cadence clause not parseable")
+        elif m.group(1) != expected_cadence:
+            v.append(f"{archetype}: cadence truth table drifted: `{m.group(1)[:90]}`")
     return v
 
 
@@ -2492,6 +2575,14 @@ def run_checks() -> int:
             not core_render,
             "operational_core_first_80_all_renders",
             "; ".join(core_render),
+        )
+    )
+    core_canonical = operational_core_canonical_violations()
+    checks.append(
+        require(
+            not core_canonical,
+            "operational_core_first_80_under_canonical_provenance",
+            "; ".join(core_canonical),
         )
     )
 
