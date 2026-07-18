@@ -1,6 +1,7 @@
 # ADR 0004: the context-stack memory model
 
-- **Status:** Accepted (amended 2026-07-07, U13 hardening)
+- **Status:** Accepted (amended 2026-07-07, U13 hardening; amended 2026-07-17,
+  U2–U3 context-lifecycle modes)
 - **Date:** 2026-07-07
 - **Deciders:** provi, Claude (Fable 5)
 
@@ -203,10 +204,48 @@ watching. Defensible as a projection, but it adds an emit obligation and a
 surface that can rot; the "one JOURNAL, no monitor file" decision stands until a
 real overnight run shows the jq one-liner insufficient.
 
+## Context-lifecycle amendment (U2–U3, 2026-07-17)
+
+The first revisit trigger below partially fired — from research, not a
+measured run: the AutoFyn synthesis surfaced runners whose episodes start
+cold (fresh context each episode) rather than rolling one conversation
+through compaction. The resolution keeps this memory model and names the
+lifecycle instead of forking the model:
+
+- **The mode split.** The compiler records `context_mode_requested`
+  (`fresh-episode` / `rolling-lossy` / `unknown`) with its
+  `context_mode_compose_basis` in the write-once DERIVATION frontload; the
+  run host resolves `context_mode_effective` in `STATE.md`.
+- **Strict resolution basis.** `context_mode_resolution_basis` is a closed
+  set: `operator-declared` / `runner-attested` / `unknown` — never
+  observation. Model-visible history proves neither mode (a fresh runner may
+  be handed replayed context; a rolling window may already be compacted);
+  what the window shows is recorded separately as
+  `history_visibility_observed` and never converts into a mode claim.
+  `runner-attested` is reserved — no current runner attests, and no runner
+  protocol is invented for it; a future runner handshake is its only
+  producer.
+- **One branching site.** Behavior branches on `context_mode_effective`
+  alone — requested mode and observed visibility never select behavior — and
+  the only branch is the Operational core's rehydration cadence:
+  `rolling-lossy` → after any detected compaction; `fresh-episode` → at
+  every episode start; `unknown` → whenever continuity is not evident,
+  claiming neither lifecycle.
+- **What does not change.** Bounded files, one history surface, runner
+  ownership, and the PINNED/WORKING/ON-DEMAND/WRITE-ONLY tiers hold under
+  every mode: the tiers were never about compaction per se but about keeping
+  the per-iteration read set O(1) in loop age — a fresh episode pays the
+  same bounded reads at episode start that a rolling window pays after a
+  compaction. `rolling-lossy` remains the modeled default; the mode
+  vocabulary makes that assumption declared instead of silent.
+
 ## Revisit Triggers
 
-- A runtime whose context is genuinely fresh per turn (no rolling cache) would
-  invalidate the PINNED/WORKING distinction and warrant a different model.
+- A **runner-attested** `fresh-episode` runtime whose episodes are short
+  enough that per-episode bootstrap reads dominate task work would pressure
+  the WORKING tier's once-per-iteration economics — revisit with
+  measurements, not inference (the 2026-07-17 amendment already covers the
+  lifecycle vocabulary itself).
 - A measured loop whose journal itself becomes a re-read hot-spot despite the
   tail-N / keyed-read contract would justify sharding the history surface.
 
