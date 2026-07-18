@@ -1997,13 +1997,49 @@ def evidence_tier_goal_violations() -> list[str]:
 # ── U1-c4: derivation provenance is owned by write-once DERIVATION.md ──────
 
 
+_CONTRAST = re.compile(r"\b(?:not|unlike|never|rather than|instead of)\b", re.I)
+
+
+def _owner_is_assignment_target(window: str, owner: str) -> bool:
+    """True iff `owner` appears as a locative assignment target — `in <owner>`
+    / `into <owner>` (optionally through a `.loop/<id>/` path) — and that
+    locative is not itself negated/contrasted ("not in `STATE.md`",
+    "unlike `STATE.md`"). Contrast markers immediately before the owner mean
+    it is being EXCLUDED, not assigned, which is the legit shape."""
+    pat = re.compile(r"\bin(?:to)?\s+`?(?:\.loop/[^`]*?)?" + re.escape(owner))
+    for m in pat.finditer(window):
+        pre = window[max(0, m.start() - 14): m.start()]
+        if not _CONTRAST.search(pre):
+            return True
+    # A bare "`STATE.md` … derivation_read_set" / "derivation_read_set … `STATE.md`
+    # home" style reassignment without an `in` preposition: flag only when the
+    # owner is tied to a home/record verb and not contrasted.
+    for m in re.finditer(re.escape(owner) + r"`?\s+(?:holds|is the home|records)\b", window):
+        pre = window[max(0, m.start() - 14): m.start()]
+        if not _CONTRAST.search(pre):
+            return True
+    return False
+
+
+def _derivation_home_negated(window: str) -> bool:
+    """True iff the window negates DERIVATION.md as the home — "not …
+    DERIVATION.md" (negation before the file) or "DERIVATION.md is not …"."""
+    return bool(
+        re.search(r"\b(?:not|never)\b[^.]{0,30}?`?(?:\.loop/[^`]*?)?DERIVATION\.md", window, re.I)
+        or re.search(r"DERIVATION\.md`?[^.]{0,20}?\bis\s+not\b", window, re.I)
+    )
+
+
 def derivation_ownership_violations() -> list[str]:
     """U1-c4 (F6/R3): ADR 0004 moved the derivation record
     (derivation_read_set, classification, frontload) out of STATE.md into
-    write-once DERIVATION.md. No prose may assign `derivation_read_set` back
-    to STATE.md: around every mention, DERIVATION.md must be the named home
-    (a window naming STATE.md without DERIVATION.md is the stale pattern
-    this pin exists to reject)."""
+    write-once DERIVATION.md. Around every mention, DERIVATION.md must be the
+    named home, unnegated, and no competing file (STATE.md / JOURNAL.jsonl)
+    may be the assignment target. A structural guard, not proximity: the
+    legit contrastive shape ("in `DERIVATION.md`, not `STATE.md`") passes and
+    the reassignment shapes ("in `STATE.md`"; "DERIVATION.md is not its home
+    … in STATE.md") are caught. It is a drift heuristic — deliberately
+    ownership-lying prose can still evade it — not a semantic parser."""
     v: list[str] = []
     # U1 closeout: scan every skill source file plus the README — the former
     # four-file list left the body templates free to reassign ownership.
@@ -2013,7 +2049,6 @@ def derivation_ownership_violations() -> list[str]:
         for path in sorted((ROOT / "loopgen").rglob("*.md")) + [ROOT / "README.md"]
     )
     needle = "derivation_read_set"
-    owners = ("DERIVATION.md", "STATE.md", "JOURNAL.jsonl")
     for label, path in scanned:
         flat = one_line(read(path))
         start = 0
@@ -2022,26 +2057,26 @@ def derivation_ownership_violations() -> list[str]:
             if i == -1:
                 break
             window = flat[max(0, i - 140): i + 140]
-            # Nearest-owner rule, not mere presence: the owner filename CLOSEST
-            # to the mention must be DERIVATION.md. A semantic reversal
-            # ("…derivation_read_set in STATE.md, not DERIVATION.md…") keeps
-            # DERIVATION.md in the window but puts STATE.md nearer — which the
-            # old presence check missed.
-            nearest, nearest_dist = None, None
-            for owner in owners:
-                pos = window.find(owner)
-                while pos != -1:
-                    dist = abs((max(0, i - 140) + pos) - i)
-                    if nearest_dist is None or dist < nearest_dist:
-                        nearest, nearest_dist = owner, dist
-                    pos = window.find(owner, pos + 1)
-            if nearest is None:
-                v.append(f"{label}: derivation_read_set names no owner near `…{window[100:180]}…`")
-            elif nearest != "DERIVATION.md":
-                v.append(
-                    f"{label}: derivation_read_set's nearest owner is {nearest}, "
-                    f"not DERIVATION.md, near `…{window[100:180]}…`"
-                )
+            # Structural ownership, not proximity: DERIVATION.md must be the
+            # named home, must not be negated, and no competing file may be
+            # the assignment target. This is a drift heuristic (an author
+            # determined to write ownership-lying prose can still evade it),
+            # but it passes the legit contrastive shape
+            # ("…in `DERIVATION.md`, not `STATE.md`…") that a nearest-owner
+            # proximity rule wrongly reds, and catches the reassignment shapes
+            # ("…in `STATE.md`…", "…DERIVATION.md is not its home…in STATE.md…")
+            # that a mere-presence rule wrongly greens.
+            if "DERIVATION.md" not in window:
+                v.append(f"{label}: derivation_read_set names no DERIVATION.md home near `…{window[100:180]}…`")
+            elif _derivation_home_negated(window):
+                v.append(f"{label}: derivation_read_set's DERIVATION.md home is negated near `…{window[100:180]}…`")
+            else:
+                for competitor in ("STATE.md", "JOURNAL.jsonl"):
+                    if _owner_is_assignment_target(window, competitor):
+                        v.append(
+                            f"{label}: derivation_read_set assigned to {competitor} "
+                            f"near `…{window[100:180]}…`"
+                        )
             start = i + len(needle)
     readme_flat = one_line(read(ROOT / "README.md"))
     if "DERIVATION.md` records classification and frontload" not in readme_flat:
