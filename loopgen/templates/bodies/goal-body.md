@@ -85,6 +85,14 @@ switch criterion.
 
 {{PRESSURE_SURFACE}}
 
+**Evidence tiers for this loop.** Pressure rows cite tier-1/2 evidence; this
+prompt deliberately carries no standalone Signal hierarchy, so those tiers map
+onto goal's own surfaces: **tier 1** — externally reviewed findings you did
+not author; **tier 2** — machine-derived proof (criterion-verifier output,
+final-verify results, oracle verdicts, recorded `pass_evidence` /
+`fail_evidence` runs); your own ledger prose and commit narrative are tier 3–4
+and never satisfy or retire a pressure row.
+
 {{SUBAGENT_PATTERNS}}
 
 ## Oracle principles

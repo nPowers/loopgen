@@ -13,7 +13,11 @@ Every archetype except `goal` — the `frontier` body inlines it as its
 `{{INCLUDE primitives/evidence-tier.md}}`. `goal` deliberately carries no
 standalone Signal hierarchy: its evidence surface is oracle principles + the
 acceptance inventory (`templates/composed-prompt.md` §8) — do not add this
-block to a `goal` prompt.
+block to a `goal` prompt. The always-on pressure surface still speaks this
+vocabulary (`satisfied_by` is a tier-1/2 signal — `primitives/pressure.md`),
+so the `goal` body carries a compact tier mapping onto its own surfaces
+(external review → tier 1; verifier / oracle / acceptance evidence → tier 2)
+in place of the hierarchy.
 
 ## Composition notes
 

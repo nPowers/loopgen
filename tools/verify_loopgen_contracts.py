@@ -1813,10 +1813,22 @@ def evidence_tier_goal_violations() -> list[str]:
     if "except `goal`" not in include_when:
         v.append("evidence-tier.md Include-when does not name the goal exclusion")
     goal_template = raw_body_template(GOAL_BODY)
-    if "Signal hierarchy" in goal_template or "evidence-tier.md}}" in goal_template:
+    if "## Signal hierarchy" in goal_template or "evidence-tier.md}}" in goal_template:
         v.append("goal template carries a Signal hierarchy / evidence-tier INCLUDE")
     if "## Signal hierarchy" in render_body("goal"):
         v.append("goal render emits a standalone Signal hierarchy section")
+    # U1 closeout (P3): goal's always-on pressure block consumes the tier-1/2
+    # vocabulary, so the goal body must define the mapping it excludes the
+    # hierarchy for — and the primitive's Include-when must name that mapping.
+    goal_flat = one_line(render_body("goal"))
+    for pin in (
+        "**Evidence tiers for this loop.**",
+        "never satisfy or retire a pressure row",
+    ):
+        if pin not in goal_flat:
+            v.append(f"goal render lost its pressure tier mapping: `{pin}`")
+    if "compact tier mapping" not in include_when:
+        v.append("evidence-tier.md Include-when does not name the goal tier mapping")
     if "## Signal hierarchy" not in read(FRONTIER_BODY):
         v.append("frontier body lost its inline Signal hierarchy")
     for path in (STORY_BODY, GREENFIELD_BODY):
