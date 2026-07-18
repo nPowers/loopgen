@@ -1842,6 +1842,28 @@ def derivation_ownership_violations() -> list[str]:
     return v
 
 
+def derivation_scope_violations() -> list[str]:
+    """U1 closeout (P1): the derivation-record instruction must be obeyable by
+    every invocation mode. A decline emits no artifacts and mints no loop id
+    (SKILL.md loop-necessity gate), and DERIVATION.md is write-once at
+    bootstrap (context-stack.md), so only successful composition may persist
+    `derivation_read_set`; declines report their read list in the decline
+    response, Diagnostic mode in its diagnostic output."""
+    v: list[str] = []
+    skill_flat = one_line(read(SKILL))
+    for pin in (
+        "Persisting that list is scoped to successful composition",
+        "names its Tier-1 read list in the decline response",
+        "never writes the target loop's write-once `DERIVATION.md`",
+        "records whichever tiers the successful composition actually read",
+    ):
+        if pin not in skill_flat:
+            v.append(f"SKILL.md derivation read contract lost its scope pin: `{pin}`")
+    if "Every authoring run reads a bounded, provenance- relevant set of files and records" in skill_flat:
+        v.append("SKILL.md re-acquired the unscoped every-run-records instruction")
+    return v
+
+
 def run_checks() -> int:
     try:
         pure = render_frontier(benchmark_overlay=False)
@@ -2091,6 +2113,16 @@ def run_checks() -> int:
             not ownership,
             "derivation_ownership_pinned",
             "; ".join(ownership),
+        )
+    )
+
+    # ── U1 closeout (P1): persistence scoped to successful composition ──────
+    scope = derivation_scope_violations()
+    checks.append(
+        require(
+            not scope,
+            "derivation_record_scoped_to_successful_composition",
+            "; ".join(scope),
         )
     )
 

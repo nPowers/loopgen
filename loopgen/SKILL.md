@@ -119,8 +119,10 @@ default `tier-0` if undetected — never assume a channel exists.
 ## Derivation read contract
 
 Do not compose from memory. Every authoring run reads a bounded, provenance-
-relevant set of files and records that list in the write-once
-`.loop/<loop-id>/DERIVATION.md` `derivation_read_set`.
+relevant set of files. Persisting that list is scoped to successful
+composition: only a run that composes and emits writes it as
+`derivation_read_set` in the write-once `.loop/<loop-id>/DERIVATION.md`;
+declines and Diagnostic mode read but never write it (below).
 
 **Tier 1 — read for classification + frontload (every run, including runs
 that decline):**
@@ -153,12 +155,16 @@ and composition proceeds):**
 - `primitives/context-stack.md`
 
 A `{loop_warranted: false}` decline stops after Tier 1 — the loop-necessity
-gate halts Phase 2 before Tier 2's composition reads ever start. A
+gate halts Phase 2 before Tier 2's composition reads ever start. A decline
+emits no loop artifacts and mints no loop id, so it has no `DERIVATION.md` to
+write: it names its Tier-1 read list in the decline response instead. A
 Diagnostic-mode invocation likewise never reaches Tier 2; it reads per
-`primitives/diagnostic-pattern.md` instead of the Tier 1 list. `derivation_read_set`
-in `.loop/<loop-id>/DERIVATION.md` records whichever tier(s) were actually read
-for that run. This does not change the derivation-gap rule below: a required read
-that cannot be completed is still a derivation gap, not a reason to guess.
+`primitives/diagnostic-pattern.md` instead of the Tier 1 list, and never
+writes the target loop's write-once `DERIVATION.md` — its reads are named in
+its diagnostic output. `derivation_read_set` in `.loop/<loop-id>/DERIVATION.md`
+records whichever tiers the successful composition actually read. This does not
+change the derivation-gap rule below: a required read that cannot be completed
+is still a derivation gap, not a reason to guess.
 
 **After classification, also read:**
 
