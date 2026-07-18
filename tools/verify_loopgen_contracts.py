@@ -1768,6 +1768,7 @@ def subagent_pattern_filter_violations() -> list[str]:
                 "never a required gate",
                 "None is required to accept an iteration",
                 "advisory, never acceptance authority",
+                "Emitted is not verified",
             ):
                 if pin not in flat:
                     v.append(f"tier-{tier}: advisory pin missing: `{pin}`")
@@ -1777,6 +1778,23 @@ def subagent_pattern_filter_violations() -> list[str]:
             "emitted subagent block claims independence — separation is not "
             "attested isolation; say `separate`"
         )
+    # U1 closeout (P2): the compose-detected tier is a detection record, not a
+    # liveness claim — every pattern instruction subordinates to the run-host
+    # consult_tier_effective (+ per-channel basis).
+    flat_block = one_line(emitted_block)
+    for pin in (
+        "detected on the composing host",
+        "`consult_tier_effective` in `STATE.md` (value + per-channel basis",
+        "treat that pattern as absent on this runner",
+    ):
+        if pin not in flat_block:
+            v.append(f"emitted subagent block lost its effective-tier pin: `{pin}`")
+    for stale in ("this host's consult channel", "consult tier are live"):
+        if stale in flat_block:
+            v.append(
+                f"emitted subagent block presents the compose-detected tier as "
+                f"live on this host: `{stale}`"
+            )
     return v
 
 

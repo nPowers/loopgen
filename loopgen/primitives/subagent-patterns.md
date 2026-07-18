@@ -55,8 +55,9 @@ so a tier-1/2 host never sees a tier-3 pattern inlined; the whole block is
 stripped at `tier-0`. It sits immediately after `{{PRESSURE_SURFACE}}` in every
 body (section 6b — same gated placement + strip rule as the pressure surface).
 
-`{{CONSULT_TIER}}` — a **nested** fill inside the emitted block (the loop's
-detected tier label, e.g. `tier-2`), present only when the block emits; filled by
+`{{CONSULT_TIER}}` — a **nested** fill inside the emitted block (the tier
+detected on the *composing* host, e.g. `tier-2` — the Run-host channel check
+resolves what is effective), present only when the block emits; filled by
 step 7b, never left dangling (at `tier-0` the whole block is gone).
 
 ## Authoring guidance (not emitted)
@@ -73,6 +74,12 @@ step 7b, never left dangling (at `tier-0` the whole block is gone).
   role separation alone is not attested isolation. An *independent* claim is
   earned only by runner-attested isolation, which no current host provides —
   until one does, the strongest honest claim is a separate second look.
+- **Compose-time detects; the run host governs.** `{{CONSULT_TIER}}` is the
+  composing host's detection, and emitted wording must never present it as
+  what *this* runner has live. Every consult-dependent instruction defers to
+  `consult_tier_effective` (+ per-channel basis) in `STATE.md`, written and
+  kept fresh by the Run-host channel check
+  (`primitives/consult-capability.md`).
 
 ---
 
@@ -80,9 +87,9 @@ step 7b, never left dangling (at `tier-0` the whole block is gone).
 
 Pattern **A — single-agent iteration** is the protocol you already run; it is
 not listed here and is always sufficient on its own. The patterns below are
-*optional* parallel / separate moves this host's consult channel
-(`{{CONSULT_TIER}}`) makes available — capabilities to reach for **when they
-help**, never gates you must pass to accept an iteration.
+*optional* parallel / separate moves emitted for the consult tier detected on
+the composing host (`{{CONSULT_TIER}}`) — capabilities to reach for **when
+they help**, never gates you must pass to accept an iteration.
 
 - **D — cheap separate second look** *(consult tier ≥ 1)*: take a quick second
   look at a result through a separate channel before trusting it. At tier-1
@@ -101,6 +108,10 @@ help**, never gates you must pass to accept an iteration.
   identity** (persisted job id / idempotency key) and a **capped retry with
   backoff** — never an unbounded resubmit loop.
 
-Only the patterns at or below this loop's consult tier are live; the rest were
-dropped at compose. None is required to accept an iteration — the single-agent
-protocol remains sufficient.
+Only the patterns at or below the compose-detected tier were emitted; the rest
+were dropped at compose. Emitted is not verified: a pattern is usable only
+while `consult_tier_effective` in `STATE.md` (value + per-channel basis, from
+the iteration-0 Run-host channel check) meets its gate — where the effective
+tier or a channel's basis falls short, treat that pattern as absent on this
+runner. None is required to accept an iteration — the single-agent protocol
+remains sufficient.
