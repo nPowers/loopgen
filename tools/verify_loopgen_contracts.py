@@ -1606,7 +1606,7 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     # additionally parses the clause whole for enum exactness).
     "`rolling-lossy` → after any detected compaction",
     "`fresh-episode` → at every episode start",
-    "`unknown` → whenever continuity is not evident, claiming neither mode.",
+    "`unknown` → at every iteration start (conservative — neither lifecycle assumed).",
     "**Context budget**",
     "| `.loop/<loop-id>/PRESSURE.md` | PINNED | in-force rows ≤ `pressure-cap` (default 12); re-read every pass |",
     "| `.loop/<loop-id>/STATE.md` | PINNED | ≤ ~50 lines, live status only; re-read every pass |",
@@ -2072,12 +2072,20 @@ def context_mode_violations() -> list[str]:
     skill_flat = one_line(read(SKILL))
     for pin in (
         "`context_mode_effective`, `context_mode_resolution_basis`",
-        "(operator-declared / runner-attested / unknown — never observation)",
+        "operator-declared / runner-attested / unknown — never observation",
         "`context_mode_requested`",
         "never inferred from what the composing window shows",
+        # F5: the reservation must live in emitted + SKILL authority, not
+        # only the ADR — else the loop can invent the deferred runner protocol.
+        "runner-attested is reserved, no current producer",
     ):
         if pin not in skill_flat:
             v.append(f"SKILL.md missing context-mode pin: `{pin}`")
+    # F5: the emitted context-stack block carries the reservation too.
+    if "`runner-attested` is reserved — no current runner emits an attestation" not in emitted:
+        v.append("context-stack emitted block omits the runner-attested reservation")
+    if "Runner attestation is **reserved**" not in one_line(read(CONTEXT_STACK)):
+        v.append("context-stack memory-model intro omits the runner-attested reservation")
     for archetype in BODY_PATHS:
         flat = one_line(render_body(archetype))
         if "context_mode_effective" not in flat or "proves neither mode" not in flat:
@@ -2125,7 +2133,7 @@ def context_mode_violations() -> list[str]:
     expected_cadence = (
         "`rolling-lossy` → after any detected compaction; "
         "`fresh-episode` → at every episode start; "
-        "`unknown` → whenever continuity is not evident, claiming neither mode"
+        "`unknown` → at every iteration start (conservative — neither lifecycle assumed)"
     )
     for archetype in BODY_PATHS:
         flat = one_line(render_body(archetype))

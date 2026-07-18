@@ -422,7 +422,9 @@ rewrite-in-place — no history (see the context-stack primitive).
 - `archetype`, `identity`
 - `consult_tier`, `consult_tier_effective`, `evaluator_tier`
 - `context_mode_effective`, `context_mode_resolution_basis`
-  (operator-declared / runner-attested / unknown — never observation),
+  (operator-declared / runner-attested / unknown — never observation;
+  runner-attested is reserved, no current producer, so absent an operator
+  declaration the mode stays unknown),
   `history_visibility_observed` (a visibility fact, never a mode basis)
 - `artifacts: {canonical, repo_aliases}`
 - `iteration`, `phase`, `current_artifact`, `last_action`, `next_action`

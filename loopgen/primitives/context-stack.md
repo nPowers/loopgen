@@ -121,8 +121,11 @@ iterations is `context_mode_effective` in `STATE.md` — `rolling-lossy` (one
 continuous conversation; user-role text survives compaction, assistant/tool
 output is summarized away near the ceiling), `fresh-episode` (a cold window
 every episode), or `unknown` — resolved only from an operator declaration or
-runner attestation, never from what the window seems to show. Under every
-mode **the files under `.loop/<loop-id>/` are the durable memory**. Read keys, not
+runner attestation, never from what the window seems to show. Runner
+attestation is **reserved**: no current runner emits one, so unless an
+operator declared the mode it stays `unknown` (rehydrate every iteration) —
+do not synthesize an attestation from the window. Under every mode **the
+files under `.loop/<loop-id>/` are the durable memory**. Read keys, not
 files. Every access path below has exactly one tier and a hard bound (one file
 may expose two paths at different tiers — the journal's tail is WORKING, its
 keyed history ON-DEMAND); honor each path's access command and never promote an
@@ -157,8 +160,10 @@ Common keys, every archetype:
   `context_mode_resolution_basis` from the closed set `operator-declared` /
   `runner-attested` / `unknown` — never observation: model-visible history
   proves neither mode (a fresh runner may be handed replayed context; a
-  rolling window may already be compacted). Seeded at bootstrap from the
-  derivation's `context_mode_requested` when its basis was an operator
+  rolling window may already be compacted). `runner-attested` is reserved —
+  no current runner emits an attestation, so today the basis resolves only
+  `operator-declared` or `unknown`; do not synthesize one. Seeded at bootstrap
+  from the derivation's `context_mode_requested` when its basis was an operator
   statement; with no declared or attested basis it stays `unknown` — an
   honest value, not a gap to fill
 - `history_visibility_observed` — what the window currently shows

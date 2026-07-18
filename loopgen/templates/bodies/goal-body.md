@@ -28,8 +28,8 @@ durable memory. This core is the bounded re-read —
 `sed -n '1,80p' .loop/<loop-id>/PROMPT.md` — on the cadence
 `context_mode_effective` (`STATE.md`) sets: `rolling-lossy` → after any
 detected compaction; `fresh-episode` → at every episode start; `unknown` →
-whenever continuity is not evident, claiming neither mode. Read keys, not
-files; the full contract is in Artifacts to maintain.
+at every iteration start (conservative — neither lifecycle assumed). Read
+keys, not files; the full contract is in Artifacts to maintain.
 
 **Context budget** (tier → bound → access):
 
