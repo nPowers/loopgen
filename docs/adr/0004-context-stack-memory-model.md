@@ -207,10 +207,11 @@ real overnight run shows the jq one-liner insufficient.
 ## Context-lifecycle amendment (U2–U3, 2026-07-17)
 
 The first revisit trigger below partially fired — from research, not a
-measured run: the AutoFyn synthesis surfaced runners whose episodes start
-cold (fresh context each episode) rather than rolling one conversation
-through compaction. The resolution keeps this memory model and names the
-lifecycle instead of forking the model:
+measured run: the AutoFyn → loopgen synthesis (maintainer-local research,
+`.research/synthesis-autofyn-loopgen-2026-07-17.md`, gitignored) surfaced
+runners whose episodes start cold (fresh context each episode) rather than
+rolling one conversation through compaction. The resolution keeps this
+memory model and names the lifecycle instead of forking the model:
 
 - **The mode split.** The compiler records `context_mode_requested`
   (`fresh-episode` / `rolling-lossy` / `unknown`) with its
@@ -229,8 +230,13 @@ lifecycle instead of forking the model:
   alone — requested mode and observed visibility never select behavior — and
   the only branch is the Operational core's rehydration cadence:
   `rolling-lossy` → after any detected compaction; `fresh-episode` → at
-  every episode start; `unknown` → whenever continuity is not evident,
-  claiming neither lifecycle.
+  every episode start; `unknown` → **at every iteration start**. The
+  `unknown` cadence is deterministic: it is derived from the mode value, not
+  from inspecting whether the window looks continuous — "rehydrate whenever
+  continuity is not evident" was rejected precisely because judging evidentness
+  is window observation, the branch-on-visibility this ADR forbids. Unknown
+  therefore takes the most conservative cadence (re-read the bounded core
+  every iteration) and claims neither lifecycle.
 - **What does not change.** Bounded files, one history surface, runner
   ownership, and the PINNED/WORKING/ON-DEMAND/WRITE-ONLY tiers hold under
   every mode: the tiers were never about compaction per se but about keeping
@@ -261,3 +267,7 @@ lifecycle instead of forking the model:
 - Lineage anchor: the context-stack refactor commit series on `main` (units
   U1–U12); `primitives/context-stack.md` is the model's single in-tree source.
 - Builds on ADR 0003 (loop records live in gitignored `.loop/<loop-id>/`).
+- Context-lifecycle amendment (U2–U3) source: the AutoFyn → loopgen research
+  synthesis, `.research/synthesis-autofyn-loopgen-2026-07-17.md`
+  (maintainer-local, gitignored — the five-lesson study that surfaced the
+  fresh-episode runtime); landed as the U2–U3 commit series on `main`.
