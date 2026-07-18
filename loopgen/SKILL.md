@@ -154,6 +154,7 @@ and composition proceeds):**
 - `primitives/halt-cause-classifier.md`
 - `primitives/queue-as-second-artifact.md`
 - `primitives/context-stack.md`
+- `primitives/human-look-gate.md`
 
 A `{loop_warranted: false}` decline stops after Tier 1 — the loop-necessity
 gate halts Phase 2 before Tier 2's composition reads ever start. A decline

@@ -212,7 +212,7 @@ Record types (`t`), each with `iter` (iteration) plus type-specific fields:
 | `oracle_change` | an oracle / criterion is added, edited, or re-scoped | `ac`, `from`, `to`, `why` | goal (+ any with an oracle) |
 | `pressure` | a pressure row transitions (replaces `pressure_ledger`) | `id`, `from`, `to`, `evidence` | all |
 | `consult` | step-0 pressure read-back (replaces `pressure_consulted`) | `consulted` (id→plan-element) or `no-promotion: <reason>` | all |
-| `alignment_review` | a defaulted judgment / Alignment Review is recorded | `item`, `decision`, `anchor` | all |
+| `alignment_review` | a defaulted judgment / Alignment Review is recorded | `item`, `decision`, `anchor`; as a Human-look review packet also `packet` (stable id), `question` | all |
 | `checkpoint` | a delta-only status change worth a timestamp | `changed` (field→new), else omit | all |
 | `halt` | a full halt-scan event fires | `cause`, `scan` (surface→state), `open` | all |
 | `score_quarantine` | greenfield reframes the rubric and quarantines old scores | `rubric_from`, `rubric_to`, `quarantined` | greenfield |
@@ -238,7 +238,7 @@ Access:
   whole file — a full-history read is a named diagnostic exception (halt
   analysis / Diagnostic mode), never a normal move.
 - **Human watch (WRITE-ONLY, external):**
-  `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`.
+  `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,.verdict//.to//.changed//.question]|@tsv'`.
 
 ### Consolidation round — reading the field, auditing the substrate
 

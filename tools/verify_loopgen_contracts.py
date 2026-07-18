@@ -579,16 +579,16 @@ def render_body(
             "{{CONSULT_TIER}}", f"tier-{consult_tier}"
         )
         prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}", run_host.rstrip("\n"))
-        # tier >= 1: the tier-0 substitute strips byte-identical (step 8).
-        prompt = prompt.replace("{{HUMAN_LOOK_GATE}}\n\n", "")
     else:
         prompt = prompt.replace("{{SUBAGENT_PATTERNS}}", "")
-        # tier-0: strip byte-identical, eating the slot's blank line (step 8),
-        # and fill the promised human-look substitute (step 7b).
+        # tier-0: strip byte-identical, eating the slot's blank line (step 8).
         prompt = prompt.replace("{{RUN_HOST_VERIFICATION}}\n\n", "")
-        prompt = prompt.replace(
-            "{{HUMAN_LOOK_GATE}}", resolve_gated_block(HUMAN_LOOK_GATE).rstrip("\n")
-        )
+    # The human-look gate is ALWAYS filled (composed-prompt step 7b): a
+    # consulted prompt may downgrade to effective tier-0 mid-run, so the
+    # fallback must already be in the prompt when the downgrade lands on it.
+    prompt = prompt.replace(
+        "{{HUMAN_LOOK_GATE}}", resolve_gated_block(HUMAN_LOOK_GATE).rstrip("\n")
+    )
 
     values = dict(COMMON_BODY_PLACEHOLDERS)
     values.update(ARCHETYPE_BODY_PLACEHOLDERS[archetype])
@@ -1622,7 +1622,7 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     # are shared content — pinned verbatim so neither single-body drift nor a
     # coordinated four-body edit can silently change or remove them.
     "Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r "
-    "'[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`",
+    "'[.iter,.t,.ac//.id//.packet,.verdict//.to//.changed//.question]|@tsv'`",
     "6. `consult_tier_effective` in `STATE.md` still matches this host "
     "(`n/a` at tier-0); stale after any runner change — re-verify before "
     "consulting.",
@@ -2137,45 +2137,64 @@ def context_mode_violations() -> list[str]:
     return v
 
 
-def tier0_human_look_violations() -> list[str]:
-    """Tier-0 closeout: the periodic human-look substitute the capability
-    authority promises is a real emitted block — present exactly once in
-    every tier-0 render, stripped byte-identical at tier >= 1 — and no
-    tier-0 render carries an executable phantom-consult instruction. The
-    three consult-shaped action sites (consolidation fork, frontier
-    structural bridge, benchmark consult row) route to it."""
-    marker = "## Human-look gate (tier-0 consult substitute)"
+def human_look_gate_violations() -> list[str]:
+    """The consult fallback is ALWAYS carried — a consulted prompt may
+    lawfully downgrade to effective tier-0 mid-run (the Run-host channel
+    check), so every render at every tier must define the gate exactly once,
+    dormant behind its in-block liveness condition. Packets are provisional
+    (never pressure payment, finding closure, or acceptance authority) and
+    join the canonical journal schema (packet + question fields, surfaced by
+    the watch projection). No render carries an executable phantom-consult
+    instruction."""
+    marker = "## Human-look gate (consult fallback)"
     phantom = "ask the available consult channel"
     v: list[str] = []
-    renders0 = {
+    renders: dict[str, str] = {
         "frontier-pure": render_frontier(benchmark_overlay=False),
         "frontier-benchmark": render_frontier(benchmark_overlay=True),
     }
     for archetype in BODY_PATHS:
-        renders0[f"{archetype}-tier0"] = render_body(archetype)
-    for name, text in renders0.items():
+        for tier in (0, 1, 2, 3):
+            renders[f"{archetype}-tier{tier}"] = render_body(archetype, consult_tier=tier)
+    for name, text in renders.items():
         if text.count(marker) != 1:
             v.append(f"{name}: expected exactly one human-look gate, found {text.count(marker)}")
-        if "review packet" not in text:
-            v.append(f"{name}: tier-0 render lacks the review-packet substitute")
+        if "{{HUMAN_LOOK" in text:
+            v.append(f"{name}: dead HUMAN_LOOK_GATE placeholder survives")
         if phantom in text:
-            v.append(f"{name}: tier-0 render still instructs `{phantom}`")
-        if "else the tier-0 Human-look gate's review packet" not in one_line(text):
-            v.append(f"{name}: consolidation fork lost its tier-0 routing")
+            v.append(f"{name}: render still instructs `{phantom}`")
+        flat = one_line(text)
+        for pin in (
+            "**Live condition.**",
+            "cannot pay a pressure row, close a finding, or serve as acceptance authority",
+            "reversible probes only",
+            "`packet` (stable id, `hlp-<iter>-<n>`)",
+            "else the tier-0 Human-look gate's review packet",
+            ".ac//.id//.packet",
+            ".verdict//.to//.changed//.question",
+        ):
+            if pin not in flat:
+                v.append(f"{name}: human-look gate pin missing: `{pin}`")
     for name in ("frontier-pure", "frontier-benchmark"):
-        if "route the trace bundle to the consult resolution" not in one_line(renders0[name]):
+        flat = one_line(renders[name])
+        if "route the trace bundle to the consult resolution" not in flat:
             v.append(f"{name}: structural bridge lost its consult-resolution routing")
-    if "by the Human-look gate's review packet" not in one_line(
-        renders0["frontier-benchmark"]
+        if "provisional and self-authored" not in flat:
+            v.append(f"{name}: bridge tier-0 classification is not marked provisional")
+    if "cites the packet id and stays provisional" not in one_line(
+        renders["frontier-benchmark"]
     ):
-        v.append("frontier-benchmark: consult lineage row lacks its tier-0 backing action")
-    for archetype in BODY_PATHS:
-        for tier in (1, 3):
-            text = render_body(archetype, consult_tier=tier)
-            if marker in text:
-                v.append(f"{archetype}-tier{tier}: human-look gate leaked into a consulted render")
-            if "{{HUMAN_LOOK" in text:
-                v.append(f"{archetype}-tier{tier}: dead HUMAN_LOOK_GATE placeholder survives")
+        v.append("frontier-benchmark: consult lineage row lacks its provisional packet backing")
+    cs_emitted = one_line(resolve_gated_block(CONTEXT_STACK))
+    if (
+        "as a Human-look review packet also `packet` (stable id), `question`"
+        not in cs_emitted
+    ):
+        v.append("context-stack journal table does not join the packet schema")
+    skill = read(SKILL)
+    tier2 = skill.split("**Tier 2 — read for composition", 1)[-1].split("**After classification", 1)[0]
+    if "primitives/human-look-gate.md" not in tier2:
+        v.append("SKILL.md Tier-2 composition reads omit human-look-gate.md")
     return v
 
 
@@ -2472,15 +2491,15 @@ def run_checks() -> int:
         )
     )
 
-    # ── Tier-0: the human-look gate is emitted and every consult site routes ─
+    # ── The consult fallback is always carried, provisional, and joined ─────
     try:
-        human_look = tier0_human_look_violations()
+        human_look = human_look_gate_violations()
     except (ContractError, AssertionError) as exc:
         human_look = [str(exc)]
     checks.append(
         require(
             not human_look,
-            "tier0_human_look_gate_emitted_and_routed",
+            "human_look_gate_always_carried_and_provisional",
             "; ".join(human_look),
         )
     )

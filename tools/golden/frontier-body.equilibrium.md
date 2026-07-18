@@ -30,7 +30,7 @@ files; the full contract is in Artifacts to maintain.
 | journal by key · `archive/*` · `DERIVATION.md` | ON-DEMAND | keyed reads only (`jq` / section), never whole-file |
 | `VERIFY.md` (terminal only) · journal `checkpoint` records | WRITE-ONLY | written in-loop, never re-read |
 
-Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`
+Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,.verdict//.to//.changed//.question]|@tsv'`
 
 **Context-health check** — every pass before task work, right after the
 pressure render+read, and again after any rehydration. Each line is one cheap
@@ -285,25 +285,34 @@ rows share.
 
 
 
-## Human-look gate (tier-0 consult substitute)
+## Human-look gate (consult fallback)
 
-This loop has **no consult channel** (`consult-capability` tier-0). Every
-instruction shaped "route it to the consult channel" resolves here instead —
-never to a phantom tool, never to an interactive prompt:
+**Live condition.** This gate is live wherever consult capability is
+*effectively* tier-0: for the whole loop when no channel was detected at
+compose, or per channel whenever the Run-host channel check degrades a
+promised channel down to this substitute (`consult_tier_effective`,
+`STATE.md`). While a live consult channel covers a need, the gate stays
+dormant. When live, every instruction shaped "route it to the consult
+channel" resolves here — never to a phantom tool, never to an interactive
+prompt:
 
 - **Write a review packet, then keep moving.** Record an `alignment_review`
-  in `.loop/<loop-id>/JOURNAL.jsonl` (the Judgment default's record): problem ·
-  evidence pointers · options considered · the disposition taken · and the
-  **review question a consult would have answered**. Surface it as one line in
-  that iteration's summary; the human reads it asynchronously via the journal
-  watch command.
+  in `.loop/<loop-id>/JOURNAL.jsonl` carrying its usual fields plus the
+  packet pair: `item` (the consult-shaped need), `decision` (the disposition
+  taken), `anchor` (evidence pointer), `packet` (stable id, `hlp-<iter>-<n>`),
+  `question` (what a consult would have answered). Surface `packet` +
+  `question` as one line in that iteration's summary; the human reads them
+  asynchronously via the journal watch command.
+- **Self-authored means provisional.** A packet records your own judgment,
+  not a consult verdict — it cannot pay a pressure row, close a finding, or
+  serve as acceptance authority; those still require the archetype's own
+  tier-1/2 evidence. A tier-0 classification licenses **reversible probes
+  only**, under the Judgment default; irreversible or authority-needing calls
+  route to `escalate` / `stop-and-summarize` with the question in the
+  summary — async always, interactive never.
 - **Periodic, not per-pass.** Mint a packet whenever a consult-shaped need
   arises (a consolidation `fork`, a structural diagnosis, a wanted second
   look), and at latest at each consolidation round.
-- **Never block.** Proceed under the Judgment default (smallest reversible
-  action + the packet); irreversible or authority-needing calls still route to
-  `escalate` / `stop-and-summarize` with the question in the summary — async
-  always, interactive never.
 
 ## Frontier vector
 
@@ -594,7 +603,10 @@ consultation, architecture, and build:
    consult channel `consult_tier_effective` proves live, or at tier-0 the
    Human-look gate's review packet — and have it classify the failure as
    prompt wording, evaluator weakness, or missing product/runtime structure,
-   citing concrete trace paths and observed deltas.
+   citing concrete trace paths and observed deltas. At tier-0 that
+   classification is provisional and self-authored (recorded in the packet):
+   it cannot pay pressure or close the finding, and steps 2–4 proceed only
+   as reversible probes.
 2. **Architect** — invoke `/architect` deeply on the smallest structural change
    that would make the failure class measurable. Save the plan to a durable
    artifact when the next step will use `/build`.
@@ -1242,7 +1254,7 @@ Record types (`t`), each with `iter` (iteration) plus type-specific fields:
 | `oracle_change` | an oracle / criterion is added, edited, or re-scoped | `ac`, `from`, `to`, `why` | goal (+ any with an oracle) |
 | `pressure` | a pressure row transitions (replaces `pressure_ledger`) | `id`, `from`, `to`, `evidence` | all |
 | `consult` | step-0 pressure read-back (replaces `pressure_consulted`) | `consulted` (id→plan-element) or `no-promotion: <reason>` | all |
-| `alignment_review` | a defaulted judgment / Alignment Review is recorded | `item`, `decision`, `anchor` | all |
+| `alignment_review` | a defaulted judgment / Alignment Review is recorded | `item`, `decision`, `anchor`; as a Human-look review packet also `packet` (stable id), `question` | all |
 | `checkpoint` | a delta-only status change worth a timestamp | `changed` (field→new), else omit | all |
 | `halt` | a full halt-scan event fires | `cause`, `scan` (surface→state), `open` | all |
 | `score_quarantine` | greenfield reframes the rubric and quarantines old scores | `rubric_from`, `rubric_to`, `quarantined` | greenfield |
@@ -1268,7 +1280,7 @@ Access:
   whole file — a full-history read is a named diagnostic exception (halt
   analysis / Diagnostic mode), never a normal move.
 - **Human watch (WRITE-ONLY, external):**
-  `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`.
+  `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,.verdict//.to//.changed//.question]|@tsv'`.
 
 ### Consolidation round — reading the field, auditing the substrate
 

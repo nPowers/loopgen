@@ -39,7 +39,7 @@ files; the full contract is in Artifacts to maintain.
 | journal by key · `archive/*` · `DERIVATION.md` | ON-DEMAND | keyed reads only (`jq` / section), never whole-file |
 | `VERIFY.md` (terminal only) · journal `checkpoint` records | WRITE-ONLY | written in-loop, never re-read |
 
-Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id,.verdict//.to//.changed]|@tsv'`
+Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,.verdict//.to//.changed//.question]|@tsv'`
 
 **Context-health check** — every pass before task work, right after the
 pressure render+read, and again after any rehydration. Each line is one cheap
@@ -302,7 +302,10 @@ consultation, architecture, and build:
    consult channel `consult_tier_effective` proves live, or at tier-0 the
    Human-look gate's review packet — and have it classify the failure as
    prompt wording, evaluator weakness, or missing product/runtime structure,
-   citing concrete trace paths and observed deltas.
+   citing concrete trace paths and observed deltas. At tier-0 that
+   classification is provisional and self-authored (recorded in the packet):
+   it cannot pay pressure or close the finding, and steps 2–4 proceed only
+   as reversible probes.
 2. **Architect** — invoke `/architect` deeply on the smallest structural change
    that would make the failure class measurable. Save the plan to a durable
    artifact when the next step will use `/build`.
