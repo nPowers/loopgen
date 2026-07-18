@@ -1616,7 +1616,12 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     "**Context-health check**",
     "a failed line is a routing",
     "**Halt causes (quick list):**",
-    "No shared cause claims the artifact complete",
+    # One contiguous completion clause, not three separable sentences — text
+    # inserted anywhere inside it (e.g. between the scan requirement and the
+    # classifier pointer) now breaks the match.
+    "No shared cause claims the artifact complete; any non-success halt "
+    "requires the full search-surface scan first. The Halt section below "
+    "carries the full classifier.",
     "**Iteration skeleton**",
     # U1 closeout: the human-watch one-liner and the health revalidation line
     # are shared content — pinned verbatim so neither single-body drift nor a
@@ -1626,10 +1631,6 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     "6. `consult_tier_effective` in `STATE.md` still matches this host "
     "(`n/a` at tier-0); stale after any runner change — re-verify before "
     "consulting.",
-    # The full shared completion clause, not just its first sentence — the
-    # scan requirement and the classifier pointer drifted free before.
-    "any non-success halt requires the full search-surface scan first.",
-    "The Halt section below carries the full classifier.",
 )
 
 
@@ -1707,17 +1708,29 @@ def operational_core_violations() -> list[str]:
 # promise directly instead of by arithmetic.
 OPERATIONAL_CORE_SENTINEL_BOUND = 70
 
-CANONICAL_PROVENANCE = (
-    "> **Loop provenance — composed by `/loopgen`.**\n"
-    "> Archetype: `story`  ·  Divergences: `none`.\n"
-    "> Overlays: `none`.\n"
-    "> Consult-capability: `tier-1` (`human-bridge`).\n"
-    "> Evaluator tier: `n/a`.\n"
-    "> Frontload — resolved: [`paths`, `commands`]; defaulted: [`thresholds`];"
-    " open gaps: [`none`].\n"
-    "> Primitive sources: `archetype defaults only`.\n"
-    "> Re-derive (do not hand-edit) when intent, sources, or environment change."
-)
+def production_provenance() -> str:
+    """F6: the canonical provenance measured for the first-80 budget is
+    EXTRACTED from composed-prompt.md's production `## Provenance preamble`
+    fenced block, never hand-copied — so adding a provenance line
+    automatically tightens the measured line budget instead of staying
+    false-green. The block's `<...>` placeholders are irrelevant to a
+    line-count measurement; only the line count is load-bearing."""
+    text = read(COMPOSED_PROMPT)
+    anchor = "## Provenance preamble (ALWAYS"
+    i = text.find(anchor)
+    if i == -1:
+        raise ContractError("composed-prompt.md: production provenance preamble not found")
+    fence = text.find("```md", i)
+    if fence == -1:
+        raise ContractError("composed-prompt.md: provenance preamble has no ```md fence")
+    start = text.index("\n", fence) + 1
+    end = text.find("```", start)
+    block = text[start:end].rstrip("\n")
+    lines = block.splitlines()
+    if not all(line.startswith(">") for line in lines):
+        raise ContractError("composed-prompt.md: provenance block has a non-`>` line")
+    return block
+
 
 CANONICAL_MOTIVE = (
     "Keep the visible product surface honest against its storyboard overnight,\n"
@@ -1771,7 +1784,7 @@ def operational_core_canonical_violations() -> list[str]:
     end by line 78, keeping >= 2 lines of real headroom inside the promised
     `sed -n '1,80p'` rehydration read."""
     v: list[str] = []
-    overrides = {"PROVENANCE": CANONICAL_PROVENANCE, "MOTIVE": CANONICAL_MOTIVE}
+    overrides = {"PROVENANCE": production_provenance(), "MOTIVE": CANONICAL_MOTIVE}
     renders: dict[str, str] = {
         "frontier-pure-canonical": render_frontier(
             benchmark_overlay=False, placeholder_overrides=overrides
@@ -2000,6 +2013,7 @@ def derivation_ownership_violations() -> list[str]:
         for path in sorted((ROOT / "loopgen").rglob("*.md")) + [ROOT / "README.md"]
     )
     needle = "derivation_read_set"
+    owners = ("DERIVATION.md", "STATE.md", "JOURNAL.jsonl")
     for label, path in scanned:
         flat = one_line(read(path))
         start = 0
@@ -2008,11 +2022,26 @@ def derivation_ownership_violations() -> list[str]:
             if i == -1:
                 break
             window = flat[max(0, i - 140): i + 140]
-            # Positive ownership: DERIVATION.md must be named near every
-            # mention — reassignment to STATE.md, JOURNAL.jsonl, or any other
-            # home reads as its absence.
-            if "DERIVATION.md" not in window:
-                v.append(f"{label}: derivation_read_set not owned by DERIVATION.md near `…{window[100:180]}…`")
+            # Nearest-owner rule, not mere presence: the owner filename CLOSEST
+            # to the mention must be DERIVATION.md. A semantic reversal
+            # ("…derivation_read_set in STATE.md, not DERIVATION.md…") keeps
+            # DERIVATION.md in the window but puts STATE.md nearer — which the
+            # old presence check missed.
+            nearest, nearest_dist = None, None
+            for owner in owners:
+                pos = window.find(owner)
+                while pos != -1:
+                    dist = abs((max(0, i - 140) + pos) - i)
+                    if nearest_dist is None or dist < nearest_dist:
+                        nearest, nearest_dist = owner, dist
+                    pos = window.find(owner, pos + 1)
+            if nearest is None:
+                v.append(f"{label}: derivation_read_set names no owner near `…{window[100:180]}…`")
+            elif nearest != "DERIVATION.md":
+                v.append(
+                    f"{label}: derivation_read_set's nearest owner is {nearest}, "
+                    f"not DERIVATION.md, near `…{window[100:180]}…`"
+                )
             start = i + len(needle)
     readme_flat = one_line(read(ROOT / "README.md"))
     if "DERIVATION.md` records classification and frontload" not in readme_flat:
@@ -2097,21 +2126,24 @@ def context_mode_violations() -> list[str]:
         r"`context_mode_resolution_basis` from the closed set (.+?)— never observation",
         emitted,
     )
+    # Case-inclusive capture ([A-Za-z-]+, not [a-z-]+): an extra member added
+    # in any case (e.g. `Model-Observed`) is caught by the exact-list compare
+    # instead of being skipped by a lowercase-only pattern.
     if not basis:
         v.append("context-stack: resolution-basis closed-set sentence not parseable")
-    elif re.findall(r"`([a-z-]+)`", basis.group(1)) != [
+    elif re.findall(r"`([A-Za-z-]+)`", basis.group(1)) != [
         "operator-declared", "runner-attested", "unknown",
     ]:
         v.append(
             "context-stack: resolution-basis set drifted: "
-            f"{re.findall(r'`([a-z-]+)`', basis.group(1))}"
+            f"{re.findall(r'`([A-Za-z-]+)`', basis.group(1))}"
         )
     for label, pattern in (
         ("effective-mode", r"`context_mode_effective` — [^(]*\(([^)]+)\)"),
         ("requested-mode", r"`context_mode_requested` \(([^)]+)\)"),
     ):
         m = re.search(pattern, emitted)
-        found = re.findall(r"`([a-z-]+)`", m.group(1)) if m else []
+        found = re.findall(r"`([A-Za-z-]+)`", m.group(1)) if m else []
         if found != ["fresh-episode", "rolling-lossy", "unknown"]:
             v.append(f"context-stack: {label} enum drifted: {found}")
     skill_basis = re.search(
@@ -2127,6 +2159,11 @@ def context_mode_violations() -> list[str]:
         ]
         if names != ["operator-declared", "runner-attested", "unknown"]:
             v.append(f"SKILL.md: resolution-basis set drifted: {names}")
+        # The SKILL parenthetical continues past the first em dash with the
+        # reservation clause; capture it separately so the split above stays
+        # exact on the three-member set.
+        if "runner-attested is reserved, no current producer" not in skill_flat:
+            v.append("SKILL.md: resolution-basis parenthetical lost the reservation clause")
     # U3 truth table: the core's cadence clause pairs each mode with exactly
     # its cadence — parsed and compared whole, so an added mode or a swapped
     # cadence fails even while every individual token is still present.
