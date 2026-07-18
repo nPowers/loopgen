@@ -248,6 +248,9 @@ Track:
 - `remaining_findings_classified`: counts or short notes for skipped findings
 - `pressure_objects` (in-force rows only, ≤ `pressure-cap`)
 - `halt_cause` and `halt_scan` before `stop-and-summarize`
+- `context_mode_effective` (+ `context_mode_resolution_basis`) and
+  `history_visibility_observed` — run-host keys, schema in the context stack
+  below
 
 `.loop/<loop-id>/STATE.md` does **not** hold `pressure_ledger`,
 `pressure_consulted`, or a per-iteration promotion log — those are `pressure` /

@@ -1952,6 +1952,44 @@ def derivation_scope_violations() -> list[str]:
     return v
 
 
+def context_mode_violations() -> list[str]:
+    """U2: the context-mode split — a compiler-owned request in the DERIVATION
+    frontload, a run-host resolution in STATE — under the strict authority
+    rule: `context_mode_effective` resolves only from operator-declared /
+    runner-attested / unknown. Observation is never a basis — model-visible
+    history proves neither mode (a fresh runner may be handed replayed
+    context; a rolling window may already be compacted); what the window
+    shows is recorded separately as `history_visibility_observed`."""
+    v: list[str] = []
+    emitted = one_line(resolve_gated_block(CONTEXT_STACK))
+    for pin in (
+        "`context_mode_effective`",
+        "`operator-declared` / `runner-attested` / `unknown` — never observation",
+        "proves neither mode",
+        "`history_visibility_observed`",
+        "never converts into a mode claim",
+        "`context_mode_requested`",
+        "`context_mode_compose_basis`",
+        "compiler-owned half of the context-mode split",
+    ):
+        if pin not in emitted:
+            v.append(f"context-stack emitted block missing context-mode pin: `{pin}`")
+    skill_flat = one_line(read(SKILL))
+    for pin in (
+        "`context_mode_effective`, `context_mode_resolution_basis`",
+        "(operator-declared / runner-attested / unknown — never observation)",
+        "`context_mode_requested`",
+        "never inferred from what the composing window shows",
+    ):
+        if pin not in skill_flat:
+            v.append(f"SKILL.md missing context-mode pin: `{pin}`")
+    for archetype in BODY_PATHS:
+        flat = one_line(render_body(archetype))
+        if "context_mode_effective" not in flat or "proves neither mode" not in flat:
+            v.append(f"{archetype}: render lost the context-mode schema")
+    return v
+
+
 def render_input_violations() -> list[str]:
     """U1 closeout: render_body rejects consult tiers outside the closed 0..3
     vocabulary instead of silently misfiltering them (tier -1 rendered as
@@ -2235,6 +2273,16 @@ def run_checks() -> int:
             not bad_inputs,
             "render_rejects_invalid_consult_tier",
             "; ".join(bad_inputs),
+        )
+    )
+
+    # ── U2: context-mode split under the strict resolution-basis rule ───────
+    context_mode = context_mode_violations()
+    checks.append(
+        require(
+            not context_mode,
+            "context_mode_split_strict_resolution_basis",
+            "; ".join(context_mode),
         )
     )
 

@@ -431,7 +431,9 @@ not files.
   rewrite-in-place, ≤ ~50 lines, no history: `phase`, `goal_version`,
   `iteration`, `current_criterion`, `stuck_counters`, `last_action`,
   `next_action`, `halt_cause`, `halt_scan`, `final_verify`, `pressure_objects`
-  (in-force rows, ≤ `pressure-cap`). It does **not** hold `pressure_ledger`,
+  (in-force rows, ≤ `pressure-cap`), plus the run-host keys
+  `context_mode_effective` (+ `context_mode_resolution_basis`) and
+  `history_visibility_observed` (schema below). It does **not** hold `pressure_ledger`,
   `pressure_consulted`, `oracle_change_notes`, or a per-attempt log — those are
   `pressure` / `consult` / `oracle_change` / `attempt` records in
   `JOURNAL.jsonl`.

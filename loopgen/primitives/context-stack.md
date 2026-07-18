@@ -141,6 +141,19 @@ Common keys, every archetype:
   (value + per-channel basis), written by the iteration-0 Run-host channel
   check and overwritten on re-verification
   (`primitives/consult-capability.md`); `n/a` at tier-0
+- `context_mode_effective` — the run-host resolution of the loop's context
+  lifecycle (`fresh-episode` / `rolling-lossy` / `unknown`), with
+  `context_mode_resolution_basis` from the closed set `operator-declared` /
+  `runner-attested` / `unknown` — never observation: model-visible history
+  proves neither mode (a fresh runner may be handed replayed context; a
+  rolling window may already be compacted). Seeded at bootstrap from the
+  derivation's `context_mode_requested` when its basis was an operator
+  statement; with no declared or attested basis it stays `unknown` — an
+  honest value, not a gap to fill
+- `history_visibility_observed` — what the window currently shows
+  (`prior-context-visible` / `fresh-window` / `unknown`), overwritten when
+  checked. A visibility fact only: it is never a
+  `context_mode_resolution_basis` and never converts into a mode claim
 - `artifacts` (`{canonical, repo_aliases}`)
 - `iteration`, `phase`, `current_artifact`, `last_action`, `next_action`
 - `halt_cause`, `halt_scan` (overwrite-latest: the most recent full-surface scan
@@ -290,7 +303,12 @@ pass**. Records how this loop was composed:
   `declared_workset_version: <loop-id>` —
   the workset version is the loop id the derivation minted; this file is
   write-once, so a running loop can never mint a new version or mutate the
-  declared workset's identity.
+  declared workset's identity. Every archetype's `frontload` also records the
+  runner-lifecycle declaration: `context_mode_requested` (`fresh-episode` /
+  `rolling-lossy` / `unknown`) with `context_mode_compose_basis` (operator
+  statement · declared runner profile · `unknown` default — never inferred
+  from visible history). This is the compiler-owned half of the context-mode
+  split; the run-host half is `STATE.md` `context_mode_effective` (above).
 
 ### Context budget
 

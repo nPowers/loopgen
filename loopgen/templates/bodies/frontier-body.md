@@ -647,7 +647,9 @@ not files.
   `reward_channels`, `pressure_objects` (in-force rows, ≤ `pressure-cap`),
   `pressure_status`, `pressure_debt`, `checkpoint_reason`, `next_pressure`,
   `trace_locations`, `metric_locations`, `guardrails` (one line, dimension
-  id → guardrail pointer). It does **not** hold
+  id → guardrail pointer), plus the run-host keys `context_mode_effective`
+  (+ `context_mode_resolution_basis`) and `history_visibility_observed`
+  (schema below). It does **not** hold
   `pressure_ledger`, `pressure_consulted`, or a per-attempt log — those are
   `pressure` / `consult` / `attempt` records in `JOURNAL.jsonl`.
 - `.loop/<loop-id>/FINDINGS.md` (WORKING) — the findings-ledger queue (see

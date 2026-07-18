@@ -185,7 +185,10 @@ not files.
   rewrite-in-place, no history: `phase`, `iteration`, `score_lock`, `phase_gates`
   (owner + value per gate), `current_stone_axis`, `user_halt_owner`,
   `halt_cause`, `halt_scan`, `last_action` / `next_action`, `pressure_objects`
-  (in-force rows, ≤ `pressure-cap`), the `Next action: HALT` hatch (owner: user).
+  (in-force rows, ≤ `pressure-cap`), the `Next action: HALT` hatch (owner: user),
+  plus the run-host keys `context_mode_effective`
+  (+ `context_mode_resolution_basis`) and `history_visibility_observed`
+  (schema below).
   It does **not** hold `pressure_ledger`, `pressure_consulted`, or a growing score
   log — those are `pressure` / `consult` / `score_quarantine` records in
   `JOURNAL.jsonl`. `rubric_version`, `score_comparable_with`, and

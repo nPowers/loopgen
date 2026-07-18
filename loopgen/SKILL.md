@@ -200,6 +200,13 @@ item: **resolve** (AskUserQuestion if the host has it, else print prominently),
 Always assess `consult-capability` here (the bodytxt-learned move): detect the
 tier and record it; it changes which sections Phase 3 emits.
 
+Also record the runner-lifecycle declaration `context_mode_requested`
+(`fresh-episode` / `rolling-lossy` / `unknown`) with its
+`context_mode_compose_basis` — an operator statement or a declared runner
+profile only, defaulting to `unknown`, never inferred from what the
+composing window shows (`primitives/context-stack.md`: model-visible history
+proves neither mode).
+
 For frontier-shaped tasks, also assess `benchmark-frontier`: it activates only
 when frontload binds a concrete benchmark, evaluation, or harness object with an
 evaluation unit and evidence location. Benchmark/eval/harness language without
@@ -412,6 +419,9 @@ rewrite-in-place — no history (see the context-stack primitive).
 
 - `archetype`, `identity`
 - `consult_tier`, `consult_tier_effective`, `evaluator_tier`
+- `context_mode_effective`, `context_mode_resolution_basis`
+  (operator-declared / runner-attested / unknown — never observation),
+  `history_visibility_observed` (a visibility fact, never a mode basis)
 - `artifacts: {canonical, repo_aliases}`
 - `iteration`, `phase`, `current_artifact`, `last_action`, `next_action`
 - `halt_cause`, `halt_scan`
