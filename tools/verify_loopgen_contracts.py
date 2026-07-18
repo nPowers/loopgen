@@ -1711,6 +1711,18 @@ def operational_core_violations() -> list[str]:
 # promise directly instead of by arithmetic.
 OPERATIONAL_CORE_SENTINEL_BOUND = 70
 
+EXPECTED_PROVENANCE_LINES = [
+    "> **Loop provenance — composed by `/loopgen`.**",
+    "> Archetype: `<nearest>`  ·  Divergences: `<axis: value (source); …>` or `none`.",
+    "> Overlays: `<benchmark-frontier; …>` or `none`.",
+    "> Consult-capability: `tier-N` (`<channel, or \"none — human-look gate substituted\">`).",
+    "> Evaluator tier: `<T0–T6, or n/a>`.",
+    "> Frontload — resolved: [`…`]; defaulted: [`…`]; open gaps: [`…`].",
+    "> Primitive sources: `<files whose values diverged from the archetype defaults>`.",
+    "> Re-derive (do not hand-edit) when intent, sources, or environment change.",
+]
+
+
 def production_provenance() -> str:
     """F6: the canonical provenance measured for the first-80 budget is
     EXTRACTED from composed-prompt.md's production `## Provenance preamble`
@@ -1734,30 +1746,23 @@ def production_provenance() -> str:
         raise ContractError("composed-prompt.md: provenance ```md fence is unclosed")
     block = text[start: start + close.start()].rstrip("\n")
     lines = block.splitlines()
-    # Exactly eight ordered rows, each matching its anchored pattern. This
-    # rejects duplicate labels on one line, several fields collapsed onto one
-    # line, reordered rows, and a decoy label ("> Not Archetype:") — none of
-    # which a substring counter caught.
-    ordered = (
-        r"> \*\*Loop provenance — composed by `/loopgen`\.\*\*",
-        r"> Archetype: ",
-        r"> Overlays: ",
-        r"> Consult-capability: ",
-        r"> Evaluator tier: ",
-        r"> Frontload — resolved: ",
-        r"> Primitive sources: ",
-        r"> Re-derive \(do not hand-edit\)",
-    )
-    if len(lines) != len(ordered):
+    # The provenance preamble is a FIXED literal template (its values are the
+    # `<placeholder>` tokens, not runtime-filled), so the block is verified by
+    # exact whole-line equality against the canonical eight lines. This is the
+    # closed full-match: any reorder, collapse, decoy label, inline duplicate,
+    # trailing residue, or whitespace drift fails, and adding a ninth line
+    # still trips the budget measurement downstream.
+    if lines != EXPECTED_PROVENANCE_LINES:
+        for idx, (got, want) in enumerate(zip(lines, EXPECTED_PROVENANCE_LINES)):
+            if got != want:
+                raise ContractError(
+                    f"composed-prompt.md: provenance row {idx} is `{got[:70]}` "
+                    f"(want `{want[:70]}`)"
+                )
         raise ContractError(
-            f"composed-prompt.md: provenance block has {len(lines)} rows, want exactly {len(ordered)}"
+            f"composed-prompt.md: provenance block has {len(lines)} rows, "
+            f"want exactly {len(EXPECTED_PROVENANCE_LINES)}"
         )
-    for line, pat in zip(lines, ordered):
-        if not re.match("^" + pat, line):
-            raise ContractError(
-                f"composed-prompt.md: provenance row out of order / malformed: `{line[:60]}` "
-                f"(expected /^{pat}/)"
-            )
     return block
 
 
@@ -2037,6 +2042,15 @@ def evidence_tier_goal_violations() -> list[str]:
 # filename periods (".md", ".loop/") are never boundaries (no trailing space).
 _CLAUSE_BOUND = re.compile(r"[.;]\s")
 _OWN_EXCLUDE = re.compile(r"(?:\bnot|\bnever|\bunlike|rather\s+than|instead\s+of)\s+(?:in\s+)?`?$", re.I)
+# Negation of DERIVATION.md AS THE HOME — a negation directly governing a
+# storage word (closed set) that leads to DERIVATION.md ("is not stored in
+# DERIVATION.md"), or "DERIVATION.md is not …". "never changes in DERIVATION.md"
+# does NOT match: "changes" is not a storage word, so DERIVATION.md stays home.
+_STORAGE = r"(?:stored|kept|held|recorded|lives?|located|belongs?|placed|written|home)"
+_HOME_NEG = re.compile(
+    r"\b(?:not|never|n't)\s+(?:\w+\s+){0,2}?" + _STORAGE + r"\b[^.;]{0,40}?DERIVATION\.md", re.I
+)
+_HOME_NEG2 = re.compile(r"DERIVATION\.md`?[^.;]{0,25}?\bis\s+not\b", re.I)
 
 
 def _clause_around(flat: str, start: int, end: int) -> str:
@@ -2080,6 +2094,9 @@ def derivation_ownership_violations() -> list[str]:
             clause = _clause_around(flat, i, start)
             if "DERIVATION.md" not in clause:
                 v.append(f"{label}: derivation_read_set clause names no DERIVATION.md home: `…{clause[:120]}…`")
+                continue
+            if _HOME_NEG.search(clause) or _HOME_NEG2.search(clause):
+                v.append(f"{label}: derivation_read_set clause negates the DERIVATION.md home: `…{clause[:120]}…`")
                 continue
             flagged = False
             for comp in ("STATE.md", "JOURNAL.jsonl"):
@@ -2299,9 +2316,14 @@ def human_look_gate_violations() -> list[str]:
     gate_src = resolve_gated_block(HUMAN_LOOK_GATE)
     if gate_src.count("**Live condition.**") != 1:
         v.append(f"human-look gate: {gate_src.count('**Live condition.**')} Live-condition paragraphs (want 1)")
-    live = re.findall(r"live wherever consult capability is\s+\*effectively\* tier-(\d)", one_line(gate_src))
-    if live != ["0"]:
-        v.append(f"human-look gate: live predicate(s) {live} (want exactly one, tier-0)")
+    # Capture the WHOLE tier expression up to the clause terminator, not one
+    # digit — so "…effectively tier-0 and tier-1:" reads as `tier-0 and tier-1`
+    # and fails, instead of matching only the leading `tier-0`.
+    live = re.findall(
+        r"live wherever consult capability is\s+\*effectively\*\s+(tier-[^:.]*)", one_line(gate_src)
+    )
+    if [t.strip() for t in live] != ["tier-0"]:
+        v.append(f"human-look gate: live predicate(s) {[t.strip() for t in live]} (want exactly one, `tier-0`)")
     return v
 
 
@@ -2319,11 +2341,12 @@ def stale_watch_command_violations() -> list[str]:
     the named packet consumer; a repo-wide scan stops any stale copy — new or
     surviving — from shipping."""
     v: list[str] = []
-    # Match the projection BRACKET EXPRESSION itself, quote-agnostic (single or
-    # double quotes) and whitespace-agnostic — any `[.iter … @tsv` anywhere —
-    # then require it to equal the canonical projection exactly. A stale command
-    # in either quoting, or with drifted internal whitespace, fails.
-    watch_expr = re.compile(r"\[\.iter\b[^\n]*?@tsv")
+    # Discover watch commands by the jq+@tsv SIGNATURE (a `jq -r '<expr>@tsv…'`
+    # in either quote style), never by a `[.iter` prefix — so a reordered
+    # projection, a space after the bracket, or trailing jq residue is still
+    # discovered — then require the whole quoted argument to equal the canonical
+    # projection exactly. All @tsv sites in the tree are this one command.
+    watch_expr = re.compile(r"""jq -r (?:'([^']*@tsv[^']*)'|"([^"]*@tsv[^"]*)")""")
     # Scan git-tracked markdown only — precisely the callsites that ship.
     # gitignored scratch (`.research/`, `dev/`, the scratchpad) is not a
     # callsite and must not gate the check.
@@ -2338,8 +2361,9 @@ def stale_watch_command_violations() -> list[str]:
                  if not any(part in {".git", ".research", "scratchpad", "dev"} for part in p.parts)]
     for path in paths:
         for m in watch_expr.finditer(read(path)):
-            if m.group(0) != CANONICAL_WATCH_PROJECTION:
-                v.append(f"{path.relative_to(ROOT)}: non-canonical watch command `…{m.group(0)[:60]}…`")
+            arg = m.group(1) if m.group(1) is not None else m.group(2)
+            if arg != CANONICAL_WATCH_PROJECTION:
+                v.append(f"{path.relative_to(ROOT)}: non-canonical watch command `…{arg[:60]}…`")
     return v
 
 
