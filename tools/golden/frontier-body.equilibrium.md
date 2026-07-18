@@ -1338,7 +1338,9 @@ pass**. Records how this loop was composed:
   renders from it, and resume / diagnostic readers reconstruct why the emitted
   block was selected without re-deriving.
 - `overlays` — active composition overlays.
-- `derivation_read_set` — the files `/loopgen` read to compose this loop.
+- `derivation_read_set` — the files `/loopgen` read to compose this loop,
+  recorded here in `DERIVATION.md` on successful composition only (a decline
+  writes nothing).
 - `frontload` — `{resolved, defaulted, open_gaps}`. For frontier this carries
   the reopening-contract fields, and when the reopening contract resolved to
   a closed-world `none`, the four-field `closure_basis` plus

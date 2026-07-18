@@ -123,11 +123,11 @@ is invisible — the preamble MUST enumerate every divergence axis + its source.
 
 ## Assembly procedure (Phase 3 follows this)
 
-0. **Verify read set.** Confirm the write-once `.loop/<loop-id>/DERIVATION.md`
-   will record the base reads, nearest archetype/body reads, divergent
-   primitive/source reads, and active overlay reads required by `SKILL.md`
-   Derivation read contract (`derivation_read_set`). Missing reads are
-   derivation gaps, not silent defaults.
+0. **Verify read set.** Confirm `derivation_read_set` in the write-once
+   `.loop/<loop-id>/DERIVATION.md` will record the base, archetype/body,
+   divergent-primitive, and active-overlay reads `SKILL.md`'s Derivation
+   read contract requires. Missing reads are derivation gaps, not silent
+   defaults.
 1. **Load** `templates/bodies/<nearest>-body.md`.
 2. **Resolve includes.** For each `{{INCLUDE primitives/X.md}}` marker, inline
    the block that follows the `---` spec separator in that primitive file. Every

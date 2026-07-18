@@ -547,9 +547,13 @@ def _filter_subagent_patterns(
 def render_body(
     archetype: str, *, consult_tier: int = 0, pollable_channel: bool = False
 ) -> str:
-    if consult_tier not in (0, 1, 2, 3):
+    if type(consult_tier) is not int or consult_tier not in (0, 1, 2, 3):
         raise ContractError(
-            f"render_body: consult_tier must be one of 0..3, got {consult_tier!r}"
+            f"render_body: consult_tier must be an int in 0..3, got {consult_tier!r}"
+        )
+    if type(pollable_channel) is not bool:
+        raise ContractError(
+            f"render_body: pollable_channel must be a bool, got {pollable_channel!r}"
         )
     prompt = raw_body_template(BODY_PATHS[archetype])
     if archetype == "frontier":
@@ -1611,6 +1615,10 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     "6. `consult_tier_effective` in `STATE.md` still matches this host "
     "(`n/a` at tier-0); stale after any runner change — re-verify before "
     "consulting.",
+    # The full shared completion clause, not just its first sentence — the
+    # scan requirement and the classifier pointer drifted free before.
+    "any non-success halt requires the full search-surface scan first.",
+    "The Halt section below carries the full classifier.",
 )
 
 
@@ -1932,8 +1940,11 @@ def derivation_ownership_violations() -> list[str]:
             if i == -1:
                 break
             window = flat[max(0, i - 140): i + 140]
-            if "STATE.md" in window and "DERIVATION.md" not in window:
-                v.append(f"{label}: derivation_read_set assigned to STATE.md near `…{window[100:180]}…`")
+            # Positive ownership: DERIVATION.md must be named near every
+            # mention — reassignment to STATE.md, JOURNAL.jsonl, or any other
+            # home reads as its absence.
+            if "DERIVATION.md" not in window:
+                v.append(f"{label}: derivation_read_set not owned by DERIVATION.md near `…{window[100:180]}…`")
             start = i + len(needle)
     readme_flat = one_line(read(ROOT / "README.md"))
     if "DERIVATION.md` records classification and frontload" not in readme_flat:
@@ -1960,6 +1971,11 @@ def derivation_scope_violations() -> list[str]:
             v.append(f"SKILL.md derivation read contract lost its scope pin: `{pin}`")
     if "Every authoring run reads a bounded, provenance- relevant set of files and records" in skill_flat:
         v.append("SKILL.md re-acquired the unscoped every-run-records instruction")
+    readme_flat = one_line(read(ROOT / "README.md"))
+    if "On successful composition, record `derivation_read_set`" not in readme_flat:
+        v.append("README.md Skill Behavior bullet lost its successful-composition scope")
+    if "Always record `derivation_read_set`" in readme_flat:
+        v.append("README.md re-acquired the unscoped always-record bullet")
     return v
 
 
@@ -1998,6 +2014,43 @@ def context_mode_violations() -> list[str]:
         flat = one_line(render_body(archetype))
         if "context_mode_effective" not in flat or "proves neither mode" not in flat:
             v.append(f"{archetype}: render lost the context-mode schema")
+    # Exactness, not presence: the closed sets admit no extra authority — an
+    # added basis (e.g. model-observed) is a violation even though every
+    # required token is still present.
+    basis = re.search(
+        r"`context_mode_resolution_basis` from the closed set (.+?)— never observation",
+        emitted,
+    )
+    if not basis:
+        v.append("context-stack: resolution-basis closed-set sentence not parseable")
+    elif re.findall(r"`([a-z-]+)`", basis.group(1)) != [
+        "operator-declared", "runner-attested", "unknown",
+    ]:
+        v.append(
+            "context-stack: resolution-basis set drifted: "
+            f"{re.findall(r'`([a-z-]+)`', basis.group(1))}"
+        )
+    for label, pattern in (
+        ("effective-mode", r"`context_mode_effective` — [^(]*\(([^)]+)\)"),
+        ("requested-mode", r"`context_mode_requested` \(([^)]+)\)"),
+    ):
+        m = re.search(pattern, emitted)
+        found = re.findall(r"`([a-z-]+)`", m.group(1)) if m else []
+        if found != ["fresh-episode", "rolling-lossy", "unknown"]:
+            v.append(f"context-stack: {label} enum drifted: {found}")
+    skill_basis = re.search(
+        r"`context_mode_resolution_basis`\s*\(([^)]+)\)", skill_flat
+    )
+    if not skill_basis:
+        v.append("SKILL.md: resolution-basis parenthetical not parseable")
+    else:
+        names = [
+            s.strip()
+            for s in skill_basis.group(1).split("—")[0].split("/")
+            if s.strip()
+        ]
+        if names != ["operator-declared", "runner-attested", "unknown"]:
+            v.append(f"SKILL.md: resolution-basis set drifted: {names}")
     return v
 
 
@@ -2044,14 +2097,21 @@ def tier0_human_look_violations() -> list[str]:
 
 
 def render_input_violations() -> list[str]:
-    """U1 closeout: render_body rejects consult tiers outside the closed 0..3
-    vocabulary instead of silently misfiltering them (tier -1 rendered as
-    tier-0, tier 4/99 as tier-3 with a nonsense label)."""
+    """U1 closeout: render_body rejects inputs outside the closed vocabulary
+    instead of silently misfiltering them — out-of-range ints, bool/float
+    stand-ins for the tier (True == 1, 1.0 == 1), and truthy non-bool
+    pollable_channel values ("false" is truthy)."""
     v: list[str] = []
-    for tier in (-1, 4, 99):
+    for tier in (-1, 4, 99, True, 1.0):
         try:
             render_body("story", consult_tier=tier)
-            v.append(f"render_body accepted invalid consult_tier={tier}")
+            v.append(f"render_body accepted invalid consult_tier={tier!r}")
+        except ContractError:
+            pass
+    for pollable in ("false", 1, None):
+        try:
+            render_body("story", consult_tier=1, pollable_channel=pollable)
+            v.append(f"render_body accepted invalid pollable_channel={pollable!r}")
         except ContractError:
             pass
     return v

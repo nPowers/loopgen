@@ -144,7 +144,7 @@ The bundled `loopgen` skill teaches the model to:
 - Never compose from memory; read the required primitives, archetype, body, and overlay references first
 - Never silently default on contradictory primitive values
 - Always emit canonical artifact files for the active contracts
-- Always record `derivation_read_set`, frontload, divergences, and overlays in the write-once `.loop/<loop-id>/DERIVATION.md`; `.loop/<loop-id>/STATE.md` stays live status (artifacts, iteration, pressure)
+- On successful composition, record `derivation_read_set`, frontload, divergences, and overlays in the write-once `.loop/<loop-id>/DERIVATION.md` (a decline emits nothing and names its reads in the response); `.loop/<loop-id>/STATE.md` stays live status (artifacts, iteration, pressure)
 - Always make hybrids additive: nearest archetype first, then divergent primitive and overlay contracts
 - Always emit the bare `/goal read .loop/<loop-id>/PROMPT.md and execute as <identity>.` kickoff
 - Never put first-iteration setup instructions in the kickoff; bootstrap belongs inside the re-entrant prompt
