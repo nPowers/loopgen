@@ -39,7 +39,7 @@ keys, not files; the full contract is in Artifacts to maintain.
 | journal by key · `archive/*` · `DERIVATION.md` | ON-DEMAND | keyed reads only (`jq` / section), never whole-file |
 | `VERIFY.md` (terminal only) · journal `checkpoint` records | WRITE-ONLY | written in-loop, never re-read |
 
-Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,.verdict//.to//.changed//.question]|@tsv'`
+Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r '[.iter,.t,.ac//.id//.packet,(.verdict//.to//.question//.changed)|if type=="object" then tojson else . end]|@tsv'`
 
 **Context-health check** — every pass before task work, right after the
 pressure render+read, and again after any rehydration. Each line is one cheap

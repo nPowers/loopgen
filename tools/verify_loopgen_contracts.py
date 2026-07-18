@@ -1627,7 +1627,8 @@ OPERATIONAL_CORE_SHARED_TOKENS = (
     # are shared content — pinned verbatim so neither single-body drift nor a
     # coordinated four-body edit can silently change or remove them.
     "Human watch: `tail -5 .loop/<loop-id>/JOURNAL.jsonl | jq -r "
-    "'[.iter,.t,.ac//.id//.packet,.verdict//.to//.changed//.question]|@tsv'`",
+    "'[.iter,.t,.ac//.id//.packet,(.verdict//.to//.question//.changed)"
+    "|if type==\"object\" then tojson else . end]|@tsv'`",
     "6. `consult_tier_effective` in `STATE.md` still matches this host "
     "(`n/a` at tier-0); stale after any runner change — re-verify before "
     "consulting.",
@@ -1725,8 +1726,20 @@ def production_provenance() -> str:
         raise ContractError("composed-prompt.md: provenance preamble has no ```md fence")
     start = text.index("\n", fence) + 1
     end = text.find("```", start)
+    if end == -1:
+        raise ContractError("composed-prompt.md: provenance ```md fence is unclosed")
     block = text[start:end].rstrip("\n")
     lines = block.splitlines()
+    # An empty block would make the canonical budget check green while the
+    # emitted prompt has no provenance at all — all([]) is True, so guard the
+    # emptiness explicitly. The production preamble is 8 `>` lines; require a
+    # plausible floor so deleting fields can never silently shrink the budget.
+    if len(lines) < 5:
+        raise ContractError(
+            f"composed-prompt.md: provenance block has {len(lines)} lines (< 5 — "
+            "the production preamble is 8; an empty/gutted block would falsely "
+            "pass the first-80 budget)"
+        )
     if not all(line.startswith(">") for line in lines):
         raise ContractError("composed-prompt.md: provenance block has a non-`>` line")
     return block
@@ -1998,34 +2011,38 @@ def evidence_tier_goal_violations() -> list[str]:
 
 
 _CONTRAST = re.compile(r"\b(?:not|unlike|never|rather than|instead of)\b", re.I)
+# Negation of the LOCATIVE itself, immediately before the preposition
+# ("not in `STATE.md`"), as opposed to a negation earlier in the clause that
+# modifies a different verb ("never changes in `DERIVATION.md`").
+_NEG_PREP = re.compile(r"(?:\bnot|\bnever|n't)\s+$", re.I)
+_OWNER_VERB = r"`?\s+(?:holds|stores|keeps|owns|records|is the (?:home|record)|is its home)\b"
 
 
 def _owner_is_assignment_target(window: str, owner: str) -> bool:
-    """True iff `owner` appears as a locative assignment target — `in <owner>`
-    / `into <owner>` (optionally through a `.loop/<id>/` path) — and that
-    locative is not itself negated/contrasted ("not in `STATE.md`",
-    "unlike `STATE.md`"). Contrast markers immediately before the owner mean
-    it is being EXCLUDED, not assigned, which is the legit shape."""
-    pat = re.compile(r"\bin(?:to)?\s+`?(?:\.loop/[^`]*?)?" + re.escape(owner))
-    for m in pat.finditer(window):
-        pre = window[max(0, m.start() - 14): m.start()]
-        if not _CONTRAST.search(pre):
+    """True iff `owner` is the assignment target of derivation ownership:
+    a locative `in/into <owner>` whose preposition is not directly negated
+    ("not in `STATE.md`"), or a possessive `<owner> holds/stores/owns/…` that
+    is not contrasted. The legit exclusion form "in `DERIVATION.md`, not
+    `STATE.md`" is NOT an assignment to STATE.md (no preposition binds it),
+    and "never changes in `DERIVATION.md`" IS an assignment to DERIVATION.md
+    (the negation modifies 'changes', not the locative)."""
+    esc = re.escape(owner)
+    for m in re.finditer(r"\bin(?:to)?\s+`?(?:\.loop/[^`]*?)?" + esc, window):
+        if not _NEG_PREP.search(window[max(0, m.start() - 7): m.start()]):
             return True
-    # A bare "`STATE.md` … derivation_read_set" / "derivation_read_set … `STATE.md`
-    # home" style reassignment without an `in` preposition: flag only when the
-    # owner is tied to a home/record verb and not contrasted.
-    for m in re.finditer(re.escape(owner) + r"`?\s+(?:holds|is the home|records)\b", window):
-        pre = window[max(0, m.start() - 14): m.start()]
-        if not _CONTRAST.search(pre):
+    for m in re.finditer(esc + _OWNER_VERB, window):
+        if not _CONTRAST.search(window[max(0, m.start() - 14): m.start()]):
             return True
     return False
 
 
 def _derivation_home_negated(window: str) -> bool:
-    """True iff the window negates DERIVATION.md as the home — "not …
-    DERIVATION.md" (negation before the file) or "DERIVATION.md is not …"."""
+    """True iff the window negates DERIVATION.md AS THE HOME — "not … its home
+    … DERIVATION.md" or "DERIVATION.md is not …". Only consulted when
+    DERIVATION.md is not itself an assignment target, so "never changes in
+    DERIVATION.md" (where DERIVATION.md IS assigned) never reaches here."""
     return bool(
-        re.search(r"\b(?:not|never)\b[^.]{0,30}?`?(?:\.loop/[^`]*?)?DERIVATION\.md", window, re.I)
+        re.search(r"\b(?:not|never)\b\s+(?:its?\s+)?home[^.]{0,30}?DERIVATION\.md", window, re.I)
         or re.search(r"DERIVATION\.md`?[^.]{0,20}?\bis\s+not\b", window, re.I)
     )
 
@@ -2068,15 +2085,19 @@ def derivation_ownership_violations() -> list[str]:
             # that a mere-presence rule wrongly greens.
             if "DERIVATION.md" not in window:
                 v.append(f"{label}: derivation_read_set names no DERIVATION.md home near `…{window[100:180]}…`")
-            elif _derivation_home_negated(window):
-                v.append(f"{label}: derivation_read_set's DERIVATION.md home is negated near `…{window[100:180]}…`")
             else:
-                for competitor in ("STATE.md", "JOURNAL.jsonl"):
-                    if _owner_is_assignment_target(window, competitor):
-                        v.append(
-                            f"{label}: derivation_read_set assigned to {competitor} "
-                            f"near `…{window[100:180]}…`"
-                        )
+                competitors = [
+                    c for c in ("STATE.md", "JOURNAL.jsonl")
+                    if _owner_is_assignment_target(window, c)
+                ]
+                if competitors:
+                    v.append(
+                        f"{label}: derivation_read_set assigned to "
+                        f"{', '.join(competitors)} near `…{window[100:180]}…`"
+                    )
+                elif not _owner_is_assignment_target(window, "DERIVATION.md") and \
+                        _derivation_home_negated(window):
+                    v.append(f"{label}: derivation_read_set's DERIVATION.md home is negated near `…{window[100:180]}…`")
             start = i + len(needle)
     readme_flat = one_line(read(ROOT / "README.md"))
     if "DERIVATION.md` records classification and frontload" not in readme_flat:
@@ -2166,19 +2187,19 @@ def context_mode_violations() -> list[str]:
     # instead of being skipped by a lowercase-only pattern.
     if not basis:
         v.append("context-stack: resolution-basis closed-set sentence not parseable")
-    elif re.findall(r"`([A-Za-z-]+)`", basis.group(1)) != [
+    elif re.findall(r"`([A-Za-z_-]+)`", basis.group(1)) != [
         "operator-declared", "runner-attested", "unknown",
     ]:
         v.append(
             "context-stack: resolution-basis set drifted: "
-            f"{re.findall(r'`([A-Za-z-]+)`', basis.group(1))}"
+            f"{re.findall(r'`([A-Za-z_-]+)`', basis.group(1))}"
         )
     for label, pattern in (
         ("effective-mode", r"`context_mode_effective` — [^(]*\(([^)]+)\)"),
         ("requested-mode", r"`context_mode_requested` \(([^)]+)\)"),
     ):
         m = re.search(pattern, emitted)
-        found = re.findall(r"`([A-Za-z-]+)`", m.group(1)) if m else []
+        found = re.findall(r"`([A-Za-z_-]+)`", m.group(1)) if m else []
         if found != ["fresh-episode", "rolling-lossy", "unknown"]:
             v.append(f"context-stack: {label} enum drifted: {found}")
     skill_basis = re.search(
@@ -2246,12 +2267,16 @@ def human_look_gate_violations() -> list[str]:
         flat = one_line(text)
         for pin in (
             "**Live condition.**",
+            # Dormancy is the whole point of always-carrying the gate: a
+            # mutation that makes it fire under a live consult channel must
+            # break this pin, not stay green.
+            "While a live consult channel covers a need, the gate stays dormant.",
             "cannot pay a pressure row, close a finding, or serve as acceptance authority",
             "reversible probes only",
             "`packet` (stable id, `hlp-<iter>-<n>`)",
             "else the tier-0 Human-look gate's review packet",
             ".ac//.id//.packet",
-            ".verdict//.to//.changed//.question",
+            "if type==\"object\" then tojson else . end",
         ):
             if pin not in flat:
                 v.append(f"{name}: human-look gate pin missing: `{pin}`")
@@ -2259,6 +2284,10 @@ def human_look_gate_violations() -> list[str]:
         flat = one_line(renders[name])
         if "route the trace bundle to the consult resolution" not in flat:
             v.append(f"{name}: structural bridge lost its consult-resolution routing")
+        # The bridge must branch on effective tier — the live channel OR the
+        # tier-0 packet — not issue an unconditional consult instruction.
+        if "`consult_tier_effective` proves live, or at tier-0 the" not in flat:
+            v.append(f"{name}: structural bridge lost its effective-tier branch")
         if "provisional and self-authored" not in flat:
             v.append(f"{name}: bridge tier-0 classification is not marked provisional")
     if "cites the packet id and stays provisional" not in one_line(
@@ -2676,7 +2705,10 @@ def run_checks() -> int:
             "; ".join(core_render),
         )
     )
-    core_canonical = operational_core_canonical_violations()
+    try:
+        core_canonical = operational_core_canonical_violations()
+    except (ContractError, AssertionError) as exc:
+        core_canonical = [str(exc)]
     checks.append(
         require(
             not core_canonical,
