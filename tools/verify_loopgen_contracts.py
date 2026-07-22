@@ -154,6 +154,14 @@ PRESSURE_REQUIRED = (
     "next_pressure",
 )
 
+# ── canonical rehydration cadence: ONE table checked against BOTH the
+# context-stack authority and all four Operational-core projections (step 2.2b).
+REHYDRATION_CADENCE = (
+    ("rolling-lossy", "after any detected compaction"),
+    ("fresh-episode", "at every episode start"),
+    ("unknown", "at every iteration start"),
+)
+
 CHECKPOINT_REASON_VALUES = (
     "plateau_after_active_pressure",
     "budget_exhausted",
@@ -1879,6 +1887,14 @@ def run_host_verification_violations() -> list[str]:
         flat1 = one_line(tier1)
         if "consult_tier_effective" not in flat1:
             v.append(f"{archetype}: tier-1 render never names consult_tier_effective")
+        # step 2.2: the freshness AUTHORITY (context-stack, ungated) must emit at
+        # EVERY tier — including tier-0, where the run-host block strips entirely.
+        for tier_name, text in (("tier-0", tier0), ("tier-1", tier1)):
+            if "no consult contract to keep fresh" not in one_line(text):
+                v.append(
+                    f"{archetype}/{tier_name}: consult-freshness authority absent "
+                    "from the render (context-stack Context-health check)"
+                )
     for name in ("pure", "benchmark"):
         text = render_frontier(benchmark_overlay=(name == "benchmark"))
         if marker in text or "{{RUN_HOST" in text:
@@ -1894,10 +1910,37 @@ def run_host_verification_violations() -> list[str]:
     # U1 closeout: continuous revalidation is a contract, not a courtesy —
     # the emitted block and the spec both carry it (neither is golden-pinned,
     # so removing the language stayed green before these pins).
-    if "health line 6 keeps it fresh" not in one_line(
-        resolve_gated_block(CONSULT_CAPABILITY)
+    # step 2.2: freshness is AUTHORED in context-stack (emits in every family and
+    # tier); the gated run-host block only REFERENCES it. Conjuncts pinned
+    # independently so a partial rewrite cannot pass.
+    ctx_flat = one_line(resolve_gated_block(CONTEXT_STACK))
+    for pin, label in (
+        ("there is no consult contract to keep fresh",
+         "tier-0 has no consult contract"),
+        ("A runner change, or any promised channel failing, invalidates the cached value",
+         "runner/channel failure invalidates the cache"),
+        ("re-verify the promised channels **non-interactively**",
+         "re-verification is non-interactive"),
+        ("overwrite the value and its per-channel basis",
+         "value + basis are overwritten"),
+        ("degrade **only** the channels that are actually missing",
+         "only missing channels degrade"),
     ):
-        v.append("consult-capability emitted block lost `health line 6 keeps it fresh`")
+        if pin not in ctx_flat:
+            v.append(f"context-stack lost the consult-freshness conjunct: {label}")
+    cc_flat = one_line(resolve_gated_block(CONSULT_CAPABILITY))
+    if "health line 6" in cc_flat:
+        v.append("consult-capability run-host block still cites a body line number")
+    if "Context-health check" not in cc_flat:
+        v.append(
+            "consult-capability run-host block does not reference the co-emitted "
+            "Context-health authority"
+        )
+    if "absent or stale" not in cc_flat:
+        v.append(
+            "consult-capability run-host entry still self-gates on presence, "
+            "not freshness"
+        )
     consult_flat = one_line(read(CONSULT_CAPABILITY))
     for pin in (
         "re-verifies (overwrite-in-place, never trusting the cached value)",
@@ -2189,6 +2232,33 @@ def context_mode_violations() -> list[str]:
         flat = one_line(render_body(archetype))
         if "context_mode_effective" not in flat or "proves neither mode" not in flat:
             v.append(f"{archetype}: render lost the context-mode schema")
+        # step 2.2b: every Operational-core intro PROJECTS the cadence; the
+        # authority is context-stack. Same canonical table, both sides.
+        for mode, when in REHYDRATION_CADENCE:
+            if when not in flat:
+                v.append(
+                    f"{archetype}: Operational-core cadence projection lost "
+                    f"`{mode}` -> {when}"
+                )
+    # step 2.2b: the cadence AUTHORITY itself (context-stack, ungated, 56/56).
+    for mode, when in REHYDRATION_CADENCE:
+        if f"`{mode}`" not in emitted or when not in emitted:
+            v.append(
+                f"context-stack rehydration-cadence authority missing "
+                f"`{mode}` -> {when}"
+            )
+    # the trigger/basis firewall: observation may FIRE the cadence, never RESOLVE
+    # the mode. Without this, cadence language silently reopens observation as a
+    # resolution basis.
+    for pin in (
+        "A trigger is not a basis",
+        "fires the cadence for an **already-resolved** mode",
+        "neither determines `context_mode_effective`",
+    ):
+        if pin not in emitted:
+            v.append(
+                f"context-stack rehydration-cadence missing firewall pin: `{pin}`"
+            )
     # Exactness, not presence: the closed sets admit no extra authority — an
     # added basis (e.g. model-observed) is a violation even though every
     # required token is still present.

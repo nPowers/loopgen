@@ -1627,6 +1627,25 @@ next decision — symmetric with the oracle-integrity checks that treat a violat
 invariant as a `derivation-gap`, never as a reason to widen the bound. Silent
 growth is the failure this whole model exists to prevent.
 
+### Rehydration cadence
+
+The Operational core's bounded re-read
+(`sed -n '1,80p' .loop/<loop-id>/PROMPT.md`) fires on the cadence
+`context_mode_effective` sets — **after** the mode is resolved, never before:
+
+| `context_mode_effective` | re-read the Operational core |
+|---|---|
+| `rolling-lossy` | after any detected compaction |
+| `fresh-episode` | at every episode start |
+| `unknown` | at every iteration start (conservative — neither lifecycle assumed) |
+
+**A trigger is not a basis.** Detecting a compaction, or what the window shows
+(`history_visibility_observed`), fires the cadence for an **already-resolved**
+mode; neither determines `context_mode_effective` and neither converts into a
+mode claim. Resolution stays `operator-declared` / `runner-attested` /
+`unknown` — never observation (above). An unresolved mode is `unknown`, which
+is exactly why `unknown` re-reads at every iteration start.
+
 ### Context-health check
 
 The budget assertion is only real if it is *checked*. At **step 0, right after
@@ -1648,12 +1667,22 @@ task work. Each line is one cheap command, not an investigation:
    `jq -s '[.[]|select(.t=="consolidation")]|last.iter' JOURNAL.jsonl`) **and**
    no forced consolidation trigger has fired since it (Consolidation round,
    above).
+8. `consult_tier_effective` in `STATE.md` still describes **this** host: `n/a`
+   at tier-0 (there is no consult contract to keep fresh), otherwise the
+   recorded value **and** its per-channel basis are still true here. A runner
+   change, or any promised channel failing, invalidates the cached value —
+   re-verify before consulting.
 
 **A failed line is a routing, not a warning:** past-cap → archive/collapse now;
 unparseable tail → repair the malformed record now; dangling evidence → write
 the missing file or correct the record now; index/section disagreement →
 reconcile from the authoritative surface now (the index owns status/counters —
-`primitives/queue-as-second-artifact.md`); overdue or triggered consolidation →
+`primitives/queue-as-second-artifact.md`); stale `consult_tier_effective` →
+re-verify the promised channels **non-interactively** now, overwrite the value
+and its per-channel basis in `STATE.md`, and degrade **only** the channels that
+are actually missing (each to its next-lower substitute: tier ≥ 2 → tier-1
+human-bridge → tier-0 human-look gate), never the whole tier; overdue or
+triggered consolidation →
 run the Consolidation round now, before the next attempt; only then proceed to
 the iteration.
 A violation that cannot be repaired locally is a `derivation-gap` halt, never

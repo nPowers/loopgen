@@ -1,7 +1,7 @@
 # ADR 0004: the context-stack memory model
 
 - **Status:** Accepted (amended 2026-07-07, U13 hardening; amended 2026-07-17,
-  U2–U3 context-lifecycle modes)
+  U2–U3 context-lifecycle modes; amended 2026-07-22, ownership boundary)
 - **Date:** 2026-07-07
 - **Deciders:** provi, Claude (Fable 5)
 
@@ -244,6 +244,71 @@ memory model and names the lifecycle instead of forking the model:
   same bounded reads at episode start that a rolling window pays after a
   compaction. `rolling-lossy` remains the modeled default; the mode
   vocabulary makes that assumption declared instead of silent.
+
+## Ownership-boundary amendment (2026-07-22)
+
+This ADR already made `primitives/context-stack.md` the single model and the
+Operational core a bounded rehydration surface. It never said which of the two
+**owns** a rule when both carry it. A clause-level parity audit of every emitted
+projection — each Operational-core clause mapped to the authority obligation it
+restates — found the gap was not theoretical: two rules lived **only** in the
+projection.
+
+**The boundary, stated:**
+
+- **`context-stack` is the full semantic authority.** Every runtime rule the
+  memory model governs is defined there, once.
+- **The Operational core is a compact, verifier-pinned projection.** It may
+  repeat essential *actions* for bounded re-entry; it may carry **no unique
+  semantics**. A rule that exists only in the Operational core is a defect.
+- **Every projection clause carries co-emitted `authority_refs[]`.** The
+  authority must render wherever the projection renders — evaluated over the
+  composition lattice (family × consult tier × overlay × effective halt variant),
+  not per archetype. A projection whose authority is absent in any variant it
+  emits in is not a projection; it is an orphan.
+
+**Why promotion, not deletion.** Deleting the projection breaks the bounded
+`sed -n '1,80p'` re-entry this ADR established. Making the Operational core
+authoritative replicates the contract across four bodies and recreates the drift
+the model exists to remove. Both rules were therefore **promoted into the
+authority**, and the projections left in place:
+
+- **Consult-tier freshness.** The per-pass "is `consult_tier_effective` still
+  true for this host" check existed only as line 6 of each body's Operational
+  core. Worse, its nominal authority was circular: `consult-capability` said
+  *"health line 6 keeps it fresh"* — the authority delegated the rule to the
+  projection, and the projection was its only home. `consult-capability` could
+  not adopt it either: that block is tier-gated (42 of 56 variants) while the
+  check emits in all 56, so tier-0 would lose the rule entirely. Promoted into
+  the Context-health ritual, which is ungated; the run-host block now *references*
+  it and re-fires on **absence or staleness**, not on mere presence.
+- **Rehydration cadence.** The 2026-07-17 amendment above already *decided* the
+  cadence — `rolling-lossy` → after any detected compaction; `fresh-episode` → at
+  every episode start; `unknown` → at every iteration start. But only `unknown`
+  had a runtime authority; the other two mappings existed solely in the four
+  Operational-core intros. A decided rule with no authority is still an orphan.
+  Promoted to `### Rehydration cadence`, carrying the complete table plus an
+  explicit **trigger-is-not-a-basis** firewall: detecting a compaction, or what
+  the window shows, *fires* the cadence for an already-resolved mode and never
+  *resolves* the mode — preserving this ADR's "never observation" rule, which
+  cadence language could otherwise erode by the back door.
+
+**Parity is enforced against canonical contracts, not prose similarity.** The
+cadence is a single table in the verifier checked against the authority **and**
+all four projections; the freshness rule is pinned as independent semantic
+conjuncts (tier-0 has no consult contract; runner change or channel failure
+invalidates; re-verification is non-interactive; value **and** basis are
+overwritten; only missing channels degrade) inside the boundary that already owns
+run-host gating. Whitespace is normalised; the conjuncts are not, so a partial
+rewrite fails rather than passes.
+
+**Alternatives rejected:**
+
+- **Operational core as authority.** Would put the full contract in four bodies
+  and reintroduce four-way drift — the failure mode this ADR was written against.
+- **Duplicated co-authority** (both surfaces authoritative, kept in sync). No
+  single definition to check against; "in sync" is only ever asserted, and the
+  two orphans found here are exactly what unasserted synchrony produces.
 
 ## Revisit Triggers
 
