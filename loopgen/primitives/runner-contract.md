@@ -11,8 +11,9 @@ This block is universal.
 **Placeholders.** None — substituted verbatim.
 
 **Idempotency corollary (authoring guidance — not part of the inlined block).**
-Because the runner re-invokes the *same* prompt every iteration, the emitted
-prompt must be safe to re-run from any state: all first-iteration / bootstrap /
+Because the runner re-invokes the loop from the same bare-pointer kick-off every
+iteration — without re-sending the prompt's contents — the emitted prompt must
+be safe to re-run from any state: all first-iteration / bootstrap /
 one-time setup must be **self-gated on durable state** (`.loop/<loop-id>/STATE.md`
 `iteration: 0`, "no `<artifact>` yet"), run once, then skipped — never assumed to
 run "first". The **kick-off** invocation the operator pastes into the runner must
@@ -47,7 +48,8 @@ and next command.
 ## Runner contract
 
 This prompt is runner-agnostic internally. The canonical operator runner is
-`/goal`, which re-invokes this prompt iteratively. The prompt assumes only:
+`/goal`, which re-invokes the loop iteratively from the same bare-pointer
+kick-off; it never re-sends this prompt's contents. The prompt assumes only:
 
 1. Iterative re-invocation — you are one iteration.
 2. File-persisted state — durable progress lives in named files, not memory.

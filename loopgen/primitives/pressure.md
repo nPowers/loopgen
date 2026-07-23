@@ -62,10 +62,11 @@ mandatory promotion triggers, and the backpressure instruction.
   of `count(pressure_objects)`; a zero-pressure compose still carries the HUD and
   its promotion triggers, so the surface is live the moment the loop mints its
   first row. The in-force set may start empty; the block may not be absent.
-- **Compaction survival.** The *pointer* ("re-read `.loop/<loop-id>/PRESSURE.md` each
-  pass") must sit in the durable prompt — it rides the runner's user-role
-  continuation, which survives Codex compaction verbatim while the assistant
-  summary is lossy. The *content* lives on disk. File-backed beats
+- **Compaction recovery.** The *pointer* ("re-read `.loop/<loop-id>/PRESSURE.md`
+  each pass") must sit in the durable prompt. The runner's user-role
+  continuation carries only the bare kick-off, so the agent must rehydrate the
+  Operational core on its declared cadence to recover this instruction after
+  compaction. The *content* lives on disk. File-backed beats
   context-trusted.
 - **Salience without consequence is bloat; consequence without salience is
   review after the whistle.** Every row carries both halves or it is cut.

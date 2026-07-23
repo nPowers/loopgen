@@ -62,7 +62,8 @@ commit → 9 provisional balance → full frontier scan → `homeostatic-checkpo
 ## Runner contract
 
 This prompt is runner-agnostic internally. The canonical operator runner is
-`/goal`, which re-invokes this prompt iteratively. The prompt assumes only:
+`/goal`, which re-invokes the loop iteratively from the same bare-pointer
+kick-off; it never re-sends this prompt's contents. The prompt assumes only:
 
 1. Iterative re-invocation — you are one iteration.
 2. File-persisted state — durable progress lives in named files, not memory.
@@ -1158,12 +1159,15 @@ not files.
 
 ## Context stack — the memory model
 
-Your runner re-sends this prompt each iteration. What the window does between
-iterations is `context_mode_effective` in `STATE.md` — `rolling-lossy` (one
-continuous conversation; user-role text survives compaction, assistant/tool
-output is summarized away near the ceiling), `fresh-episode` (a cold window
-every episode), or `unknown` — resolved only from an operator declaration or
-runner attestation, never from what the window seems to show. Runner
+Your runner re-sends only the bare-pointer kick-off each iteration; it never
+re-sends this file's contents. Keeping the prompt contract current in the
+window is therefore your rehydration responsibility, not the runner's. What
+the window does between iterations is `context_mode_effective` in `STATE.md` —
+`rolling-lossy` (one continuous conversation; user-role text survives
+compaction, assistant/tool output is summarized away near the ceiling),
+`fresh-episode` (a cold window every episode), or `unknown` — resolved only from
+an operator declaration or runner attestation, never from what the window seems
+to show. Runner
 attestation is **reserved**: no current runner emits one, so unless an
 operator declared the mode it stays `unknown` (rehydrate every iteration) —
 do not synthesize an attestation from the window. Under every mode **the

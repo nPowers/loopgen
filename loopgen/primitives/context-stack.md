@@ -38,7 +38,8 @@ composition read in `SKILL.md`).
 
 - `/goal` re-sends the same kick-off pointer into one conversation every
   iteration. The kick-off carries no instruction content; every rule lives in
-  `.loop/<loop-id>/PROMPT.md`, which the runner re-reads.
+  `.loop/<loop-id>/PROMPT.md`, which the agent must read from the pointer and
+  rehydrate on the declared cadence.
 - That continuous conversation is the `rolling-lossy` default lifecycle.
   `fresh-episode` and `unknown` (`context_mode_effective`, STATE schema
   below) share every file rule and differ only in the Operational core's
@@ -116,12 +117,15 @@ tier and bound:
 
 ## Context stack — the memory model
 
-Your runner re-sends this prompt each iteration. What the window does between
-iterations is `context_mode_effective` in `STATE.md` — `rolling-lossy` (one
-continuous conversation; user-role text survives compaction, assistant/tool
-output is summarized away near the ceiling), `fresh-episode` (a cold window
-every episode), or `unknown` — resolved only from an operator declaration or
-runner attestation, never from what the window seems to show. Runner
+Your runner re-sends only the bare-pointer kick-off each iteration; it never
+re-sends this file's contents. Keeping the prompt contract current in the
+window is therefore your rehydration responsibility, not the runner's. What
+the window does between iterations is `context_mode_effective` in `STATE.md` —
+`rolling-lossy` (one continuous conversation; user-role text survives
+compaction, assistant/tool output is summarized away near the ceiling),
+`fresh-episode` (a cold window every episode), or `unknown` — resolved only from
+an operator declaration or runner attestation, never from what the window seems
+to show. Runner
 attestation is **reserved**: no current runner emits one, so unless an
 operator declared the mode it stays `unknown` (rehydrate every iteration) —
 do not synthesize an attestation from the window. Under every mode **the

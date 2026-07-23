@@ -520,10 +520,11 @@ the path to the prompt, and a one-phrase identity. Nothing else.
 >
 > e.g. `/goal read .loop/<loop-id>/PROMPT.md and execute as the hybrid-pareto benchmarking loop.`
 
-`/goal` re-sends the *same* prompt every iteration (see
-`primitives/runner-contract.md`), so the kick-off must be **iteration-agnostic**
-and carry **no instruction content** — every rule (which file is the goal, where
-`STATE.md` is, the iteration protocol, the bootstrap gate) lives in
+`/goal` re-sends the *same bare-pointer kick-off* every iteration (see
+`primitives/runner-contract.md`), never `PROMPT.md`'s contents. The kick-off
+must therefore be **iteration-agnostic** and carry **no instruction content** —
+every rule (which file is the goal, where `STATE.md` is, the iteration protocol,
+the bootstrap gate) lives in
 `.loop/<loop-id>/PROMPT.md`, the single source. If you are tempted to add a clause to the
 kick-off ("…and start with…", "….loop/<loop-id>/STATE.md tells you where you are"), put it
 in `PROMPT.md` instead. NEVER bake first-iteration language into the kick-off
